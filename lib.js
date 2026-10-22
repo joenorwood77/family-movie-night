@@ -321,7 +321,10 @@ window.FM = (function () {
         if (raw == null) {
           c.appendChild(el("b", null, name === "Letterboxd" ? "not added" : "not loaded"));
         } else {
-          c.appendChild(el("b", null, (parseFloat(raw) / div).toFixed(1)));
+          // TWO decimals, like the group average beside it. One decimal turned RT critics
+          // 81% into "4.0" when the honest figure is 4.05, quietly throwing away precision
+          // the sheet actually has. Caught by scripts/check_ratings_block.py.
+          c.appendChild(el("b", null, (parseFloat(raw) / div).toFixed(2)));
           c.appendChild(el("i", null, String(raw) + unit));
         }
         src.appendChild(c);
