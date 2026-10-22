@@ -10,7 +10,7 @@
  * due:      the deadline shown on the page. ISO date, or empty to hide it.
  */
 window.FM_CONFIG = {
-  endpoint: "",
+  endpoint: "https://script.google.com/macros/s/AKfycbz3AWj7YSsOYhp3DLGvLr-Vv1gaZDl6G1MFY0XJIb5P3IFjmqT9_xfznT_fgRYxFqcr/exec",
   season: "Season 5",
   due: "2026-11-01",
   themesPerPerson: 2
