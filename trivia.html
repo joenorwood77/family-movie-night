@@ -1,0 +1,591 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Trivia to Read Out</title>
+<meta name="description" content="Paste the IMDb trivia for a film, mark the ones worth reading out, and come back to them.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap">
+<link rel="stylesheet" href="theme.css">
+<style>
+/* Same tokens as the rest of the site, so the pages read as one thing. Every token gets its
+   light value on bare :root first; both dark blocks only redefine. */
+:root{
+  color-scheme: light;
+  --bg:#fbf7f0; --card:#ffffff; --ink:#1b1512; --ink-soft:#574b43; --ink-faint:#7b6d63;
+  --line:#e2d7c9; --line-strong:#c9b9a6;
+  --accent:#a3321e; --accent-ink:#ffffff; --accent-soft:#fdeee9;
+  --ok:#1d6b45; --ok-soft:#e6f4ec;
+  --warn:#8a5200; --warn-soft:#fdf1dc;
+  --stop:#9d1c1c; --stop-soft:#fdeaea;
+  --shadow:0 1px 2px rgba(27,21,18,.07), 0 8px 24px rgba(27,21,18,.06);
+  --radius:14px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --bg:#15120f; --card:#211c18; --ink:#f7f1e8; --ink-soft:#ccbfb2; --ink-faint:#a2958a;
+    --line:#352c25; --line-strong:#4d4036;
+    --accent:#ff8f6b; --accent-ink:#2a0f06; --accent-soft:#38201a;
+    --ok:#6ddc9f; --ok-soft:#14301f;
+    --warn:#ffc266; --warn-soft:#33250c;
+    --stop:#ff8f8f; --stop-soft:#3a1616;
+    --shadow:0 1px 2px rgba(0,0,0,.5), 0 8px 24px rgba(0,0,0,.4);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --bg:#15120f; --card:#211c18; --ink:#f7f1e8; --ink-soft:#ccbfb2; --ink-faint:#a2958a;
+  --line:#352c25; --line-strong:#4d4036;
+  --accent:#ff8f6b; --accent-ink:#2a0f06; --accent-soft:#38201a;
+  --ok:#6ddc9f; --ok-soft:#14301f;
+  --warn:#ffc266; --warn-soft:#33250c;
+  --stop:#ff8f8f; --stop-soft:#3a1616;
+  --shadow:0 1px 2px rgba(0,0,0,.5), 0 8px 24px rgba(0,0,0,.4);
+}
+
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font:17px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  padding-block: 0 56px;
+  padding-left:max(18px,env(safe-area-inset-left,0px));
+  padding-right:max(18px,env(safe-area-inset-right,0px));
+}
+.wrap{max-width:44rem; margin:0 auto}
+h1,h2{font-family:Fraunces,Georgia,"Times New Roman",serif; font-weight:700;
+  text-wrap:balance; margin:0}
+h1{font-size:clamp(1.8rem,6.5vw,2.4rem); line-height:1.1; letter-spacing:-.01em}
+header{padding-block:30px 6px}
+.kicker{font-size:.76rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--accent); margin-bottom:9px}
+.lede{color:var(--ink-soft); margin:10px 0 0}
+
+nav.views{display:flex; flex-wrap:wrap; gap:8px; margin:18px 0 0}
+nav.views a{
+  flex:1 1 7rem; min-height:46px; padding:11px 14px; font-size:.97rem; font-weight:600;
+  border-radius:11px; background:var(--card); color:var(--ink); text-decoration:none;
+  border:2px solid var(--line-strong); display:grid; place-items:center; text-align:center;
+}
+nav.views a:hover{border-color:var(--accent)}
+
+.card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
+  box-shadow:var(--shadow); padding:18px; margin-top:16px}
+.card h2{font-size:1.1rem; margin-bottom:4px}
+.hint{color:var(--ink-faint); font-size:.9rem; margin:6px 0 0}
+.step{font-size:.72rem; font-weight:700; letter-spacing:.09em; text-transform:uppercase;
+  color:var(--accent); margin:0 0 7px}
+
+label.fld{display:block; font-size:.8rem; font-weight:700; color:var(--ink-soft);
+  text-transform:uppercase; letter-spacing:.06em; margin:0 0 5px}
+input[type=search],input[type=text],select,textarea{
+  width:100%; font:inherit; font-size:17px; color:var(--ink); background:var(--bg);
+  border:2px solid var(--line-strong); border-radius:11px; padding:13px 14px;
+}
+textarea{min-height:9rem; line-height:1.45; resize:vertical}
+input:focus,select:focus,textarea:focus{outline:3px solid var(--accent-soft); outline-offset:1px;
+  border-color:var(--accent)}
+
+button{font:inherit; font-size:1rem; font-weight:700; cursor:pointer; min-height:48px;
+  padding:12px 18px; border-radius:11px; border:2px solid var(--line-strong);
+  background:var(--card); color:var(--ink)}
+button.primary{background:var(--accent); color:var(--accent-ink); border-color:var(--accent)}
+button:disabled{opacity:.5; cursor:not-allowed}
+.row{display:flex; flex-wrap:wrap; gap:9px; margin-top:12px}
+.row > *{flex:1 1 auto}
+
+/* ---- the film picker ---- */
+ul.pick{list-style:none; margin:10px 0 0; padding:0; display:grid; gap:7px; max-height:17rem;
+  overflow-y:auto}
+ul.pick button{width:100%; text-align:left; min-height:44px; padding:10px 13px;
+  font-weight:600; font-size:.96rem}
+.chosen{display:flex; flex-wrap:wrap; gap:9px; align-items:baseline;
+  padding:12px 14px; border-radius:11px; background:var(--accent-soft);
+  border:1px solid var(--line); margin-top:12px}
+.chosen b{font-family:Fraunces,Georgia,serif; font-size:1.1rem}
+.chosen span{color:var(--ink-soft); font-size:.9rem}
+
+/* ---- the trivia items ---- */
+ul.items{list-style:none; margin:14px 0 0; padding:0; display:grid; gap:10px}
+ul.items > li{
+  border:1px solid var(--line); border-left:5px solid var(--line); border-radius:11px;
+  padding:12px 13px; background:var(--bg);
+}
+/* 🛑 NOT A STAR. Joe banned star icons project-wide, and "checkmark or highlight" was his own
+   wording for this. A marked item gets a tick, a colour and a left edge, so it is obvious at a
+   glance and also obvious to someone who cannot tell the colours apart. */
+ul.items > li.marked{border-left-color:var(--ok); background:var(--ok-soft)}
+.itemtop{display:flex; gap:10px; align-items:flex-start}
+.tick{
+  flex:0 0 auto; min-height:40px; min-width:52px; padding:8px 10px; font-size:1.05rem;
+  font-weight:700; border-radius:9px; border:2px solid var(--line-strong);
+  background:var(--card); color:var(--ink-faint); cursor:pointer;
+}
+li.marked .tick{background:var(--ok); border-color:var(--ok); color:var(--card)}
+.txt{flex:1 1 auto; min-width:0; font-size:.98rem; line-height:1.5}
+.itemfoot{display:flex; flex-wrap:wrap; gap:7px; margin-top:10px; align-items:center}
+.itemfoot button{min-height:40px; min-width:46px; padding:8px 11px; font-size:.9rem;
+  border-radius:9px; flex:0 0 auto}
+.itemfoot input{flex:1 1 9rem; min-height:40px; padding:9px 11px; font-size:15px;
+  border-width:1px; border-radius:9px}
+.num{font-size:.78rem; font-weight:700; color:var(--ink-faint); min-width:2.2rem}
+
+.filters{display:flex; flex-wrap:wrap; gap:8px; margin-top:14px; align-items:center}
+.filters button{min-height:42px; padding:9px 14px; font-size:.92rem; flex:0 0 auto}
+.filters button[aria-pressed="true"]{background:var(--accent); color:var(--accent-ink);
+  border-color:var(--accent)}
+.count{font-size:.86rem; color:var(--ink-faint); margin-top:12px}
+
+.banner{padding:13px 15px; border-radius:11px; font-size:.95rem; margin-top:14px;
+  border:1px solid currentColor}
+.banner.warn{background:var(--warn-soft); color:var(--warn)}
+.banner.stop{background:var(--stop-soft); color:var(--stop)}
+.banner.ok{background:var(--ok-soft); color:var(--ok)}
+.banner b{font-weight:700}
+
+footer{margin-top:28px; color:var(--ink-faint); font-size:.82rem; text-align:center}
+footer a{color:var(--accent)}
+@media (max-width:420px){ .card{padding:15px} }
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="kicker">Family Movie Night</div>
+  <h1>Trivia to read out</h1>
+  <p class="lede" id="lede">Paste the trivia for a film, tick the ones worth reading out, and they
+    will be waiting for you next time.</p>
+  <nav class="views">
+    <a href="search.html">Have we watched it?</a>
+    <a href="index.html">Submit categories</a>
+    <a href="picks.html">Submit movie picks</a>
+  </nav>
+</header>
+
+<div id="datawarn" class="banner stop" hidden></div>
+<div id="offwarn" class="banner warn" hidden></div>
+
+<main>
+  <div class="card">
+    <p class="step">Step 1</p>
+    <h2>Who is this?</h2>
+    <label class="fld sr" for="person">Your name</label>
+    <select id="person"></select>
+    <p class="hint">So the board knows whose notes these are. It remembers you next time.</p>
+  </div>
+
+  <div class="card">
+    <p class="step">Step 2</p>
+    <h2>Which film?</h2>
+    <label class="fld sr" for="q">Find a film</label>
+    <input type="search" id="q" placeholder="Type part of the title" autocomplete="off">
+    <ul class="pick" id="hits"></ul>
+    <div class="chosen" id="chosen" hidden></div>
+  </div>
+
+  <div class="card" id="c-paste" hidden>
+    <p class="step">Step 3</p>
+    <h2>Paste the trivia</h2>
+    <p class="hint">Copy the whole trivia page from IMDb and paste it here. It gets split into
+      separate items automatically, and the "123 of 456 found this interesting" lines are thrown
+      away. Pasting again adds only what is new.</p>
+    <div style="margin-top:12px">
+      <textarea id="paste" placeholder="Paste here"></textarea>
+    </div>
+    <div class="row">
+      <button type="button" class="primary" id="split">Split into items</button>
+      <button type="button" id="clearpaste">Clear the box</button>
+    </div>
+  </div>
+
+  <div class="card" id="c-items" hidden>
+    <p class="step">Step 4</p>
+    <h2>Tick the ones to read out</h2>
+    <div class="filters">
+      <button type="button" id="f-all" aria-pressed="true">Show all</button>
+      <button type="button" id="f-marked" aria-pressed="false">Only the ticked ones</button>
+      <button type="button" id="addone">Add your own</button>
+    </div>
+    <p class="count" id="count"></p>
+    <ul class="items" id="items"></ul>
+    <div class="row">
+      <button type="button" class="primary" id="save">Save the board</button>
+    </div>
+    <div id="result"></div>
+  </div>
+</main>
+
+<footer>
+  <p id="foot"></p>
+  <p><b>Why you have to paste it:</b> IMDb's trivia is licensed, so no website is allowed to fetch
+    it for you. What this page does is the part IMDb will not: let you keep the ones you liked.</p>
+</footer>
+</div>
+
+<script src="config.js"></script>
+<script src="themes.js"></script>
+<script src="movies.js"></script>
+<script src="awards.js"></script>
+<script src="lib.js"></script>
+<script>
+(function(){
+"use strict";
+
+var CFG = window.FM_CONFIG || {};
+var MOVIES = FM.MOVIES;
+var $ = FM.$, el = FM.el, norm = FM.norm, compact = FM.compact, noart = FM.noart;
+
+var LS = "fm.trivia.v1";
+var state = { person: "", film: null, items: [], filter: "all", loaded: false };
+
+/* 🛑 The same data gate as every other page. If movies.js failed to load there is no film list,
+   and a film picker with nothing in it would look like the family has watched nothing. */
+var DATA_OK = FM.requireData("datawarn");
+
+/* ---------- who ---------- */
+var sel = $("person");
+sel.appendChild(el("option", null, "Pick your name"));
+sel.firstChild.value = "";
+FM.PEOPLE.forEach(function(p){
+  var o = el("option", null, p);
+  o.value = p;
+  sel.appendChild(o);
+});
+sel.addEventListener("change", function(){
+  state.person = sel.value;
+  // The person's own colour, the project palette, same as everywhere else.
+  sel.className = state.person ? "fm-p-" + state.person : "";
+  save();
+  paint();
+});
+
+/* ---------- which film ---------- */
+function drawHits(){
+  var q = $("q").value.trim();
+  var ul = $("hits");
+  ul.textContent = "";
+  if (!DATA_OK || q.length < 2) return;
+  var nq = norm(q), cq = compact(q);
+  var hits = MOVIES.filter(function(m){
+    return norm(m.t).indexOf(nq) > -1 || compact(m.t).indexOf(cq) > -1;
+  }).sort(function(a, b){
+    return noart(a.t) < noart(b.t) ? -1 : 1;
+  }).slice(0, 25);
+  hits.forEach(function(m){
+    var li = el("li");
+    var b = el("button", null, m.t + (m.y ? "  (" + m.y + ")" : ""));
+    b.type = "button";
+    b.addEventListener("click", function(){ choose(m); });
+    li.appendChild(b);
+    ul.appendChild(li);
+  });
+  if (!hits.length) ul.appendChild(el("li", "hint", "Nothing matches that."));
+}
+$("q").addEventListener("input", drawHits);
+
+function choose(m){
+  state.film = { t: m.t, y: m.y };
+  state.items = [];
+  state.loaded = false;
+  $("q").value = "";
+  $("hits").textContent = "";
+  var box = $("chosen");
+  box.textContent = "";
+  box.hidden = false;
+  box.appendChild(el("b", null, m.t + (m.y ? " (" + m.y + ")" : "")));
+  box.appendChild(el("span", null, FM.seasonName(m.s) + ", picked by " + m.p));
+  var ch = el("button", null, "Change");
+  ch.type = "button";
+  ch.style.flex = "0 0 auto";
+  ch.style.minHeight = "40px";
+  ch.style.padding = "8px 13px";
+  ch.addEventListener("click", function(){
+    state.film = null; state.items = []; box.hidden = true; paint();
+  });
+  box.appendChild(ch);
+  save();
+  load();
+  paint();
+}
+
+/* ---------- splitting a paste into items -------------------------------------------------
+   IMDb's trivia page pastes as paragraphs separated by blank lines, with a vote line after each
+   one. Those vote lines are the only reliable noise, so they are the only thing stripped. If a
+   paste has no blank lines at all - someone pasting a tidy list - fall back to one item per line.
+----------------------------------------------------------------------------------------- */
+var NOISE = [
+  /^\s*\d[\d,]*\s+of\s+\d[\d,]*\s+found this interesting/i,
+  /^\s*is this interesting\??\s*$/i,
+  /^\s*share this\s*$/i,
+  /^\s*trivia\s*$/i,
+  /^\s*\d+\s*$/,
+  /^\s*(yes|no)\s*$/i,
+  /^\s*edit\s*$/i
+];
+
+function splitPaste(raw){
+  var text = String(raw || "").replace(/\r\n?/g, "\n").trim();
+  if (!text) return [];
+  var parts = text.split(/\n\s*\n+/);
+  if (parts.length < 2) parts = text.split(/\n+/);
+  var out = [];
+  parts.forEach(function(p){
+    var t = p.replace(/\s*\n\s*/g, " ").trim();
+    if (!t) return;
+    for (var i = 0; i < NOISE.length; i++) if (NOISE[i].test(t)) return;
+    if (t.length < 3) return;
+    out.push(t);
+  });
+  return out;
+}
+
+$("split").addEventListener("click", function(){
+  var found = splitPaste($("paste").value);
+  if (!found.length){
+    show("warn", "Nothing to split out of that. Try copying the trivia section again.");
+    return;
+  }
+  // Pasting twice must not double everything up.
+  var have = {};
+  state.items.forEach(function(it){ have[norm(it.text)] = 1; });
+  var added = 0;
+  found.forEach(function(t){
+    if (have[norm(t)]) return;
+    have[norm(t)] = 1;
+    state.items.push({ text: t, note: "", star: false });
+    added++;
+  });
+  $("paste").value = "";
+  save();
+  paint();
+  show("ok", added
+    ? "Added " + added + " item" + (added === 1 ? "" : "s") +
+      (added < found.length ? ", and skipped " + (found.length - added) + " already on the board." : ".")
+    : "All " + found.length + " of those were already on the board.");
+});
+
+$("clearpaste").addEventListener("click", function(){ $("paste").value = ""; });
+
+$("addone").addEventListener("click", function(){
+  state.items.push({ text: "", note: "", star: false });
+  save();
+  paint();
+  var boxes = document.querySelectorAll("#items .txt");
+  if (boxes.length) boxes[boxes.length - 1].focus();
+});
+
+/* ---------- the list ---------- */
+function move(i, d){
+  var j = i + d;
+  if (j < 0 || j >= state.items.length) return;
+  var tmp = state.items[i];
+  state.items[i] = state.items[j];
+  state.items[j] = tmp;
+  save();
+  paint();
+}
+
+function paint(){
+  $("c-paste").hidden = !(state.person && state.film);
+  $("c-items").hidden = !(state.person && state.film);
+  if (!state.film) { $("items").textContent = ""; $("count").textContent = ""; return; }
+
+  var marked = state.items.filter(function(it){ return it.star; }).length;
+  $("count").textContent = state.items.length
+    ? state.items.length + " item" + (state.items.length === 1 ? "" : "s") + ", "
+      + marked + " ticked to read out"
+    : (state.loaded ? "Nothing saved for this film yet. Paste the trivia above."
+                    : "Loading what is already saved...");
+
+  $("f-all").setAttribute("aria-pressed", String(state.filter === "all"));
+  $("f-marked").setAttribute("aria-pressed", String(state.filter === "marked"));
+
+  var ul = $("items");
+  ul.textContent = "";
+  state.items.forEach(function(it, i){
+    if (state.filter === "marked" && !it.star) return;
+    var li = el("li");
+    if (it.star) li.className = "marked";
+
+    var top = el("div", "itemtop");
+    var tick = el("button", "tick", it.star ? "✓" : "");
+    tick.type = "button";
+    tick.setAttribute("aria-pressed", String(!!it.star));
+    tick.setAttribute("aria-label", (it.star ? "Untick" : "Tick") + " item " + (i + 1));
+    tick.addEventListener("click", function(){ it.star = !it.star; save(); paint(); });
+    top.appendChild(tick);
+
+    // contentEditable would be lighter but a textarea is far easier to use on a phone and
+    // behaves predictably with the keyboard.
+    var ta = el("textarea", "txt");
+    ta.value = it.text;
+    ta.rows = Math.min(8, Math.max(2, Math.ceil(it.text.length / 60)));
+    ta.style.borderWidth = "1px";
+    ta.style.minHeight = "0";
+    ta.setAttribute("aria-label", "Trivia item " + (i + 1));
+    ta.addEventListener("input", function(){ it.text = ta.value; save(); });
+    top.appendChild(ta);
+    li.appendChild(top);
+
+    var foot = el("div", "itemfoot");
+    foot.appendChild(el("span", "num", "#" + (i + 1)));
+    var up = el("button", null, "↑"); up.type = "button";
+    up.setAttribute("aria-label", "Move item " + (i + 1) + " earlier");
+    up.disabled = (i === 0) || state.filter === "marked";
+    up.addEventListener("click", function(){ move(i, -1); });
+    var dn = el("button", null, "↓"); dn.type = "button";
+    dn.setAttribute("aria-label", "Move item " + (i + 1) + " later");
+    dn.disabled = (i === state.items.length - 1) || state.filter === "marked";
+    dn.addEventListener("click", function(){ move(i, 1); });
+    foot.appendChild(up);
+    foot.appendChild(dn);
+
+    var note = el("input");
+    note.type = "text";
+    note.placeholder = "Your note, optional";
+    note.value = it.note || "";
+    note.setAttribute("aria-label", "Note on item " + (i + 1));
+    note.addEventListener("input", function(){ it.note = note.value; save(); });
+    foot.appendChild(note);
+
+    var del = el("button", null, "Remove"); del.type = "button";
+    del.addEventListener("click", function(){
+      state.items.splice(i, 1); save(); paint();
+    });
+    foot.appendChild(del);
+    li.appendChild(foot);
+    ul.appendChild(li);
+  });
+
+  if (state.filter === "marked" && !marked && state.items.length){
+    ul.appendChild(el("li", "hint", "Nothing is ticked yet. Tick an item and it will show here."));
+  }
+  $("save").disabled = !CFG.endpoint || !state.person || !state.film;
+}
+
+$("f-all").addEventListener("click", function(){ state.filter = "all"; paint(); });
+$("f-marked").addEventListener("click", function(){ state.filter = "marked"; paint(); });
+
+/* ---------- local draft, so a flaky signal never loses her typing ------------------------
+   The server is the real store. This is only a draft of what has not been saved yet, which is
+   the one job browser storage is good for. Every read and write is wrapped, because a private
+   window throws rather than returning null.
+----------------------------------------------------------------------------------------- */
+function save(){
+  try {
+    localStorage.setItem(LS, JSON.stringify({
+      person: state.person, film: state.film, items: state.items
+    }));
+  } catch (e) {}
+}
+function restore(){
+  try {
+    var d = JSON.parse(localStorage.getItem(LS) || "{}");
+    if (d.person && FM.PEOPLE.indexOf(d.person) > -1){
+      state.person = d.person;
+      sel.value = d.person;
+      sel.className = "fm-p-" + d.person;
+    }
+    if (d.film && d.film.t){
+      var m = FM.lookup(d.film.t, d.film.y).exact;
+      if (m){ choose(m); if (d.items && d.items.length) state.items = d.items; }
+    }
+  } catch (e) {}
+}
+
+/* ---------- the server ---------- */
+function show(kind, msg){
+  var box = $("result");
+  box.textContent = "";
+  var b = el("div", "banner " + kind, msg);
+  box.appendChild(b);
+}
+
+function load(){
+  if (!CFG.endpoint || !state.film) { state.loaded = true; return; }
+  fetch(CFG.endpoint + "?action=trivia&t=" + encodeURIComponent(state.film.t)
+        + "&y=" + encodeURIComponent(state.film.y || ""))
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      state.loaded = true;
+      if (!d || !d.ok){
+        // An endpoint that does not know this action is a missing SETUP step, not a glitch, and
+        // saying "try again" would be a lie. Same distinction the search page makes.
+        var err = String((d && d.error) || "");
+        if (err.indexOf("Unknown action") > -1){
+          $("offwarn").hidden = false;
+          $("offwarn").innerHTML = "<b>Saving is not switched on yet.</b> The board works and "
+            + "nothing you type is lost, but it cannot be stored until Joe redeploys the script. "
+            + "Trying again will not help.";
+          $("save").disabled = true;
+        }
+        paint();
+        return;
+      }
+      // Anything already saved wins over an old local draft for the same film, because the
+      // server is the shared truth and the draft is just this device's scratch copy.
+      if (d.items && d.items.length) state.items = d.items.map(function(x){
+        return { text: x.text, note: x.note || "", star: !!x.star };
+      });
+      save();
+      paint();
+    })
+    .catch(function(){ state.loaded = true; paint(); });
+}
+
+$("save").addEventListener("click", function(){
+  if (!CFG.endpoint || !state.person || !state.film) return;
+  var items = state.items.filter(function(it){ return (it.text || "").trim(); });
+  $("save").disabled = true;
+  show("warn", "Saving...");
+  fetch(CFG.endpoint, {
+    method: "POST",
+    // text/plain on purpose: it keeps this a "simple" CORS request so the browser sends no
+    // preflight OPTIONS, which Apps Script cannot answer. Do not "fix" this header.
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify({
+      kind: "trivia", person: state.person,
+      title: state.film.t, year: state.film.y || "",
+      items: items.map(function(it){
+        return { text: it.text, note: it.note || "", star: !!it.star };
+      })
+    })
+  })
+    .then(function(r){ return r.json(); })
+    // Apps Script cannot set an HTTP status on its output, so the real answer rides in the body.
+    .then(function(d){
+      $("save").disabled = false;
+      if (!d || !d.ok){
+        show("stop", "Nothing was saved. " + ((d && d.error) || "Tell Joe.")
+             + " What you typed is still here.");
+        return;
+      }
+      show("ok", "Saved " + d.saved + " item" + (d.saved === 1 ? "" : "s") + " for "
+           + d.title + ", " + d.starred + " ticked to read out.");
+    })
+    .catch(function(){
+      $("save").disabled = false;
+      show("stop", "That did not save, probably the signal. What you typed is still here, so "
+           + "press Save again when you have a connection.");
+    });
+});
+
+/* ---------- start ---------- */
+if (!CFG.endpoint){
+  $("offwarn").hidden = false;
+  $("offwarn").innerHTML = "<b>Saving is not switched on yet.</b> You can use the board, but "
+    + "nothing will be stored.";
+}
+$("foot").textContent = "Checked against all " + MOVIES.length + " films we have watched or "
+  + "already picked.";
+restore();
+paint();
+})();
+</script>
+</body>
+</html>
