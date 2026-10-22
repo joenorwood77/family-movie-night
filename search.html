@@ -155,6 +155,7 @@ footer a{color:var(--accent)}
     <button type="button" data-view="movies" role="tab">Everything we have seen</button>
     <button type="button" data-view="cats" role="tab">Categories used</button>
     <a href="index.html">Submit categories</a>
+    <a href="picks.html">Submit movie picks</a>
   </nav>
 </header>
 
@@ -209,180 +210,31 @@ footer a{color:var(--accent)}
 <script src="config.js"></script>
 <script src="themes.js"></script>
 <script src="movies.js"></script>
+<script src="lib.js"></script>
 <script>
 (function(){
 "use strict";
 
 var CFG = window.FM_CONFIG || {};
-var MOVIES = window.FM_MOVIES || [];
 var THEMES = window.FM_THEMES || [];
-var IMG = "https://image.tmdb.org/t/p/w154";
 
-function $(id){ return document.getElementById(id); }
-function el(tag, cls, text){
-  var n = document.createElement(tag);
-  if (cls) n.className = cls;
-  if (text != null) n.textContent = text;
-  return n;
-}
+/* Everything about matching a title lives in lib.js, so search.html and picks.html can never
+   disagree about whether the family has seen a film. These are just short names for it. */
+var MOVIES = FM.MOVIES;
+var $ = FM.$, el = FM.el;
+var norm = FM.norm, compact = FM.compact, noart = FM.noart;
+var lookup = FM.lookup, seasonName = FM.seasonName;
+var tag = FM.tag, letterboxd = FM.letterboxd, poster = FM.poster, verdict = FM.verdict;
 
-/* ---------- title matching ----------------------------------------------------------------
-   A film is identified by title AND year. Two different films genuinely share titles in this
-   collection: Speak No Evil (2022 and 2024), and All Quiet on the Western Front appears three
-   times. The 1001 list once produced a false match on Sunshine for exactly this reason, so the
-   year is never ignored.
-     norm()    folds accents, drops punctuation, collapses spaces.
-     compact() also removes spaces, so "M*A*S*H" meets "mash".
-     noart()   drops a leading article, so "The Prestige" meets "Prestige".
-   A year within 1 counts as the same film, because release years differ between countries and
-   between TMDB and the family's sheet.
-------------------------------------------------------------------------------------------- */
-function norm(s){
-  return String(s || "")
-    .normalize("NFD").replace(/[̀-ͯ]/g, "")
-    .toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
-}
-function compact(s){ return norm(s).replace(/ /g, ""); }
-function noart(s){ return norm(s).replace(/^(the|a|an) /, ""); }
-
-var INDEX = {};
-function addKey(k, m){
-  if (!k) return;
-  (INDEX[k] = INDEX[k] || []).push(m);
-}
-MOVIES.forEach(function(m){
-  addKey(norm(m.t), m);
-  addKey(compact(m.t), m);
-  addKey(noart(m.t), m);
-});
-
-/* Returns {exact: movie|null, sameTitle: [movies]} for a title and year. */
-function lookup(title, year){
-  var keys = [norm(title), compact(title), noart(title)];
-  var pool = [], seenIds = {};
-  keys.forEach(function(k){
-    (INDEX[k] || []).forEach(function(m){
-      var id = m.s + "-" + m.o;
-      if (!seenIds[id]){ seenIds[id] = 1; pool.push(m); }
-    });
-  });
-  if (!pool.length) return { exact: null, sameTitle: [] };
-  var y = parseInt(year, 10);
-  var exact = null;
-  if (!isNaN(y)){
-    for (var i = 0; i < pool.length; i++){
-      var my = parseInt(pool[i].y, 10);
-      if (!isNaN(my) && Math.abs(my - y) <= 1){ exact = pool[i]; break; }
-    }
-  } else if (pool.length === 1){
-    exact = pool[0];
-  }
-  return { exact: exact, sameTitle: pool.filter(function(m){ return m !== exact; }) };
-}
-
-function seasonName(s){ return s === "Outside" ? "outside a season" : "Season " + s; }
-
-/* The verdict shown against a search result. */
-function verdict(li, title, year){
-  var hit = lookup(title, year);
-  if (hit.exact){
-    var m = hit.exact;
-    if (m.st === "Watched"){
-      li.appendChild(tag("seen", "Already watched"));
-      li.appendChild(el("p", "meta", "Watched in " + seasonName(m.s) + ", picked by " + m.p
-        + (m.th ? ', for the category "' + m.th + '"' : "")));
-    } else {
-      li.appendChild(tag("picked", "Already picked"));
-      li.appendChild(el("p", "meta", "Chosen by " + m.p + " for " + seasonName(m.s)
-        + ", not watched yet"));
-    }
-  } else {
-    li.appendChild(tag("free", "Free to pick"));
-    if (hit.sameTitle.length){
-      var other = hit.sameTitle[0];
-      li.appendChild(tag("near", "but check this"));
-      li.appendChild(el("p", "meta", "We watched a different film with this title: "
-        + other.t + " (" + other.y + "), picked by " + other.p + ". "
-        + "Same name, different movie, so this one is still free."));
-    }
-  }
-  return li;
-}
-
-function tag(kind, text){ return el("span", "tag " + kind, text); }
-
-function letterboxd(title, year){
-  // Letterboxd has no usable API for a project like this, so the site links out instead of
-  // pretending to know their rating. One tap gets the real number.
-  var a = el("a", "lbxd", "Letterboxd ↗");
-  a.href = "https://letterboxd.com/search/films/"
-         + encodeURIComponent(title + (year ? " " + year : "")) + "/";
-  a.target = "_blank";
-  a.rel = "noopener";
-  return a;
-}
-
-/* ---------- search ---------- */
-var timer = null, lastQ = "";
-
-function runSearch(q){
-  if (!CFG.endpoint){
-    $("s-note").innerHTML = '<div class="banner warn"><strong>Search is not switched on yet.</strong> '
-      + 'It needs one more setup step from Joe. Everything else on this page works, and so does '
-      + 'submitting categories.</div>';
-    return;
-  }
-  $("s-count").textContent = "Searching...";
-  fetch(CFG.endpoint + "?action=tmdb&q=" + encodeURIComponent(q))
-    .then(function(r){ return r.json(); })
-    .then(function(d){
-      if (q !== lastQ) return;                  // a newer query has already been typed
-      if (!d || !d.ok){
-        $("s-count").textContent = "";
-        /* Two very different causes, and telling someone to "try again" when the feature is not
-           switched on yet would be a lie. The server answers "Unknown action" when the search
-           code has not been deployed, which is a one-off setup step, not a glitch. */
-        var err = String((d && d.error) || "");
-        if (err.indexOf("Unknown action") > -1){
-          $("s-note").innerHTML = '<div class="banner warn"><strong>Search is not switched on '
-            + 'yet.</strong> It needs one more setup step from Joe, and trying again will not help '
-            + 'until he does it. Everything else on this page works now: the full list of films we '
-            + 'have watched, and all the categories used.</div>';
-        } else {
-          $("s-note").innerHTML = '<div class="banner stop">That search could not run just now. '
-            + 'Please try again in a moment.</div>';
-        }
-        return;
-      }
-      $("s-note").textContent = "";
-      drawHits(d.results || []);
-    })
-    .catch(function(){
-      if (q !== lastQ) return;
-      $("s-count").textContent = "";
-      $("s-note").innerHTML = '<div class="banner stop">No connection, so that search could not '
-        + 'run. Nothing is wrong with the list itself.</div>';
-    });
-}
-
+/* ---------- search ----------
+   The debounce, the stale-answer guard and the off / error states all live in lib.js, so the
+   picks page behaves identically without a second copy of any of it. */
 function drawHits(results){
   var ul = $("s-hits");
   ul.textContent = "";
-  if (!results.length){
-    $("s-count").textContent = "Nothing found with that title.";
-    return;
-  }
   results.forEach(function(r){
     var li = el("li");
-    if (r.poster){
-      var img = el("img", "poster");
-      img.src = IMG + r.poster;
-      img.alt = "";
-      img.loading = "lazy";
-      li.appendChild(img);
-    } else {
-      li.appendChild(el("div", "noposter", "☰"));
-    }
+    li.appendChild(poster(r));
     var box = el("div");
     var h = el("p", "ttl", r.t);
     if (r.y) h.appendChild(el("span", "yr", "  " + r.y));
@@ -394,19 +246,31 @@ function drawHits(results){
     li.appendChild(box);
     ul.appendChild(li);
   });
-  $("s-count").textContent = results.length + (results.length === 1 ? " result" : " results");
 }
 
-$("q").addEventListener("input", function(){
-  var q = this.value.trim();
-  lastQ = q;
-  clearTimeout(timer);
-  if (q.length < 2){
-    $("s-hits").textContent = "";
-    $("s-count").textContent = "";
+var NOTE_OFF = '<div class="banner warn"><strong>Search is not switched on yet.</strong> '
+  + 'It needs one more setup step from Joe, and trying again will not help until he does it. '
+  + 'Everything else on this page works now: the full list of films we have watched, and all '
+  + 'the categories used.</div>';
+var NOTE_ERR = '<div class="banner stop">That search could not run just now. Please check your '
+  + 'signal and try again. Nothing is wrong with the list itself.</div>';
+
+FM.liveSearch($("q"), 2, function(state, results){
+  var note = $("s-note"), count = $("s-count");
+  if (state === "idle"){
+    $("s-hits").textContent = ""; count.textContent = ""; note.textContent = "";
     return;
   }
-  timer = setTimeout(function(){ runSearch(q); }, 400);
+  if (state === "searching"){ count.textContent = "Searching..."; return; }
+  if (state === "off"){ $("s-hits").textContent = ""; count.textContent = "";
+    note.innerHTML = NOTE_OFF; return; }
+  if (state === "error"){ $("s-hits").textContent = ""; count.textContent = "";
+    note.innerHTML = NOTE_ERR; return; }
+  note.textContent = "";
+  drawHits(results);
+  count.textContent = results.length
+    ? results.length + (results.length === 1 ? " result" : " results")
+    : "Nothing found with that title.";
 });
 
 /* ---------- everything we have seen ---------- */

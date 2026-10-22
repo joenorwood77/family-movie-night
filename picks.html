@@ -1,0 +1,512 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Submit Your Movie Picks</title>
+<meta name="description" content="Choose your movies for the next season of family movie night.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap">
+<style>
+:root{
+  color-scheme: light;
+  --bg:#fbf7f0; --card:#ffffff; --ink:#1b1512; --ink-soft:#574b43; --ink-faint:#7b6d63;
+  --line:#e2d7c9; --line-strong:#c9b9a6;
+  --accent:#a3321e; --accent-ink:#ffffff; --accent-soft:#fdeee9;
+  --ok:#1d6b45; --ok-soft:#e6f4ec;
+  --warn:#8a5200; --warn-soft:#fdf1dc;
+  --stop:#9d1c1c; --stop-soft:#fdeaea;
+  --shadow:0 1px 2px rgba(27,21,18,.07), 0 8px 24px rgba(27,21,18,.06);
+  --radius:14px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --bg:#15120f; --card:#211c18; --ink:#f7f1e8; --ink-soft:#ccbfb2; --ink-faint:#a2958a;
+    --line:#352c25; --line-strong:#4d4036;
+    --accent:#ff8f6b; --accent-ink:#2a0f06; --accent-soft:#38201a;
+    --ok:#6ddc9f; --ok-soft:#14301f;
+    --warn:#ffc266; --warn-soft:#33250c;
+    --stop:#ff8f8f; --stop-soft:#3a1616;
+    --shadow:0 1px 2px rgba(0,0,0,.5), 0 8px 24px rgba(0,0,0,.4);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --bg:#15120f; --card:#211c18; --ink:#f7f1e8; --ink-soft:#ccbfb2; --ink-faint:#a2958a;
+  --line:#352c25; --line-strong:#4d4036;
+  --accent:#ff8f6b; --accent-ink:#2a0f06; --accent-soft:#38201a;
+  --ok:#6ddc9f; --ok-soft:#14301f;
+  --warn:#ffc266; --warn-soft:#33250c;
+  --stop:#ff8f8f; --stop-soft:#3a1616;
+  --shadow:0 1px 2px rgba(0,0,0,.5), 0 8px 24px rgba(0,0,0,.4);
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font:17px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  padding-block: 0 56px;
+  padding-left:max(18px,env(safe-area-inset-left,0px));
+  padding-right:max(18px,env(safe-area-inset-right,0px));
+}
+.wrap{max-width:40rem; margin:0 auto}
+h1,h2,h3{font-family:Fraunces,Georgia,"Times New Roman",serif; font-weight:700;
+  text-wrap:balance; margin:0}
+h1{font-size:clamp(1.8rem,6.5vw,2.4rem); line-height:1.1}
+h2{font-size:1.22rem; line-height:1.25}
+header{padding-block:30px 6px}
+.kicker{font-size:.76rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--accent); margin-bottom:9px}
+.lede{color:var(--ink-soft); margin:10px 0 0}
+a.other{display:inline-block; margin-top:14px; padding:11px 16px; min-height:44px;
+  font-size:.95rem; font-weight:600; text-decoration:none; color:var(--ink);
+  background:var(--card); border:2px solid var(--line-strong); border-radius:11px}
+a.other:hover{border-color:var(--accent)}
+
+.card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
+  box-shadow:var(--shadow); padding:18px; margin-top:16px}
+.step{display:flex; align-items:center; gap:10px; margin-bottom:13px}
+.num{flex:none; width:28px; height:28px; border-radius:50%; background:var(--accent);
+  color:var(--accent-ink); font-size:.92rem; font-weight:700; display:grid; place-items:center}
+.hint{color:var(--ink-faint); font-size:.9rem; margin:6px 0 0}
+
+.people,.kinds{display:grid; gap:10px; grid-template-columns:repeat(auto-fit,minmax(8rem,1fr))}
+.people button,.kinds button{
+  min-height:54px; padding:13px 12px; font:inherit; font-size:1.03rem; font-weight:600;
+  background:var(--bg); color:var(--ink); border:2px solid var(--line-strong);
+  border-radius:12px; cursor:pointer; text-align:center;
+}
+.kinds{grid-template-columns:1fr}
+.kinds button{text-align:left; font-size:.99rem; min-height:50px}
+.people button:hover,.kinds button:hover{border-color:var(--accent)}
+.people button[aria-pressed="true"],.kinds button[aria-pressed="true"]{
+  background:var(--accent); color:var(--accent-ink); border-color:var(--accent)}
+.kinds button:disabled{opacity:.45; cursor:not-allowed}
+.kinds .done{font-size:.8rem; font-weight:400; opacity:.85}
+
+input[type=search]{width:100%; font:inherit; font-size:17px; color:var(--ink); background:var(--bg);
+  border:2px solid var(--line-strong); border-radius:11px; padding:13px 14px}
+input:focus{outline:3px solid var(--accent-soft); outline-offset:1px; border-color:var(--accent)}
+
+ul.hits{list-style:none; margin:14px 0 0; padding:0; display:grid; gap:12px}
+ul.hits > li{display:grid; grid-template-columns:62px 1fr; gap:13px; align-items:start;
+  padding-top:12px; border-top:1px solid var(--line)}
+ul.hits > li:first-child{border-top:0; padding-top:0}
+.poster{width:62px; aspect-ratio:2/3; border-radius:7px; object-fit:cover;
+  background:var(--accent-soft); border:1px solid var(--line)}
+.noposter{width:62px; aspect-ratio:2/3; border-radius:7px; background:var(--accent-soft);
+  border:1px solid var(--line); display:grid; place-items:center; color:var(--accent);
+  font-size:1.3rem}
+.ttl{font-weight:700; font-family:Fraunces,Georgia,serif; font-size:1.06rem; line-height:1.25;
+  margin:0}
+.yr{color:var(--ink-faint); font-weight:400; font-size:.95rem}
+.orig{color:var(--ink-faint); font-size:.88rem; font-style:italic; margin:1px 0 0}
+.meta{color:var(--ink-faint); font-size:.86rem; margin:4px 0 0}
+.tag{display:inline-block; margin-top:6px; font-size:.72rem; font-weight:700; letter-spacing:.06em;
+  text-transform:uppercase; border-radius:999px; padding:4px 10px; border:1px solid currentColor}
+.tag.seen{background:var(--stop-soft); color:var(--stop)}
+.tag.picked{background:var(--warn-soft); color:var(--warn)}
+.tag.free{background:var(--ok-soft); color:var(--ok)}
+.tag.near{background:var(--accent-soft); color:var(--accent)}
+.lbxd{display:inline-block; margin-top:7px; margin-left:8px; font-size:.8rem; font-weight:600;
+  color:var(--accent)}
+button.take{
+  margin-top:9px; min-height:46px; padding:11px 18px; font:inherit; font-size:1rem;
+  font-weight:700; font-family:Fraunces,Georgia,serif; cursor:pointer; border-radius:11px;
+  background:var(--accent); color:var(--accent-ink); border:2px solid var(--accent); display:block;
+}
+button.take:disabled{opacity:.4; cursor:not-allowed}
+
+.banner{padding:13px 15px; border-radius:11px; font-size:.95rem; margin-top:14px;
+  border:1px solid currentColor}
+.banner.ok{background:var(--ok-soft); color:var(--ok)}
+.banner.warn{background:var(--warn-soft); color:var(--warn)}
+.banner.stop{background:var(--stop-soft); color:var(--stop)}
+.count{font-size:.86rem; color:var(--ink-faint); margin-top:12px}
+
+.prog{display:grid; gap:8px; margin-top:4px}
+.prog div{display:flex; justify-content:space-between; gap:10px; padding:8px 0;
+  border-top:1px solid var(--line); font-size:.95rem}
+.prog b{font-family:Fraunces,Georgia,serif}
+.mine{list-style:none; margin:10px 0 0; padding:0}
+.mine li{display:flex; justify-content:space-between; gap:10px; align-items:baseline;
+  padding:9px 0; border-top:1px solid var(--line); font-size:.95rem}
+.mine .slot{flex:none; font-size:.7rem; font-weight:700; letter-spacing:.06em;
+  text-transform:uppercase; color:var(--accent); background:var(--accent-soft);
+  border:1px solid var(--accent); border-radius:999px; padding:3px 8px}
+footer{margin-top:28px; color:var(--ink-faint); font-size:.82rem; text-align:center}
+footer a{color:var(--accent)}
+@media (max-width:420px){ .card{padding:15px} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="kicker">Family Movie Night</div>
+  <h1 id="h1">Your movie picks</h1>
+  <p class="lede" id="lede"></p>
+  <a class="other" href="search.html">Just looking something up? Search instead &#8594;</a>
+</header>
+
+<div id="setup" class="banner warn" hidden></div>
+
+<main>
+  <section class="card">
+    <div class="step"><div class="num">1</div><h2>Who are you?</h2></div>
+    <div class="people" id="people" role="group" aria-label="Choose your name"></div>
+  </section>
+
+  <section class="card" id="c-kind" hidden>
+    <div class="step"><div class="num">2</div><h2>What kind of pick is this?</h2></div>
+    <div class="kinds" id="kinds"></div>
+    <p class="hint" id="kind-hint"></p>
+  </section>
+
+  <section class="card" id="c-find" hidden>
+    <div class="step"><div class="num">3</div><h2 id="find-title">Find the movie</h2></div>
+    <input type="search" id="q" placeholder="Type a movie title" autocomplete="off"
+           enterkeyhint="search">
+    <p class="hint">Anything we have already watched, or that somebody has already claimed this
+      season, cannot be picked. You will see that straight away.</p>
+    <div id="note"></div>
+    <ul class="hits" id="hits"></ul>
+    <p class="count" id="count"></p>
+  </section>
+
+  <section class="card" id="c-mine" hidden>
+    <h2 id="mine-title">Your picks so far</h2>
+    <div class="prog" id="prog"></div>
+    <ul class="mine" id="mine"></ul>
+  </section>
+
+  <section class="card" id="c-all" hidden>
+    <h2>Everything claimed this season</h2>
+    <p class="hint">Picks are not hidden, unlike categories. Everyone needs to see what is taken.</p>
+    <ul class="mine" id="all"></ul>
+  </section>
+</main>
+
+<footer>
+  <p id="foot"></p>
+  <p>Film data and posters from <a href="https://www.themoviedb.org/" target="_blank"
+     rel="noopener">TMDB</a>. This site uses the TMDB API but is not endorsed or certified by TMDB.</p>
+</footer>
+</div>
+
+<script src="config.js"></script>
+<script src="themes.js"></script>
+<script src="movies.js"></script>
+<script src="lib.js"></script>
+<script>
+(function(){
+"use strict";
+
+var CFG = window.FM_CONFIG || {};
+var SEASON = CFG.season || "Next season";
+var PEOPLE = ["Joe","Juli","Kathy","Miriam"];
+var LS = "fm.picks.v1";
+
+/* All title matching comes from lib.js, the one copy the whole site shares. */
+var $ = FM.$, el = FM.el;
+
+var state = { person: "", kind: "", theme: "" };
+try {
+  var s = JSON.parse(localStorage.getItem(LS) || "{}");
+  if (s && PEOPLE.indexOf(s.person) > -1) state.person = s.person;
+} catch (e) {}
+function save(){ try { localStorage.setItem(LS, JSON.stringify(state)); } catch (e) {} }
+
+/* Live season data from the sheet: who has claimed what, the agreed categories, the counts. */
+var LIVE = { rows: [], categories: [], owed: {} };
+
+$("h1").textContent = SEASON + " movie picks";
+$("lede").textContent = "Pick your name, choose which slot you are filling, then find the film. "
+  + "Nothing is saved until you press the button on the one you want.";
+
+if (!CFG.endpoint){
+  var sn = $("setup");
+  sn.hidden = false;
+  sn.innerHTML = "<strong>This page is not switched on yet.</strong> It needs one more setup step "
+    + "from Joe before picks can be saved.";
+}
+
+/* ---------- step 1: who ---------- */
+PEOPLE.forEach(function(name){
+  var b = el("button", null, name);
+  b.type = "button";
+  b.setAttribute("aria-pressed", String(state.person === name));
+  b.addEventListener("click", function(){
+    state.person = (state.person === name) ? "" : name;
+    state.kind = ""; state.theme = "";
+    save();
+    render();
+  });
+  $("people").appendChild(b);
+});
+
+/* ---------- step 2: which slot ----------
+   Open Choice and Birthday work from day one. Dealer's Choice cannot, because it needs the
+   season's 8 agreed categories and those are not settled until all four people have submitted
+   them. The server returns [] until then, and this page says so rather than guessing. */
+function buildKinds(){
+  var box = $("kinds");
+  box.textContent = "";
+  var owed = LIVE.owed[state.person] || {open:0, dealer:0, birthday:0, openTarget:8};
+
+  var openBtn = slotButton("Open Choice", "",
+    "Open Choice", owed.open + " of " + owed.openTarget + " done",
+    owed.open >= owed.openTarget);
+  box.appendChild(openBtn);
+
+  if (!LIVE.categories.length){
+    var waiting = el("p", "hint",
+      "Category picks open up once all four of you have submitted your categories. "
+      + "Until then you can still add Open Choice and Birthday films.");
+    box.appendChild(waiting);
+  } else {
+    LIVE.categories.forEach(function(cat){
+      var taken = LIVE.rows.some(function(r){
+        return r.person === state.person && r.pick_type === "Dealer's Choice" && r.theme === cat;
+      });
+      box.appendChild(slotButton("Dealer's Choice", cat, cat,
+        taken ? "done" : "one film needed", taken));
+    });
+  }
+
+  box.appendChild(slotButton("Birthday", "", "Birthday movie",
+    owed.birthday ? owed.birthday + " submitted" : "for your birthday week", false));
+
+  $("kind-hint").textContent = LIVE.categories.length
+    ? "One film for each of the 8 categories, 8 Open Choice films, and your birthday film."
+    : "";
+}
+
+function slotButton(kind, theme, label, sub, disabled){
+  var b = el("button");
+  b.type = "button";
+  b.disabled = !!disabled;
+  b.setAttribute("aria-pressed", String(state.kind === kind && state.theme === theme));
+  b.appendChild(document.createTextNode(label + " "));
+  b.appendChild(el("span", "done", "· " + sub));
+  b.addEventListener("click", function(){
+    state.kind = kind; state.theme = theme;
+    save();
+    render();
+    $("q").focus();
+  });
+  return b;
+}
+
+/* ---------- step 3: find the film ---------- */
+function claimedBy(title, year){
+  // What the baked 354 cannot know: who has claimed what in THIS season.
+  for (var i = 0; i < LIVE.rows.length; i++){
+    var r = LIVE.rows[i];
+    if (FM.norm(r.title) !== FM.norm(title)) continue;
+    var a = parseInt(r.year, 10), b = parseInt(year, 10);
+    if (isNaN(a) || isNaN(b) || Math.abs(a - b) <= 1) return r;
+  }
+  return null;
+}
+
+function drawHits(results){
+  var ul = $("hits");
+  ul.textContent = "";
+  results.forEach(function(r){
+    var li = el("li");
+    li.appendChild(FM.poster(r));
+    var box = el("div");
+    var h = el("p", "ttl", r.t);
+    if (r.y) h.appendChild(el("span", "yr", "  " + r.y));
+    box.appendChild(h);
+    if (r.orig) box.appendChild(el("p", "orig", r.orig));
+
+    var hit = FM.verdict(box, r.t, r.y);      // watched / already picked / free, from history
+    var mine = claimedBy(r.t, r.y);           // and from this season's live picks
+    var blocked = !!hit.exact;
+
+    if (mine){
+      blocked = true;
+      box.appendChild(el("p", "meta",
+        (mine.person === state.person ? "You have" : mine.person + " has")
+        + " already claimed this for " + SEASON
+        + (mine.pick_type === "Dealer's Choice" ? ' (' + mine.theme + ')' : '') + "."));
+    }
+
+    box.appendChild(FM.letterboxd(r.t, r.y));
+
+    var take = el("button", "take", blocked ? "Cannot pick this one" : "Pick this one");
+    take.type = "button";
+    take.disabled = blocked || !CFG.endpoint;
+    take.addEventListener("click", function(){ submit(r, take); });
+    box.appendChild(take);
+
+    li.appendChild(box);
+    ul.appendChild(li);
+  });
+}
+
+var NOTE_OFF = '<div class="banner warn"><strong>Search is not switched on yet.</strong> '
+  + 'It needs one more setup step from Joe, and trying again will not help until he does it.</div>';
+var NOTE_ERR = '<div class="banner stop">That search could not run just now. Please check your '
+  + 'signal and try again.</div>';
+
+FM.liveSearch($("q"), 2, function(st, results){
+  var note = $("note"), count = $("count");
+  if (st === "idle"){ $("hits").textContent = ""; count.textContent = ""; note.textContent = "";
+    return; }
+  if (st === "searching"){ count.textContent = "Searching..."; return; }
+  if (st === "off"){ $("hits").textContent = ""; count.textContent = ""; note.innerHTML = NOTE_OFF;
+    return; }
+  if (st === "error"){ $("hits").textContent = ""; count.textContent = "";
+    note.innerHTML = NOTE_ERR; return; }
+  note.textContent = "";
+  drawHits(results);
+  count.textContent = results.length
+    ? results.length + (results.length === 1 ? " result" : " results")
+    : "Nothing found with that title.";
+});
+
+/* ---------- submitting one pick ---------- */
+function submit(r, btn){
+  btn.disabled = true;
+  btn.textContent = "Saving...";
+  var payload = {
+    kind: "picks",
+    person: state.person,
+    season: SEASON,
+    items: [{
+      pick_type: state.kind,
+      theme: state.theme,
+      title: r.t,
+      year: r.y,
+      tmdb_id: r.id,
+      imdb_id: "",
+      notes: ""
+    }]
+  };
+  fetch(CFG.endpoint, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify(payload),
+    redirect: "follow"
+  })
+  .then(function(res){ return res.json(); })
+  .then(function(d){
+    if (!d || !d.ok){
+      // A refusal the server made on purpose is not a breakage. Show its own words.
+      $("note").innerHTML = '<div class="banner warn">'
+        + ((d && d.error) || "That pick was not accepted. Nothing was saved.") + '</div>';
+      btn.textContent = "Pick this one";
+      btn.disabled = false;
+      refresh();
+      return;
+    }
+    $("note").innerHTML = '<div class="banner ok"><strong>Saved.</strong> ' + r.t
+      + (r.y ? " (" + r.y + ")" : "") + " is yours for "
+      + (state.kind === "Dealer's Choice" ? state.theme : state.kind) + ".</div>";
+    $("q").value = "";
+    $("hits").textContent = "";
+    $("count").textContent = "";
+    state.kind = ""; state.theme = "";
+    save();
+    refresh();
+  })
+  .catch(function(){
+    $("note").innerHTML = '<div class="banner stop">That did not send, so nothing was saved. '
+      + 'Please check your signal and try again.</div>';
+    btn.textContent = "Pick this one";
+    btn.disabled = false;
+  });
+}
+
+/* ---------- progress and the claimed list ---------- */
+function slotLabel(r){
+  if (r.pick_type === "Dealer's Choice") return r.theme || "Category";
+  return r.pick_type;
+}
+
+function drawMine(){
+  var owed = LIVE.owed[state.person];
+  var prog = $("prog");
+  prog.textContent = "";
+  if (owed){
+    [["Open Choice", owed.open, owed.openTarget],
+     ["Categories", owed.dealer, LIVE.categories.length || 8],
+     ["Birthday", owed.birthday, null]].forEach(function(row){
+      var d = el("div");
+      d.appendChild(el("span", null, row[0]));
+      d.appendChild(el("b", null, row[2] == null ? String(row[1]) : row[1] + " of " + row[2]));
+      prog.appendChild(d);
+    });
+  }
+  var mine = LIVE.rows.filter(function(r){ return r.person === state.person; });
+  var ul = $("mine");
+  ul.textContent = "";
+  mine.forEach(function(r){
+    var li = el("li");
+    li.appendChild(el("span", null, r.title + (r.year ? " (" + r.year + ")" : "")));
+    li.appendChild(el("span", "slot", slotLabel(r)));
+    ul.appendChild(li);
+  });
+  $("mine-title").textContent = state.person ? state.person + ", your picks so far"
+                                             : "Your picks so far";
+  $("c-mine").hidden = !state.person;
+}
+
+function drawAll(){
+  var ul = $("all");
+  ul.textContent = "";
+  LIVE.rows.slice().sort(function(a,b){
+    return a.person < b.person ? -1 : a.person > b.person ? 1 : 0;
+  }).forEach(function(r){
+    var li = el("li");
+    li.appendChild(el("span", null, r.title + (r.year ? " (" + r.year + ")" : "")));
+    li.appendChild(el("span", "slot", r.person));
+    ul.appendChild(li);
+  });
+  $("c-all").hidden = !LIVE.rows.length;
+  $("foot").textContent = LIVE.rows.length
+    ? LIVE.rows.length + " films claimed so far for " + SEASON + "."
+    : "No films claimed yet for " + SEASON + ".";
+}
+
+function refresh(){
+  if (!CFG.endpoint) { render(); return; }
+  fetch(CFG.endpoint + "?action=picks&season=" + encodeURIComponent(SEASON))
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      if (!d || !d.ok) return;
+      LIVE.rows = d.rows || [];
+      LIVE.categories = d.categories || [];
+      LIVE.owed = d.owed || {};
+      render();
+    })
+    .catch(function(){ /* the page still works from what it already has */ });
+}
+
+/* ---------- render ---------- */
+function render(){
+  Array.prototype.forEach.call($("people").children, function(b){
+    b.setAttribute("aria-pressed", String(b.textContent === state.person));
+  });
+  $("c-kind").hidden = !state.person;
+  $("c-find").hidden = !(state.person && state.kind);
+  if (state.person) buildKinds();
+  if (state.kind){
+    $("find-title").textContent = "Find a film for "
+      + (state.kind === "Dealer's Choice" ? state.theme : state.kind);
+  }
+  drawMine();
+  drawAll();
+}
+
+render();
+refresh();
+})();
+</script>
+</body>
+</html>
