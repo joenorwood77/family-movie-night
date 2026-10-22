@@ -339,8 +339,19 @@ function runSearch(q){
       if (q !== lastQ) return;                  // a newer query has already been typed
       if (!d || !d.ok){
         $("s-count").textContent = "";
-        $("s-note").innerHTML = '<div class="banner stop">That search could not run just now. '
-          + 'Please try again in a moment.</div>';
+        /* Two very different causes, and telling someone to "try again" when the feature is not
+           switched on yet would be a lie. The server answers "Unknown action" when the search
+           code has not been deployed, which is a one-off setup step, not a glitch. */
+        var err = String((d && d.error) || "");
+        if (err.indexOf("Unknown action") > -1){
+          $("s-note").innerHTML = '<div class="banner warn"><strong>Search is not switched on '
+            + 'yet.</strong> It needs one more setup step from Joe, and trying again will not help '
+            + 'until he does it. Everything else on this page works now: the full list of films we '
+            + 'have watched, and all the categories used.</div>';
+        } else {
+          $("s-note").innerHTML = '<div class="banner stop">That search could not run just now. '
+            + 'Please try again in a moment.</div>';
+        }
         return;
       }
       $("s-note").textContent = "";
