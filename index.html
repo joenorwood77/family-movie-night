@@ -1,0 +1,553 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Family Movie Night</title>
+<meta name="description" content="Submit your theme picks for the next season of family movie night.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap">
+<style>
+/* ---- Palette. Every token gets its light value here first, then dark redefines it below, so no
+   colour is ever defined in only one theme. ---- */
+:root{
+  color-scheme: light;
+  --bg:#fbf7f0; --card:#ffffff; --ink:#1b1512; --ink-soft:#574b43; --ink-faint:#7b6d63;
+  --line:#e2d7c9; --line-strong:#c9b9a6;
+  --accent:#a3321e; --accent-ink:#ffffff; --accent-soft:#fdeee9;
+  --ok:#1d6b45; --ok-soft:#e6f4ec;
+  --warn:#8a5200; --warn-soft:#fdf1dc;
+  --stop:#9d1c1c; --stop-soft:#fdeaea;
+  --shadow:0 1px 2px rgba(27,21,18,.07), 0 8px 24px rgba(27,21,18,.06);
+  --radius:14px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --bg:#15120f; --card:#211c18; --ink:#f7f1e8; --ink-soft:#ccbfb2; --ink-faint:#a2958a;
+    --line:#352c25; --line-strong:#4d4036;
+    --accent:#ff8f6b; --accent-ink:#2a0f06; --accent-soft:#38201a;
+    --ok:#6ddc9f; --ok-soft:#14301f;
+    --warn:#ffc266; --warn-soft:#33250c;
+    --stop:#ff8f8f; --stop-soft:#3a1616;
+    --shadow:0 1px 2px rgba(0,0,0,.5), 0 8px 24px rgba(0,0,0,.4);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --bg:#15120f; --card:#211c18; --ink:#f7f1e8; --ink-soft:#ccbfb2; --ink-faint:#a2958a;
+  --line:#352c25; --line-strong:#4d4036;
+  --accent:#ff8f6b; --accent-ink:#2a0f06; --accent-soft:#38201a;
+  --ok:#6ddc9f; --ok-soft:#14301f;
+  --warn:#ffc266; --warn-soft:#33250c;
+  --stop:#ff8f8f; --stop-soft:#3a1616;
+  --shadow:0 1px 2px rgba(0,0,0,.5), 0 8px 24px rgba(0,0,0,.4);
+}
+
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font:17px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  padding-block: 0 56px;
+  padding-left:max(18px,env(safe-area-inset-left,0px));
+  padding-right:max(18px,env(safe-area-inset-right,0px));
+}
+.wrap{max-width:38rem; margin:0 auto}
+
+h1,h2,h3{font-family:Fraunces,Georgia,"Times New Roman",serif; font-weight:700; text-wrap:balance; margin:0}
+h1{font-size:clamp(1.9rem,7vw,2.6rem); line-height:1.1; letter-spacing:-.01em}
+h2{font-size:1.25rem; line-height:1.25}
+
+header{padding-block:34px 10px}
+.kicker{font-size:.76rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--accent); margin-bottom:10px}
+.lede{color:var(--ink-soft); margin:12px 0 0; font-size:1.02rem}
+
+.card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
+  box-shadow:var(--shadow); padding:20px; margin-top:18px}
+.card > h2{margin-bottom:4px}
+.hint{color:var(--ink-faint); font-size:.9rem; margin:4px 0 0}
+
+/* ---- step numbers ---- */
+.step{display:flex; align-items:center; gap:10px; margin-bottom:14px}
+.num{flex:none; width:28px; height:28px; border-radius:50%; background:var(--accent);
+  color:var(--accent-ink); font-size:.92rem; font-weight:700;
+  display:grid; place-items:center; font-variant-numeric:tabular-nums}
+
+/* ---- who are you ---- */
+.people{display:grid; grid-template-columns:repeat(auto-fit,minmax(8.5rem,1fr)); gap:10px}
+.person{
+  min-height:56px; padding:14px 12px; font-size:1.08rem; font-weight:600; font-family:inherit;
+  background:var(--bg); color:var(--ink); border:2px solid var(--line-strong);
+  border-radius:12px; cursor:pointer; transition:transform .08s ease;
+}
+.person:hover{border-color:var(--accent)}
+.person:active{transform:scale(.98)}
+.person[aria-pressed="true"]{background:var(--accent); color:var(--accent-ink);
+  border-color:var(--accent)}
+
+/* ---- inputs ---- */
+label.fld{display:block; margin-top:16px}
+label.fld > span{display:block; font-weight:600; font-size:.95rem; margin-bottom:6px}
+label.fld > span .opt{font-weight:400; color:var(--ink-faint)}
+input[type=text],textarea{
+  width:100%; font:inherit; font-size:17px; /* 17px keeps iOS from zooming on focus */
+  color:var(--ink); background:var(--bg);
+  border:2px solid var(--line-strong); border-radius:11px; padding:13px 14px;
+}
+input[type=text]:focus,textarea:focus{outline:3px solid var(--accent-soft);
+  outline-offset:1px; border-color:var(--accent)}
+textarea{min-height:76px; resize:vertical}
+
+/* ---- live feedback on a theme box ---- */
+.flag{margin-top:8px; padding:11px 13px; border-radius:10px; font-size:.93rem; line-height:1.45;
+  border:1px solid transparent}
+.flag b{font-weight:700}
+.flag.stop{background:var(--stop-soft); color:var(--stop); border-color:currentColor}
+.flag.warn{background:var(--warn-soft); color:var(--warn); border-color:currentColor}
+.flag.ok{background:var(--ok-soft); color:var(--ok); border-color:currentColor}
+
+/* ---- submit ---- */
+.actions{margin-top:22px; display:flex; flex-wrap:wrap; gap:12px; align-items:center}
+button.go{
+  flex:1 1 12rem; min-height:56px; padding:15px 22px;
+  font:inherit; font-size:1.1rem; font-weight:700; font-family:Fraunces,Georgia,serif;
+  background:var(--accent); color:var(--accent-ink); border:2px solid var(--accent);
+  border-radius:12px; cursor:pointer;
+}
+button.go:disabled{opacity:.45; cursor:not-allowed}
+button.go:active:not(:disabled){transform:scale(.99)}
+button.ghost{background:transparent; color:var(--ink); border-color:var(--line-strong)}
+
+.banner{padding:13px 15px; border-radius:11px; font-size:.95rem; margin-top:16px;
+  border:1px solid currentColor}
+.banner.stop{background:var(--stop-soft); color:var(--stop)}
+.banner.ok{background:var(--ok-soft); color:var(--ok)}
+.banner.warn{background:var(--warn-soft); color:var(--warn)}
+.banner strong{font-weight:700}
+
+/* ---- used-themes reference ---- */
+details{margin-top:18px; border:1px solid var(--line); border-radius:var(--radius);
+  background:var(--card); box-shadow:var(--shadow)}
+summary{padding:16px 20px; cursor:pointer; font-weight:600; font-family:Fraunces,Georgia,serif;
+  font-size:1.1rem; border-radius:var(--radius)}
+summary::marker{color:var(--accent)}
+.used{padding:0 20px 18px}
+.used h3{font-size:.78rem; letter-spacing:.09em; text-transform:uppercase; color:var(--accent);
+  margin:16px 0 8px; font-family:inherit; font-weight:700}
+.used ul{list-style:none; margin:0; padding:0}
+.used li{display:flex; justify-content:space-between; gap:12px; padding:8px 0;
+  border-top:1px solid var(--line); font-size:.95rem}
+.used li span:last-child{color:var(--ink-faint); flex:none; font-size:.88rem}
+
+footer{margin-top:30px; color:var(--ink-faint); font-size:.86rem; text-align:center}
+.sr{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0)}
+@media (max-width:420px){ .card{padding:17px} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="kicker">Family Movie Night</div>
+  <h1 id="h-title">Theme picks</h1>
+  <p class="lede" id="h-lede">
+    Pick your name, then type the themes you want for the next season. Everything you type is
+    checked against every theme we have already used, so you find out right away if one is taken.
+  </p>
+</header>
+
+<div id="setup-note" class="banner warn" hidden></div>
+
+<main>
+  <section class="card">
+    <div class="step"><div class="num">1</div><h2>Who are you?</h2></div>
+    <div class="people" id="people" role="group" aria-label="Choose your name"></div>
+  </section>
+
+  <section class="card" id="form-card" hidden>
+    <div class="step"><div class="num">2</div><h2 id="form-title">Your themes</h2></div>
+    <p class="hint" id="form-hint"></p>
+    <div id="fields"></div>
+
+    <label class="fld">
+      <span>Anything you want to add <span class="opt">(optional)</span></span>
+      <textarea id="notes" maxlength="200" placeholder="A note for the rest of us about your picks"></textarea>
+    </label>
+
+    <div class="actions">
+      <button class="go" id="submit" type="button">Submit my themes</button>
+      <button class="go ghost" id="clear" type="button">Start over</button>
+    </div>
+    <div id="result" hidden></div>
+  </section>
+
+  <section class="card" id="already" hidden>
+    <h2>Who has sent theirs in</h2>
+    <div id="already-body"></div>
+  </section>
+
+  <details>
+    <summary>Themes we have already used <span id="used-count"></span></summary>
+    <div class="used" id="used"></div>
+  </details>
+</main>
+
+<footer>
+  <p id="foot"></p>
+</footer>
+</div>
+
+<script src="config.js"></script>
+<script src="themes.js"></script>
+<script>
+(function(){
+"use strict";
+
+var CFG = window.FM_CONFIG || {};
+var THEMES = window.FM_THEMES || [];
+var PEOPLE = ["Joe","Juli","Kathy","Miriam"];
+var SEASON = CFG.season || "Next season";
+var NFIELDS = Math.max(1, CFG.themesPerPerson || 2);
+var LS = "fm.themes.v1";
+
+function $(id){ return document.getElementById(id); }
+function el(tag, cls, text){
+  var n = document.createElement(tag);
+  if (cls) n.className = cls;
+  if (text != null) n.textContent = text;
+  return n;
+}
+
+/* ---------- matching ------------------------------------------------------------------
+   Two levels, because "already used" has to be generous enough to catch a reworded repeat
+   without being so loose it blocks a genuinely new idea.
+     norm() folds accents, drops punctuation and collapses spaces. An exact norm match BLOCKS.
+     bare() also drops the filler words that show up in half these titles ("films", "movie",
+     "from", "my"), so "Movies With Tom Hanks" meets "Tom Hanks Movies". A bare match, or an
+     edit distance of 1 or 2, WARNS but still lets it through, because only Joe can rule on it.
+------------------------------------------------------------------------------------- */
+var FILLER = /^(a|an|the|of|or|and|with|from|in|on|about|that|any|my|our|film|films|movie|movies|pick|picks|show|shows)$/;
+
+function norm(s){
+  return String(s || "")
+    .normalize("NFD").replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+function bare(s){
+  return norm(s).split(" ").filter(function(w){ return w && !FILLER.test(w); }).sort().join(" ");
+}
+/* Numbers in a theme name are never typos for each other. "Movie from the 1960s" is one letter
+   away from "Movie from the 1950s" but is a completely different theme, so the near-miss check
+   below refuses to fire unless the digits match exactly. */
+function digits(s){
+  return (String(s).match(/[0-9]/g) || []).join("");
+}
+function dist(a, b){
+  if (a === b) return 0;
+  if (Math.abs(a.length - b.length) > 2) return 99;
+  var prev = [], i, j;
+  for (j = 0; j <= b.length; j++) prev[j] = j;
+  for (i = 1; i <= a.length; i++){
+    var cur = [i];
+    for (j = 1; j <= b.length; j++){
+      cur[j] = Math.min(prev[j] + 1, cur[j-1] + 1,
+                        prev[j-1] + (a.charAt(i-1) === b.charAt(j-1) ? 0 : 1));
+    }
+    prev = cur;
+  }
+  return prev[b.length];
+}
+
+var INDEX = THEMES.map(function(t){
+  return { t: t, n: norm(t.t), b: bare(t.t) };
+});
+
+function check(value){
+  var v = norm(value);
+  if (!v) return null;
+  var vb = bare(value), i, row;
+  for (i = 0; i < INDEX.length; i++){
+    if (INDEX[i].n === v) return { level: "stop", hit: INDEX[i].t, why: "the same theme" };
+  }
+  for (i = 0; i < INDEX.length; i++){
+    row = INDEX[i];
+    if (vb && row.b === vb) return { level: "warn", hit: row.t, why: "the same words" };
+  }
+  for (i = 0; i < INDEX.length; i++){
+    row = INDEX[i];
+    if (v.length >= 5 && digits(v) === digits(row.n) && dist(v, row.n) <= 2){
+      return { level: "warn", hit: row.t, why: "almost exactly this" };
+    }
+  }
+  return { level: "ok" };
+}
+
+/* ---------- state ---------- */
+var state = { person: "", themes: [], notes: "" };
+try {
+  var saved = JSON.parse(localStorage.getItem(LS) || "{}");
+  if (saved && typeof saved === "object"){
+    if (PEOPLE.indexOf(saved.person) > -1) state.person = saved.person;
+    if (Array.isArray(saved.themes)) state.themes = saved.themes.slice(0, NFIELDS + 1);
+    if (typeof saved.notes === "string") state.notes = saved.notes;
+  }
+} catch (e) { /* private window or blocked storage. The page works without it. */ }
+
+function save(){
+  try { localStorage.setItem(LS, JSON.stringify(state)); } catch (e) {}
+}
+
+/* ---------- header and footer ---------- */
+$("h-title").textContent = SEASON + " theme picks";
+if (CFG.due){
+  var d = new Date(CFG.due + "T12:00:00");
+  if (!isNaN(d)){
+    var due = d.toLocaleDateString(undefined, { weekday:"long", month:"long", day:"numeric" });
+    $("h-lede").appendChild(el("strong", null, " Due " + due + "."));
+  }
+}
+$("foot").textContent = "Each person picks " + NFIELDS + " themes that have never been used before. "
+  + THEMES.length + " themes have been used across Seasons 1 to 4.";
+
+if (!CFG.endpoint){
+  var note = $("setup-note");
+  note.hidden = false;
+  note.innerHTML = "<strong>Saving is not switched on yet.</strong> You can fill this in and check "
+    + "your themes against the old ones right now, but the Submit button cannot send them "
+    + "anywhere until Joe finishes the setup. Nothing you type here has been saved.";
+}
+
+/* ---------- step 1: who ---------- */
+PEOPLE.forEach(function(name){
+  var b = el("button", "person", name);
+  b.type = "button";
+  b.setAttribute("aria-pressed", String(state.person === name));
+  b.addEventListener("click", function(){
+    state.person = (state.person === name) ? "" : name;
+    save();
+    render();
+  });
+  $("people").appendChild(b);
+});
+
+/* ---------- step 2: the theme fields ---------- */
+function buildFields(){
+  var box = $("fields");
+  box.textContent = "";
+  for (var i = 0; i < NFIELDS + 1; i++){
+    (function(i){
+      var isBackup = (i === NFIELDS);
+      var lab = el("label", "fld");
+      var span = el("span");
+      span.appendChild(document.createTextNode(isBackup ? "Backup idea " : "Theme " + (i + 1) + " "));
+      var opt = el("span", "opt", isBackup ? "(optional, in case one is taken)" : "");
+      span.appendChild(opt);
+      lab.appendChild(span);
+
+      var inp = document.createElement("input");
+      inp.type = "text";
+      inp.maxLength = 120;
+      inp.autocomplete = "off";
+      inp.value = state.themes[i] || "";
+      inp.placeholder = isBackup ? "Only if you have one" : "For example: Films set in one room";
+      lab.appendChild(inp);
+
+      var flag = el("div", "flag");
+      flag.hidden = true;
+      lab.appendChild(flag);
+
+      function update(){
+        state.themes[i] = inp.value;
+        save();
+        var r = check(inp.value);
+        if (!r){ flag.hidden = true; inp.setCustomValidity(""); refreshSubmit(); return; }
+        flag.hidden = false;
+        flag.className = "flag " + r.level;
+        if (r.level === "ok"){
+          flag.textContent = "Not used before. Good to go.";
+        } else {
+          flag.textContent = "";
+          flag.appendChild(el("b", null, r.level === "stop" ? "Already used. " : "Very close. "));
+          flag.appendChild(document.createTextNode(
+            (r.level === "stop" ? "This is " : "This is ") + r.why + " as "));
+          flag.appendChild(el("b", null, "“" + r.hit.t + "”"));
+          flag.appendChild(document.createTextNode(
+            ", which " + r.hit.by + " picked in Season " + r.hit.s + "."
+            + (r.level === "stop" ? " Please change it." : " Send it anyway if you think it is different.")));
+        }
+        refreshSubmit();
+      }
+      inp.addEventListener("input", update);
+      if (inp.value) update();
+      box.appendChild(lab);
+    })(i);
+  }
+}
+
+function filled(){
+  var out = [];
+  for (var i = 0; i < NFIELDS + 1; i++){
+    var v = (state.themes[i] || "").trim();
+    if (v) out.push({ rank: i + 1, theme: v, backup: i === NFIELDS });
+  }
+  return out;
+}
+
+function blocked(){
+  return filled().some(function(f){
+    var r = check(f.theme);
+    return r && r.level === "stop";
+  });
+}
+
+function refreshSubmit(){
+  var items = filled();
+  var need = items.filter(function(f){ return !f.backup; }).length;
+  var btn = $("submit");
+  btn.disabled = !state.person || need < NFIELDS || blocked() || !CFG.endpoint;
+  if (!CFG.endpoint) btn.textContent = "Saving not switched on yet";
+  else if (blocked()) btn.textContent = "Change the used theme first";
+  else if (need < NFIELDS) btn.textContent = "Fill in " + NFIELDS + " themes";
+  else btn.textContent = "Submit my themes";
+}
+
+/* ---------- submit ---------- */
+$("submit").addEventListener("click", function(){
+  var items = filled();
+  if (!items.length || !state.person || !CFG.endpoint) return;
+  var btn = $("submit");
+  btn.disabled = true;
+  btn.textContent = "Sending...";
+  show("", null);
+
+  var payload = {
+    kind: "themes",
+    person: state.person,
+    season: SEASON,
+    items: items.map(function(f){
+      return { rank: f.rank, theme: f.theme, notes: f.backup ? "backup" : ($("notes").value || "") };
+    })
+  };
+
+  // text/plain keeps this a "simple" cross-origin request, so the browser sends no preflight.
+  // Apps Script cannot answer a preflight OPTIONS, so this detail is what makes it work at all.
+  fetch(CFG.endpoint, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify(payload),
+    redirect: "follow"
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(data){
+    if (!data || !data.ok) throw new Error((data && data.error) || "The server said no.");
+    show("ok", "Saved. " + data.saved + " " + (data.saved === 1 ? "theme" : "themes")
+      + " recorded for " + data.person + ". You can close this page.");
+    state.themes = [];
+    save();
+    buildFields();
+    loadAlready();
+  })
+  .catch(function(err){
+    show("stop", "That did not save: " + err.message
+      + " Nothing was recorded, so please try again. If it keeps failing, text Joe your themes.");
+  })
+  .then(function(){ refreshSubmit(); });
+});
+
+function show(level, msg){
+  var box = $("result");
+  if (!msg){ box.hidden = true; box.textContent = ""; return; }
+  box.hidden = false;
+  box.className = "banner " + level;
+  box.textContent = msg;
+}
+
+$("clear").addEventListener("click", function(){
+  state.themes = [];
+  $("notes").value = "";
+  state.notes = "";
+  save();
+  buildFields();
+  show("", null);
+  refreshSubmit();
+});
+
+/* ---------- who has already submitted ---------- */
+function loadAlready(){
+  if (!CFG.endpoint) return;
+  fetch(CFG.endpoint + "?action=themes&season=" + encodeURIComponent(SEASON))
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      if (!data || !data.ok || !data.rows) return;
+      var seen = {};
+      data.rows.forEach(function(r){
+        if (!seen[r.person]) seen[r.person] = [];
+        seen[r.person].push(r.theme);
+      });
+      var body = $("already-body");
+      body.textContent = "";
+      var any = false;
+      PEOPLE.forEach(function(p){
+        var li = el("p");
+        if (seen[p]){
+          any = true;
+          li.appendChild(el("strong", null, p + ": "));
+          li.appendChild(document.createTextNode(seen[p].join(", ")));
+        } else {
+          li.className = "hint";
+          li.textContent = p + ": nothing yet";
+        }
+        body.appendChild(li);
+      });
+      $("already").hidden = !any;
+    })
+    .catch(function(){ /* read-back is a nicety; never let it break the form */ });
+}
+
+/* ---------- the used-theme reference list ---------- */
+(function(){
+  $("used-count").textContent = "(" + THEMES.length + ")";
+  var box = $("used"), bySeason = {};
+  THEMES.forEach(function(t){ (bySeason[t.s] = bySeason[t.s] || []).push(t); });
+  Object.keys(bySeason).sort().forEach(function(s){
+    box.appendChild(el("h3", null, "Season " + s));
+    var ul = el("ul");
+    bySeason[s].forEach(function(t){
+      var li = el("li");
+      li.appendChild(el("span", null, t.t));
+      li.appendChild(el("span", null, t.by));
+      ul.appendChild(li);
+    });
+    box.appendChild(ul);
+  });
+})();
+
+/* ---------- render ---------- */
+function render(){
+  Array.prototype.forEach.call($("people").children, function(b){
+    b.setAttribute("aria-pressed", String(b.textContent === state.person));
+  });
+  var on = !!state.person;
+  $("form-card").hidden = !on;
+  if (on){
+    $("form-title").textContent = state.person + ", your " + NFIELDS + " themes";
+    $("form-hint").textContent = "Themes nobody has ever picked before. "
+      + "Type and it checks itself as you go.";
+  }
+  refreshSubmit();
+}
+
+buildFields();
+if (state.notes) $("notes").value = state.notes;
+$("notes").addEventListener("input", function(){ state.notes = this.value; save(); });
+render();
+loadAlready();
+})();
+</script>
+</body>
+</html>
