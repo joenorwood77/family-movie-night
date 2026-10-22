@@ -222,6 +222,7 @@ footer a{color:var(--accent)}
 <script src="config.js"></script>
 <script src="themes.js"></script>
 <script src="movies.js"></script>
+<script src="awards.js"></script>
 <script src="lib.js"></script>
 <script>
 (function(){
@@ -451,6 +452,39 @@ function drawStats(){
     box.appendChild(row);
   });
   host.appendChild(box);
+
+  /* End-of-season awards, from Miriam's own sheet. Only Season 1 was ever filled in, so every
+     season gets a line and the empty ones say so. Joe's standing rule: an empty group still
+     needs a line saying it is empty, or the list reads as though something went missing. */
+  var A = window.FM_AWARDS;
+  if (A && A.awards){
+    var aw = el("div", "fm-stat-src");
+    aw.appendChild(el("p", "fm-stat-head", "End of season awards"));
+    var maxSeason = Math.max.apply(null, MOVIES.map(function(m){
+      return m.s === "Outside" ? 0 : (parseInt(m.s, 10) || 0);
+    }));
+    for (var sn = 1; sn <= maxSeason; sn++){
+      var got = A.awards.filter(function(x){ return x.s === sn; });
+      var row = el("div", "fm-stat");
+      row.appendChild(el("span", "fm-stat-who", "Season " + sn));
+      if (!got.length){
+        row.appendChild(el("p", "fm-stat-note", "No awards recorded for this season."));
+      } else {
+        row.appendChild(el("span", "fm-stat-delta", got[0].lbl));
+        var lines = got.map(function(x){
+          return x.a + ": " + x.t + " (" + x.y + "), " + x.p;
+        });
+        var note = el("p", "fm-stat-note");
+        lines.forEach(function(t, i){
+          if (i) note.appendChild(el("br"));
+          note.appendChild(document.createTextNode(t));
+        });
+        row.appendChild(note);
+      }
+      aw.appendChild(row);
+    }
+    host.appendChild(aw);
+  }
 }
 
 var VIEWS = ["search", "movies", "stats", "cats"];
