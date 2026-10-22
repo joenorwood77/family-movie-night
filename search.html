@@ -243,7 +243,11 @@ function drawHits(results){
     if (r.y) h.appendChild(el("span", "yr", "  " + r.y));
     box.appendChild(h);
     if (r.orig) box.appendChild(el("p", "orig", r.orig));
-    verdict(box, r.t, r.y);
+    var hit = verdict(box, r.t, r.y);
+    // The same compact card as the browse list, so a film we HAVE seen shows our four scores
+    // right here in the search results instead of only in the full list. Renders nothing for a
+    // film we have not rated, which includes every result that is new to us.
+    if (hit.exact) FM.ratings(box, hit.exact);
     box.appendChild(letterboxd(r.t, r.y));
     if (r.overview) box.appendChild(el("p", "blurb", r.overview));
     li.appendChild(box);
