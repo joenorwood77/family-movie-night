@@ -1,0 +1,530 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Have We Watched It?</title>
+<meta name="description" content="Search any movie and see whether our family has already watched it.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap">
+<style>
+/* Same palette as the category page, so the two read as one site. Every token gets its light
+   value on bare :root first, then both dark blocks redefine only tokens. */
+:root{
+  color-scheme: light;
+  --bg:#fbf7f0; --card:#ffffff; --ink:#1b1512; --ink-soft:#574b43; --ink-faint:#7b6d63;
+  --line:#e2d7c9; --line-strong:#c9b9a6;
+  --accent:#a3321e; --accent-ink:#ffffff; --accent-soft:#fdeee9;
+  --ok:#1d6b45; --ok-soft:#e6f4ec;
+  --warn:#8a5200; --warn-soft:#fdf1dc;
+  --stop:#9d1c1c; --stop-soft:#fdeaea;
+  --shadow:0 1px 2px rgba(27,21,18,.07), 0 8px 24px rgba(27,21,18,.06);
+  --radius:14px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --bg:#15120f; --card:#211c18; --ink:#f7f1e8; --ink-soft:#ccbfb2; --ink-faint:#a2958a;
+    --line:#352c25; --line-strong:#4d4036;
+    --accent:#ff8f6b; --accent-ink:#2a0f06; --accent-soft:#38201a;
+    --ok:#6ddc9f; --ok-soft:#14301f;
+    --warn:#ffc266; --warn-soft:#33250c;
+    --stop:#ff8f8f; --stop-soft:#3a1616;
+    --shadow:0 1px 2px rgba(0,0,0,.5), 0 8px 24px rgba(0,0,0,.4);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --bg:#15120f; --card:#211c18; --ink:#f7f1e8; --ink-soft:#ccbfb2; --ink-faint:#a2958a;
+  --line:#352c25; --line-strong:#4d4036;
+  --accent:#ff8f6b; --accent-ink:#2a0f06; --accent-soft:#38201a;
+  --ok:#6ddc9f; --ok-soft:#14301f;
+  --warn:#ffc266; --warn-soft:#33250c;
+  --stop:#ff8f8f; --stop-soft:#3a1616;
+  --shadow:0 1px 2px rgba(0,0,0,.5), 0 8px 24px rgba(0,0,0,.4);
+}
+
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font:17px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  padding-block: 0 56px;
+  padding-left:max(18px,env(safe-area-inset-left,0px));
+  padding-right:max(18px,env(safe-area-inset-right,0px));
+}
+.wrap{max-width:44rem; margin:0 auto}
+h1,h2,h3{font-family:Fraunces,Georgia,"Times New Roman",serif; font-weight:700;
+  text-wrap:balance; margin:0}
+h1{font-size:clamp(1.8rem,6.5vw,2.4rem); line-height:1.1; letter-spacing:-.01em}
+header{padding-block:30px 6px}
+.kicker{font-size:.76rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--accent); margin-bottom:9px}
+.lede{color:var(--ink-soft); margin:10px 0 0}
+
+/* ---- view switcher ---- */
+nav.views{display:flex; flex-wrap:wrap; gap:8px; margin:18px 0 0}
+nav.views button{
+  flex:1 1 7rem; min-height:46px; padding:11px 14px; font:inherit; font-size:.97rem;
+  font-weight:600; cursor:pointer; border-radius:11px;
+  background:var(--card); color:var(--ink); border:2px solid var(--line-strong);
+}
+nav.views button[aria-selected="true"]{background:var(--accent); color:var(--accent-ink);
+  border-color:var(--accent)}
+nav.views a{
+  flex:1 1 7rem; min-height:46px; padding:11px 14px; font-size:.97rem; font-weight:600;
+  border-radius:11px; background:var(--card); color:var(--ink); text-decoration:none;
+  border:2px solid var(--line-strong); display:grid; place-items:center; text-align:center;
+}
+nav.views a:hover,nav.views button:hover{border-color:var(--accent)}
+
+.card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
+  box-shadow:var(--shadow); padding:18px; margin-top:16px}
+.hint{color:var(--ink-faint); font-size:.9rem; margin:6px 0 0}
+
+input[type=search],input[type=text],select{
+  width:100%; font:inherit; font-size:17px; color:var(--ink); background:var(--bg);
+  border:2px solid var(--line-strong); border-radius:11px; padding:13px 14px;
+}
+input:focus,select:focus{outline:3px solid var(--accent-soft); outline-offset:1px;
+  border-color:var(--accent)}
+.filters{display:grid; grid-template-columns:repeat(auto-fit,minmax(9rem,1fr)); gap:10px;
+  margin-top:12px}
+.filters label{display:block; font-size:.8rem; font-weight:700; color:var(--ink-soft);
+  text-transform:uppercase; letter-spacing:.06em; margin-bottom:5px}
+
+/* ---- result rows ---- */
+ul.hits{list-style:none; margin:14px 0 0; padding:0; display:grid; gap:12px}
+ul.hits > li{
+  display:grid; grid-template-columns:62px 1fr; gap:13px; align-items:start;
+  padding-top:12px; border-top:1px solid var(--line);
+}
+ul.hits > li:first-child{border-top:0; padding-top:0}
+.poster{width:62px; aspect-ratio:2/3; border-radius:7px; object-fit:cover;
+  background:var(--accent-soft); border:1px solid var(--line)}
+.noposter{width:62px; aspect-ratio:2/3; border-radius:7px; background:var(--accent-soft);
+  border:1px solid var(--line); display:grid; place-items:center;
+  color:var(--accent); font-size:1.3rem}
+.ttl{font-weight:700; font-family:Fraunces,Georgia,serif; font-size:1.08rem; line-height:1.25}
+.yr{color:var(--ink-faint); font-weight:400; font-size:.95rem}
+.orig{color:var(--ink-faint); font-size:.88rem; font-style:italic; margin-top:1px}
+.blurb{color:var(--ink-soft); font-size:.9rem; margin-top:5px}
+.meta{color:var(--ink-faint); font-size:.86rem; margin-top:4px}
+
+.tag{display:inline-block; margin-top:6px; font-size:.72rem; font-weight:700;
+  letter-spacing:.06em; text-transform:uppercase; border-radius:999px; padding:4px 10px;
+  border:1px solid currentColor}
+.tag.seen{background:var(--stop-soft); color:var(--stop)}
+.tag.picked{background:var(--warn-soft); color:var(--warn)}
+.tag.free{background:var(--ok-soft); color:var(--ok)}
+.tag.near{background:var(--accent-soft); color:var(--accent)}
+.lbxd{display:inline-block; margin-top:7px; margin-left:8px; font-size:.8rem; font-weight:600;
+  color:var(--accent)}
+
+.banner{padding:13px 15px; border-radius:11px; font-size:.95rem; margin-top:14px;
+  border:1px solid currentColor}
+.banner.warn{background:var(--warn-soft); color:var(--warn)}
+.banner.stop{background:var(--stop-soft); color:var(--stop)}
+.count{font-size:.86rem; color:var(--ink-faint); margin-top:12px}
+
+/* ---- the used-categories list ---- */
+.used h3{font-size:.78rem; letter-spacing:.09em; text-transform:uppercase; color:var(--accent);
+  margin:16px 0 8px; font-family:inherit; font-weight:700}
+.used ul{list-style:none; margin:0; padding:0}
+.used li{display:flex; justify-content:space-between; gap:12px; padding:8px 0;
+  border-top:1px solid var(--line); font-size:.95rem}
+.used li span:last-child{color:var(--ink-faint); flex:none; font-size:.88rem}
+.none{margin:0; padding:9px 0 2px; border-top:1px solid var(--line);
+  color:var(--ink-soft); font-size:.93rem; font-style:italic}
+
+footer{margin-top:28px; color:var(--ink-faint); font-size:.82rem; text-align:center}
+footer a{color:var(--accent)}
+@media (max-width:420px){ .card{padding:15px} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="kicker">Family Movie Night</div>
+  <h1>Have we watched it?</h1>
+  <p class="lede" id="lede"></p>
+  <nav class="views" id="views" role="tablist">
+    <button type="button" data-view="search" role="tab">Search a movie</button>
+    <button type="button" data-view="movies" role="tab">Everything we have seen</button>
+    <button type="button" data-view="cats" role="tab">Categories used</button>
+    <a href="index.html">Submit categories</a>
+  </nav>
+</header>
+
+<main>
+  <!-- SEARCH -->
+  <section id="v-search">
+    <div class="card">
+      <label for="q" class="sr" style="position:absolute;width:1px;height:1px;overflow:hidden">
+        Search for a movie</label>
+      <input type="search" id="q" placeholder="Type a movie title" autocomplete="off"
+             enterkeyhint="search">
+      <p class="hint">Checked against all <span id="n-all"></span> films we have watched or
+        already picked. Matching uses the title and the year, because two different films can
+        share a name.</p>
+      <div id="s-note"></div>
+      <ul class="hits" id="s-hits"></ul>
+      <p class="count" id="s-count"></p>
+    </div>
+  </section>
+
+  <!-- EVERYTHING WE HAVE SEEN -->
+  <section id="v-movies" hidden>
+    <div class="card">
+      <input type="search" id="mq" placeholder="Filter by title" autocomplete="off">
+      <div class="filters">
+        <div><label for="f-season">Season</label><select id="f-season"></select></div>
+        <div><label for="f-person">Who picked it</label><select id="f-person"></select></div>
+        <div><label for="f-status">Status</label><select id="f-status"></select></div>
+        <div><label for="f-sort">Sort</label><select id="f-sort"></select></div>
+      </div>
+      <p class="count" id="m-count"></p>
+      <ul class="hits" id="m-hits"></ul>
+    </div>
+  </section>
+
+  <!-- CATEGORIES USED -->
+  <section id="v-cats" hidden>
+    <div class="card">
+      <p class="hint" id="c-intro"></p>
+      <div class="used" id="c-list"></div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <p id="foot"></p>
+  <p>Film data and posters from <a href="https://www.themoviedb.org/" target="_blank"
+     rel="noopener">TMDB</a>. This site uses the TMDB API but is not endorsed or certified by TMDB.</p>
+</footer>
+</div>
+
+<script src="config.js"></script>
+<script src="themes.js"></script>
+<script src="movies.js"></script>
+<script>
+(function(){
+"use strict";
+
+var CFG = window.FM_CONFIG || {};
+var MOVIES = window.FM_MOVIES || [];
+var THEMES = window.FM_THEMES || [];
+var IMG = "https://image.tmdb.org/t/p/w154";
+
+function $(id){ return document.getElementById(id); }
+function el(tag, cls, text){
+  var n = document.createElement(tag);
+  if (cls) n.className = cls;
+  if (text != null) n.textContent = text;
+  return n;
+}
+
+/* ---------- title matching ----------------------------------------------------------------
+   A film is identified by title AND year. Two different films genuinely share titles in this
+   collection: Speak No Evil (2022 and 2024), and All Quiet on the Western Front appears three
+   times. The 1001 list once produced a false match on Sunshine for exactly this reason, so the
+   year is never ignored.
+     norm()    folds accents, drops punctuation, collapses spaces.
+     compact() also removes spaces, so "M*A*S*H" meets "mash".
+     noart()   drops a leading article, so "The Prestige" meets "Prestige".
+   A year within 1 counts as the same film, because release years differ between countries and
+   between TMDB and the family's sheet.
+------------------------------------------------------------------------------------------- */
+function norm(s){
+  return String(s || "")
+    .normalize("NFD").replace(/[̀-ͯ]/g, "")
+    .toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+}
+function compact(s){ return norm(s).replace(/ /g, ""); }
+function noart(s){ return norm(s).replace(/^(the|a|an) /, ""); }
+
+var INDEX = {};
+function addKey(k, m){
+  if (!k) return;
+  (INDEX[k] = INDEX[k] || []).push(m);
+}
+MOVIES.forEach(function(m){
+  addKey(norm(m.t), m);
+  addKey(compact(m.t), m);
+  addKey(noart(m.t), m);
+});
+
+/* Returns {exact: movie|null, sameTitle: [movies]} for a title and year. */
+function lookup(title, year){
+  var keys = [norm(title), compact(title), noart(title)];
+  var pool = [], seenIds = {};
+  keys.forEach(function(k){
+    (INDEX[k] || []).forEach(function(m){
+      var id = m.s + "-" + m.o;
+      if (!seenIds[id]){ seenIds[id] = 1; pool.push(m); }
+    });
+  });
+  if (!pool.length) return { exact: null, sameTitle: [] };
+  var y = parseInt(year, 10);
+  var exact = null;
+  if (!isNaN(y)){
+    for (var i = 0; i < pool.length; i++){
+      var my = parseInt(pool[i].y, 10);
+      if (!isNaN(my) && Math.abs(my - y) <= 1){ exact = pool[i]; break; }
+    }
+  } else if (pool.length === 1){
+    exact = pool[0];
+  }
+  return { exact: exact, sameTitle: pool.filter(function(m){ return m !== exact; }) };
+}
+
+function seasonName(s){ return s === "Outside" ? "outside a season" : "Season " + s; }
+
+/* The verdict shown against a search result. */
+function verdict(li, title, year){
+  var hit = lookup(title, year);
+  if (hit.exact){
+    var m = hit.exact;
+    if (m.st === "Watched"){
+      li.appendChild(tag("seen", "Already watched"));
+      li.appendChild(el("p", "meta", "Watched in " + seasonName(m.s) + ", picked by " + m.p
+        + (m.th ? ', for the category "' + m.th + '"' : "")));
+    } else {
+      li.appendChild(tag("picked", "Already picked"));
+      li.appendChild(el("p", "meta", "Chosen by " + m.p + " for " + seasonName(m.s)
+        + ", not watched yet"));
+    }
+  } else {
+    li.appendChild(tag("free", "Free to pick"));
+    if (hit.sameTitle.length){
+      var other = hit.sameTitle[0];
+      li.appendChild(tag("near", "but check this"));
+      li.appendChild(el("p", "meta", "We watched a different film with this title: "
+        + other.t + " (" + other.y + "), picked by " + other.p + ". "
+        + "Same name, different movie, so this one is still free."));
+    }
+  }
+  return li;
+}
+
+function tag(kind, text){ return el("span", "tag " + kind, text); }
+
+function letterboxd(title, year){
+  // Letterboxd has no usable API for a project like this, so the site links out instead of
+  // pretending to know their rating. One tap gets the real number.
+  var a = el("a", "lbxd", "Letterboxd ↗");
+  a.href = "https://letterboxd.com/search/films/"
+         + encodeURIComponent(title + (year ? " " + year : "")) + "/";
+  a.target = "_blank";
+  a.rel = "noopener";
+  return a;
+}
+
+/* ---------- search ---------- */
+var timer = null, lastQ = "";
+
+function runSearch(q){
+  if (!CFG.endpoint){
+    $("s-note").innerHTML = '<div class="banner warn"><strong>Search is not switched on yet.</strong> '
+      + 'It needs one more setup step from Joe. Everything else on this page works, and so does '
+      + 'submitting categories.</div>';
+    return;
+  }
+  $("s-count").textContent = "Searching...";
+  fetch(CFG.endpoint + "?action=tmdb&q=" + encodeURIComponent(q))
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      if (q !== lastQ) return;                  // a newer query has already been typed
+      if (!d || !d.ok){
+        $("s-count").textContent = "";
+        $("s-note").innerHTML = '<div class="banner stop">That search could not run just now. '
+          + 'Please try again in a moment.</div>';
+        return;
+      }
+      $("s-note").textContent = "";
+      drawHits(d.results || []);
+    })
+    .catch(function(){
+      if (q !== lastQ) return;
+      $("s-count").textContent = "";
+      $("s-note").innerHTML = '<div class="banner stop">No connection, so that search could not '
+        + 'run. Nothing is wrong with the list itself.</div>';
+    });
+}
+
+function drawHits(results){
+  var ul = $("s-hits");
+  ul.textContent = "";
+  if (!results.length){
+    $("s-count").textContent = "Nothing found with that title.";
+    return;
+  }
+  results.forEach(function(r){
+    var li = el("li");
+    if (r.poster){
+      var img = el("img", "poster");
+      img.src = IMG + r.poster;
+      img.alt = "";
+      img.loading = "lazy";
+      li.appendChild(img);
+    } else {
+      li.appendChild(el("div", "noposter", "☰"));
+    }
+    var box = el("div");
+    var h = el("p", "ttl", r.t);
+    if (r.y) h.appendChild(el("span", "yr", "  " + r.y));
+    box.appendChild(h);
+    if (r.orig) box.appendChild(el("p", "orig", r.orig));
+    verdict(box, r.t, r.y);
+    box.appendChild(letterboxd(r.t, r.y));
+    if (r.overview) box.appendChild(el("p", "blurb", r.overview));
+    li.appendChild(box);
+    ul.appendChild(li);
+  });
+  $("s-count").textContent = results.length + (results.length === 1 ? " result" : " results");
+}
+
+$("q").addEventListener("input", function(){
+  var q = this.value.trim();
+  lastQ = q;
+  clearTimeout(timer);
+  if (q.length < 2){
+    $("s-hits").textContent = "";
+    $("s-count").textContent = "";
+    return;
+  }
+  timer = setTimeout(function(){ runSearch(q); }, 400);
+});
+
+/* ---------- everything we have seen ---------- */
+function opts(sel, list){
+  list.forEach(function(o){
+    var op = document.createElement("option");
+    op.value = o[0]; op.textContent = o[1];
+    sel.appendChild(op);
+  });
+}
+var SEASONS = [["", "All seasons"]].concat(
+  ["1","2","3","4"].map(function(s){ return [s, "Season " + s]; }),
+  [["Outside", "Outside a season"]]);
+var PEOPLE = [["", "Anyone"], ["Joe","Joe"], ["Juli","Juli"], ["Kathy","Kathy"],
+              ["Miriam","Miriam"]];
+var STATUS = [["", "Watched and upcoming"], ["Watched","Watched only"],
+              ["Upcoming","Upcoming only"]];
+var SORTS = [["title","Title A to Z"], ["year","Year, newest first"],
+             ["yearold","Year, oldest first"], ["season","Season order"]];
+opts($("f-season"), SEASONS);
+opts($("f-person"), PEOPLE);
+opts($("f-status"), STATUS);
+opts($("f-sort"), SORTS);
+
+function drawMovies(){
+  var q = norm($("mq").value), fs = $("f-season").value, fp = $("f-person").value,
+      ft = $("f-status").value, sort = $("f-sort").value;
+  var rows = MOVIES.filter(function(m){
+    if (fs && m.s !== fs) return false;
+    if (fp && m.p !== fp) return false;
+    if (ft && m.st !== ft) return false;
+    if (q && norm(m.t).indexOf(q) === -1 && compact(m.t).indexOf(compact($("mq").value)) === -1)
+      return false;
+    return true;
+  });
+  rows.sort(function(a, b){
+    if (sort === "title") return noart(a.t) < noart(b.t) ? -1 : noart(a.t) > noart(b.t) ? 1 : 0;
+    if (sort === "year") return (parseInt(b.y,10)||0) - (parseInt(a.y,10)||0);
+    if (sort === "yearold") return (parseInt(a.y,10)||0) - (parseInt(b.y,10)||0);
+    var sa = a.s === "Outside" ? 9 : parseInt(a.s,10), sb = b.s === "Outside" ? 9 : parseInt(b.s,10);
+    return sa - sb || a.o - b.o;
+  });
+
+  $("m-count").textContent = rows.length + " of " + MOVIES.length + " titles";
+  var ul = $("m-hits");
+  ul.textContent = "";
+  rows.slice(0, 400).forEach(function(m){
+    var li = el("li");
+    li.appendChild(el("div", "noposter", m.m === "TV Series" ? "▣" : "☰"));
+    var box = el("div");
+    var h = el("p", "ttl", m.t);
+    if (m.y) h.appendChild(el("span", "yr", "  " + m.y));
+    box.appendChild(h);
+    box.appendChild(el("p", "meta",
+      seasonName(m.s) + " · picked by " + m.p
+      + (m.m === "TV Series" ? " · TV series" : "")
+      + (m.th ? " · " + m.th : "")));
+    if (m.st !== "Watched") box.appendChild(tag("picked", "Not watched yet"));
+    box.appendChild(letterboxd(m.t, m.y));
+    li.appendChild(box);
+    ul.appendChild(li);
+  });
+  if (rows.length > 400){
+    ul.appendChild(el("li", null, "Showing the first 400. Narrow the filters to see the rest."));
+  }
+}
+["mq","f-season","f-person","f-status","f-sort"].forEach(function(id){
+  $(id).addEventListener("input", drawMovies);
+  $(id).addEventListener("change", drawMovies);
+});
+
+/* ---------- categories used ---------- */
+(function(){
+  $("c-intro").textContent = THEMES.length
+    + " categories have been used across Seasons 1 to 4. None of them can be picked again.";
+  var box = $("c-list"), bySeason = {};
+  THEMES.forEach(function(t){ (bySeason[t.s] = bySeason[t.s] || []).push(t); });
+  var highest = THEMES.reduce(function(m, t){ return Math.max(m, t.s); }, 1);
+  var NOTES = { 1: "No categories this season. Every pick was a free choice." };
+  for (var s = 1; s <= highest; s++){
+    box.appendChild(el("h3", null, "Season " + s));
+    var list = bySeason[s];
+    if (!list || !list.length){
+      box.appendChild(el("p", "none", NOTES[s] || "No categories this season."));
+      continue;
+    }
+    var ul = el("ul");
+    list.forEach(function(t){
+      var li = el("li");
+      li.appendChild(el("span", null, t.t));
+      li.appendChild(el("span", null, t.by + (t.k ? " · " + t.k : "")));
+      ul.appendChild(li);
+    });
+    box.appendChild(ul);
+  }
+})();
+
+/* ---------- view switching ---------- */
+var VIEWS = ["search", "movies", "cats"];
+function show(v){
+  if (VIEWS.indexOf(v) === -1) v = "search";
+  VIEWS.forEach(function(name){
+    $("v-" + name).hidden = (name !== v);
+  });
+  Array.prototype.forEach.call($("views").querySelectorAll("button"), function(b){
+    b.setAttribute("aria-selected", String(b.getAttribute("data-view") === v));
+  });
+  if (v === "movies") drawMovies();
+  if (v === "search") $("q").focus();
+}
+Array.prototype.forEach.call($("views").querySelectorAll("button"), function(b){
+  b.addEventListener("click", function(){
+    var v = b.getAttribute("data-view");
+    if (location.hash !== "#" + v) location.hash = v;
+    else show(v);
+  });
+});
+window.addEventListener("hashchange", function(){ show(location.hash.replace("#", "")); });
+
+/* ---------- copy that depends on the data ---------- */
+var watched = MOVIES.filter(function(m){ return m.st === "Watched"; }).length;
+$("n-all").textContent = MOVIES.length;
+$("lede").textContent = "Search any film and find out straight away whether we have already "
+  + "watched it, or whether somebody has it picked for this season.";
+$("foot").textContent = watched + " films watched, " + (MOVIES.length - watched)
+  + " already picked and still to come, across Seasons 1 to 4 and the bonus films.";
+
+show(location.hash.replace("#", "") || "search");
+})();
+</script>
+</body>
+</html>

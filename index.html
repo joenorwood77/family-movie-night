@@ -186,6 +186,13 @@ details[open] .chev{transform:rotate(90deg)}
   border-top:1px solid var(--line); font-size:.95rem}
 .used li span:last-child{color:var(--ink-faint); flex:none; font-size:.88rem}
 
+a.other{
+  display:inline-block; margin-top:14px; padding:11px 16px; min-height:44px;
+  font-size:.97rem; font-weight:600; text-decoration:none;
+  color:var(--ink); background:var(--card); border:2px solid var(--line-strong);
+  border-radius:11px;
+}
+a.other:hover{border-color:var(--accent)}
 footer{margin-top:30px; color:var(--ink-faint); font-size:.86rem; text-align:center}
 .sr{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0)}
 @media (max-width:420px){ .card{padding:17px} }
@@ -202,6 +209,7 @@ footer{margin-top:30px; color:var(--ink-faint); font-size:.86rem; text-align:cen
     is checked against every category we have already used, so you find out right away if one
     is taken.
   </p>
+  <a class="other" href="search.html">Have we watched a movie? Search it &#8594;</a>
 </header>
 
 <div id="setup-note" class="banner warn" hidden></div>
