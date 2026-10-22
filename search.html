@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap">
+<link rel="stylesheet" href="theme.css">
 <style>
 /* Same palette as the category page, so the two read as one site. Every token gets its light
    value on bare :root first, then both dark blocks redefine only tokens. */
@@ -335,11 +336,18 @@ function drawMovies(){
     var h = el("p", "ttl", m.t);
     if (m.y) h.appendChild(el("span", "yr", "  " + m.y));
     box.appendChild(h);
-    box.appendChild(el("p", "meta",
-      seasonName(m.s) + " · picked by " + m.p
-      + (m.m === "TV Series" ? " · TV series" : "")
-      + (m.th ? " · " + m.th : "")));
+    // The picker's name carries their own colour, the same one used on the schedule and the
+    // picks list. Way C, chosen by Joe 2026-10-22: the name is coloured, nothing else is.
+    var meta = el("p", "meta");
+    meta.appendChild(document.createTextNode(seasonName(m.s) + " · picked by "));
+    meta.appendChild(el("span", "fm-p-" + m.p, m.p));
+    meta.appendChild(document.createTextNode(
+      (m.m === "TV Series" ? " · TV series" : "") + (m.th ? " · " + m.th : "")));
+    box.appendChild(meta);
     if (m.st !== "Watched") box.appendChild(tag("picked", "Not watched yet"));
+    // Renders nothing at all when the payload ships without ratings, which is the public
+    // build's deliberate state. Never assume the block appeared.
+    FM.ratings(box, m);
     box.appendChild(letterboxd(m.t, m.y));
     li.appendChild(box);
     ul.appendChild(li);

@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap">
+<link rel="stylesheet" href="theme.css">
 <style>
 :root{
   color-scheme: light;
@@ -497,7 +498,10 @@ function drawAll(){
   }).forEach(function(r){
     var li = el("li");
     li.appendChild(el("span", null, r.title + (r.year ? " (" + r.year + ")" : "")));
-    li.appendChild(el("span", "slot", r.person));
+    // Everyone's colour, the same one used on the ratings list. Way C: the name is coloured and
+    // nothing else is. This is the list where it earns its keep, because you are scanning for a
+    // person rather than reading a single card. Colours live in site/theme.css.
+    li.appendChild(el("span", "slot fm-p-" + r.person, r.person));
     ul.appendChild(li);
   });
   $("c-all").hidden = !LIVE.rows.length;

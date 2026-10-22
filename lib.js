@@ -243,6 +243,99 @@ window.FM = (function () {
       { weekday: "short", month: "long", day: "numeric", year: "numeric" });
   }
 
+  /* ---------- the rating block ---------------------------------------------------------------
+     Joe's layout, settled 2026-10-22 after five rounds: the TIGHTEST card, a big group average
+     with NO "/5", four people as compact chips, then the three outside sources. Colour is
+     WAY C - the NAME is coloured and nothing else. No fill, no dot, and 🛑 NO STAR ICONS, which
+     he killed for a real reason: a partial-fill star draws all five outlines, so a 3.5 reads as
+     five stars until you measure the gold.
+
+     All the colours come from site/theme.css. 🛑 Never put a hex value in here;
+     scripts/check_palette.py fails if a page or this file hardcodes one.
+
+     Returns false and renders NOTHING when the payload carries no ratings, which is the public
+     build's deliberate state (INCLUDE_RATINGS in scripts/build_site.py). A caller must not
+     assume a block appeared.
+  ------------------------------------------------------------------------------------------- */
+  var PEOPLE = ["Joe", "Juli", "Kathy", "Miriam"];
+
+  function fmt2(v) {
+    var n = parseFloat(v);
+    return isNaN(n) ? null : n.toFixed(2);
+  }
+
+  function chip(cls) { return el("span", "fm-chip" + (cls ? " " + cls : "")); }
+
+  function ratings(box, m) {
+    if (!m.r) return false;
+
+    var scores = m.r.map(function (v) {
+      var n = parseFloat(v);
+      return isNaN(n) ? null : n;
+    });
+    var rated = scores.filter(function (n) { return n !== null; }).length;
+    if (!rated) return false;
+
+    var wrap = el("div", "fm-rate");
+
+    var avg = el("div", "fm-avg");
+    var shown = fmt2(m.a);
+    if (shown === null) {                      // no stored average: derive it, never invent it
+      var tot = 0;
+      scores.forEach(function (n) { if (n !== null) tot += n; });
+      shown = (tot / rated).toFixed(2);
+    }
+    avg.appendChild(el("span", "fm-avg-num", shown));
+    if (rated === PEOPLE.length) {
+      avg.appendChild(el("p", "fm-avg-lbl", "Group average"));
+    } else {
+      // A blank rating is never counted as a zero, and the card says so out loud rather than
+      // quietly averaging three numbers as though they were four. Kathy on [REC] is the case.
+      var missing = PEOPLE.filter(function (p, i) { return scores[i] === null; });
+      avg.appendChild(el("p", "fm-avg-lbl", "Group average of " + rated));
+      avg.appendChild(el("p", "fm-avg-note",
+        missing.join(" and ") + (missing.length > 1 ? " did not rate this one" : " sat this one out")));
+    }
+    wrap.appendChild(avg);
+
+    var who = el("div", "fm-chips");
+    PEOPLE.forEach(function (p, i) {
+      var c = chip(scores[i] === null ? "fm-norating" : null);
+      c.appendChild(el("span", scores[i] === null ? null : "fm-p-" + p, p));
+      c.appendChild(el("b", null, scores[i] === null ? "no rating" : String(scores[i])));
+      who.appendChild(c);
+    });
+    wrap.appendChild(who);
+
+    /* The outside sources. With nothing fetched yet, three "not loaded" chips on every one of
+       354 films is a lot of noise about information nobody has, so until the OMDb key is in
+       they collapse to one quiet line. Flagged to Joe 2026-10-22 and he has the screenshot. */
+    var ext = m.e;
+    if (ext && (ext.imdb || ext.rt || ext.lb)) {
+      var src = el("div", "fm-chips");
+      [["IMDb", ext.imdb, "/10", 2], ["RT critics", ext.rt, "%", 20],
+       ["Letterboxd", ext.lb, "/5", 1]].forEach(function (row) {
+        var name = row[0], raw = row[1], unit = row[2], div = row[3];
+        var c = chip("fm-source" + (raw == null ? " fm-missing" : ""));
+        c.appendChild(el("span", null, name));
+        if (raw == null) {
+          c.appendChild(el("b", null, name === "Letterboxd" ? "not added" : "not loaded"));
+        } else {
+          c.appendChild(el("b", null, (parseFloat(raw) / div).toFixed(1)));
+          c.appendChild(el("i", null, String(raw) + unit));
+        }
+        src.appendChild(c);
+      });
+      wrap.appendChild(src);
+    } else {
+      wrap.appendChild(el("p", "fm-avg-note",
+        "IMDb and RT critics load once the key is in. Letterboxd is by hand; the link is below."));
+    }
+
+    box.appendChild(wrap);
+    return true;
+  }
+
   /** Puts an unmissable warning at the top of a page and returns false when the film list did
    *  not load. Call it before anything that depends on knowing what has been watched. */
   function requireData(hostId) {
@@ -267,6 +360,7 @@ window.FM = (function () {
     norm: norm, compact: compact, noart: noart,
     lookup: lookup, seasonName: seasonName,
     tag: tag, letterboxd: letterboxd, poster: poster, verdict: verdict,
+    PEOPLE: PEOPLE, ratings: ratings,
     tmdb: tmdb, liveSearch: liveSearch
   };
 })();

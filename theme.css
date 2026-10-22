@@ -1,0 +1,131 @@
+/* ============================================================================================
+   THE FAMILY COLOUR PALETTE - THE ONE COPY.
+   Loaded by index.html, search.html and picks.html. Each page keeps its own layout CSS; only
+   the colours and the rating components live here.
+
+   🛑 DO NOT PASTE THESE HEX VALUES INTO A PAGE. scripts/check_palette.py fails if any page
+      hardcodes one, for the same reason site/lib.js holds the only copy of the title matcher:
+      two copies drift, and a drifted palette means Kathy is one colour on the schedule and a
+      different colour on the ratings list.
+
+   WHY THESE COLOURS, decided with Joe on 2026-10-22
+   -------------------------------------------------
+   He first saw one shared purple for the group average and all four scores, and rejected it:
+   *"not sure if i want the average and all of our scores the same exact color. it all blurs
+   together kind of. maybe give us each our own color throughout, as well as the same color
+   throughout for our group averages"*. He was right, and the reason is that the whole job of
+   the four chips is to show that the four of them DIFFER.
+
+   He then chose WAY C of three executions: the NAME is coloured, with no chip fill and no dot.
+   🛑 Do not add a background tint to a person chip (that is Way A) or a coloured dot (Way B).
+      He saw both and picked neither.
+
+   🛑 THE THREE OUTSIDE SOURCES ARE DELIBERATELY NEUTRAL, NOT BRAND-COLOURED.
+   An earlier draft gave IMDb gold, Rotten Tomatoes red and Letterboxd green. Together with the
+   site's terracotta accent that is nine hues on one card, and scripts/check_palette.py proved
+   it does not work. It found three collisions that would each have been a real misread:
+     * Miriam's amber sat 22 degrees from the site accent, so her name read as a tappable link.
+     * Miriam's amber was the SAME hue as IMDb's gold, sitting directly above it.
+     * Kathy's teal sat 5 degrees from Letterboxd's green, likewise on the same card.
+   Joe asked for a colour per person, so the people own the hues. The sources never needed one:
+   they are always labelled IMDb, RT critics and Letterboxd in bold, which no person chip is.
+
+   VERIFIED, not eyeballed. scripts/check_palette.py proves, before any of this ships:
+     * every colour clears 4.5:1 as text on the card AND the page background, in BOTH themes
+     * all six people-pairs sit at least 25 degrees apart in hue
+     * the group purple is at least 25 degrees from all four people, so it is never a 5th person
+     * nothing collides with the site's existing terracotta accent
+   ============================================================================================ */
+
+:root{
+  --fm-joe:#14508a;      /* blue    */
+  --fm-juli:#8d2473;     /* magenta - moved off red to clear the terracotta accent */
+  --fm-kathy:#0f6350;    /* teal    */
+  --fm-miriam:#6e5006;   /* gold    - pushed yellow to clear the accent as well */
+  --fm-grp:#5b2fb8;      /* purple  - the GROUP AVERAGE, not a person */
+  --fm-src:#574b43;      /* one neutral ink for IMDb, RT critics and Letterboxd */
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --fm-joe:#8cc3f5;
+    --fm-juli:#f09ad8;
+    --fm-kathy:#58d7b5;
+    --fm-miriam:#e8c468;
+    --fm-grp:#c3abf7;
+    --fm-src:#ccbfb2;
+  }
+}
+:root[data-theme="dark"]{
+  --fm-joe:#8cc3f5;
+  --fm-juli:#f09ad8;
+  --fm-kathy:#58d7b5;
+  --fm-miriam:#e8c468;
+  --fm-grp:#c3abf7;
+  --fm-src:#ccbfb2;
+}
+
+/* ---- WAY C: the name carries the colour. No fill, no dot. ---------------------------------- */
+.fm-p-Joe{color:var(--fm-joe)}
+.fm-p-Juli{color:var(--fm-juli)}
+.fm-p-Kathy{color:var(--fm-kathy)}
+.fm-p-Miriam{color:var(--fm-miriam)}
+
+/* ---- the group average -------------------------------------------------------------------- */
+/* 🛑 NO "/5" ON THE BIG NUMBER. Joe, 2026-10-22: "dont keep the /5 in the large numbers for our
+   average." The scale is carried by the label line and by the sources beside it. */
+.fm-avg{display:flex; align-items:baseline; gap:9px; flex-wrap:wrap}
+.fm-avg-num{
+  font-size:30px; font-weight:800; line-height:1; letter-spacing:-.025em;
+  color:var(--fm-grp); font-variant-numeric:tabular-nums;
+}
+.fm-avg-lbl{
+  margin:0; font-size:11.5px; font-weight:700; letter-spacing:.08em; text-transform:uppercase;
+  color:var(--fm-grp);
+}
+.fm-avg-note{margin:0; font-size:12px; color:var(--ink-soft)}
+
+/* ---- the rating chips -------------------------------------------------------------------- */
+.fm-chips{display:flex; flex-wrap:wrap; gap:6px; margin:9px 0 0}
+.fm-chip{
+  display:flex; gap:6px; align-items:baseline; white-space:nowrap;
+  border:1px solid var(--line); border-radius:999px; padding:4px 11px;
+  font-size:13px; background:var(--bg);
+}
+.fm-chip > b{font-size:15px; font-weight:700; font-variant-numeric:tabular-nums; color:var(--ink)}
+.fm-chip > span{font-weight:700}
+/* Someone who did not rate a film keeps their name but loses the colour, because the colour
+   means "a rating from this person". Kathy on [REC] is the real case. */
+.fm-chip.fm-norating > span{color:var(--ink-faint); font-weight:400}
+.fm-chip.fm-norating > b{color:var(--ink-faint); font-weight:400; font-size:12px}
+
+/* The outside sources: one neutral ink, their own name doing the identifying. */
+.fm-chip.fm-source{border-color:var(--line-strong)}
+.fm-chip.fm-source > span{
+  color:var(--fm-src); font-size:11.5px; letter-spacing:.03em; text-transform:uppercase;
+}
+.fm-chip.fm-source > i{
+  font-style:normal; font-size:11px; color:var(--ink-faint); font-variant-numeric:tabular-nums;
+}
+.fm-chip.fm-missing > b{color:var(--ink-faint); font-weight:400; font-size:12px}
+
+/* ---- list rows: the schedule and the picks list ------------------------------------------- */
+/* This is where the colours actually earn their keep, because the name is not always on screen
+   and you are scanning for whose week is next. */
+.fm-row{
+  display:grid; grid-template-columns:auto 1fr auto; gap:10px; align-items:center;
+  background:var(--card); border:1px solid var(--line); border-left:5px solid var(--line);
+  border-radius:9px; padding:9px 12px; font-size:14px;
+}
+.fm-row.fm-o-Joe{border-left-color:var(--fm-joe)}
+.fm-row.fm-o-Juli{border-left-color:var(--fm-juli)}
+.fm-row.fm-o-Kathy{border-left-color:var(--fm-kathy)}
+.fm-row.fm-o-Miriam{border-left-color:var(--fm-miriam)}
+.fm-row .fm-slot{
+  font-size:12px; font-weight:700; color:var(--ink-faint);
+  font-variant-numeric:tabular-nums; min-width:30px;
+}
+.fm-row .fm-ttl{min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.fm-row .fm-kind{
+  font-size:11.5px; font-weight:700; letter-spacing:.04em; text-transform:uppercase;
+  color:var(--ink-faint);
+}
