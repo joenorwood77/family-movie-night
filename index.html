@@ -461,8 +461,16 @@ $("submit").addEventListener("click", function(){
     kind: "themes",
     person: state.person,
     season: SEASON,
+    /* `kind` is its own field, never folded into `notes`. Joe caught this on 2026-10-22: the
+       backup row used to store the word "backup" in notes and threw away what he had typed. The
+       note now goes on every row and the main/backup distinction travels separately. */
     items: items.map(function(f){
-      return { rank: f.rank, theme: f.theme, notes: f.backup ? "backup" : ($("notes").value || "") };
+      return {
+        rank: f.rank,
+        kind: f.backup ? "backup" : "main",
+        theme: f.theme,
+        notes: $("notes").value || ""
+      };
     })
   };
 
@@ -476,17 +484,24 @@ $("submit").addEventListener("click", function(){
   })
   .then(function(r){ return r.json(); })
   .then(function(data){
-    if (!data || !data.ok) throw new Error((data && data.error) || "The server said no.");
-    show("ok", "Saved. " + data.saved + " " + (data.saved === 1 ? "theme" : "themes")
+    /* A refusal the server made on purpose (a clash, a bad name) is not a breakage. Show its own
+       words as a warning and leave what was typed alone so it can be edited. Only a genuine
+       network or parsing failure falls through to .catch below. */
+    if (!data || !data.ok){
+      show("warn", (data && data.error) || "The server would not accept that. Nothing was saved.");
+      loadAlready();
+      return;
+    }
+    show("ok", "Saved. " + data.saved + " " + (data.saved === 1 ? "category" : "categories")
       + " recorded for " + data.person + ". You can close this page.");
     state.themes = [];
     save();
     buildFields();
     loadAlready();
   })
-  .catch(function(err){
-    show("stop", "That did not save: " + err.message
-      + " Nothing was recorded, so please try again. If it keeps failing, text Joe your themes.");
+  .catch(function(){
+    show("stop", "That did not send, so nothing was saved. Please check your signal and try "
+      + "again. If it keeps failing, text Joe your categories.");
   })
   .then(function(){ refreshSubmit(); });
 });
@@ -510,33 +525,57 @@ $("clear").addEventListener("click", function(){
 });
 
 /* ---------- who has already submitted ---------- */
+/* Shows WHO has submitted, and only once all four are in, WHAT they chose.
+   Joe asked for the hiding on 2026-10-22 so the first person to submit is not at a disadvantage
+   and nobody is swayed by what is already on the board. The server enforces it: until everyone is
+   in it returns counts only and an empty rows array, so there is nothing to peek at even for
+   someone who opens the endpoint directly. Joe sees everything in the spreadsheet regardless. */
 function loadAlready(){
   if (!CFG.endpoint) return;
   fetch(CFG.endpoint + "?action=themes&season=" + encodeURIComponent(SEASON))
     .then(function(r){ return r.json(); })
     .then(function(data){
-      if (!data || !data.ok || !data.rows) return;
-      var seen = {};
-      data.rows.forEach(function(r){
-        if (!seen[r.person]) seen[r.person] = [];
-        seen[r.person].push(r.theme);
+      if (!data || !data.ok) return;
+      var counts = data.counts || {};
+      var byPerson = {};
+      (data.rows || []).forEach(function(r){
+        if (r.kind === "backup") return;          // backups stay private even after the reveal
+        (byPerson[r.person] = byPerson[r.person] || []).push(r.theme);
       });
+
       var body = $("already-body");
       body.textContent = "";
       var any = false;
+
       PEOPLE.forEach(function(p){
-        var li = el("p");
-        if (seen[p]){
-          any = true;
-          li.appendChild(el("strong", null, p + ": "));
-          li.appendChild(document.createTextNode(seen[p].join(", ")));
+        var n = counts[p] || 0;
+        if (n) any = true;
+        var line = el("p");
+        if (!n){
+          line.className = "hint";
+          line.textContent = p + ": nothing yet";
+        } else if (data.revealed && byPerson[p]){
+          line.appendChild(el("strong", null, p + ": "));
+          line.appendChild(document.createTextNode(byPerson[p].join(", ")));
         } else {
-          li.className = "hint";
-          li.textContent = p + ": nothing yet";
+          line.appendChild(el("strong", null, p + ": "));
+          line.appendChild(document.createTextNode(
+            n + (n === 1 ? " category in" : " categories in")));
         }
-        body.appendChild(li);
+        body.appendChild(line);
       });
+
+      var note = el("p", "hint");
+      note.textContent = data.revealed
+        ? "Everyone is in, so all the categories are now showing."
+        : "Everyone's categories stay hidden until all four of you have submitted, so nobody is "
+          + "influenced by what is already there. If you happen to pick one someone else already "
+          + "sent, you will be told when you submit, without being told whose it was.";
+      body.appendChild(note);
+
       $("already").hidden = !any;
+      $("already").querySelector("h2").textContent =
+        data.revealed ? "Everyone's categories" : "Who has sent theirs in";
     })
     .catch(function(){ /* read-back is a nicety; never let it break the form */ });
 }
