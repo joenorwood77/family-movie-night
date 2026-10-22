@@ -384,8 +384,14 @@ PEOPLE.forEach(function(name){
   $("people").appendChild(b);
 });
 
-/* ---------- step 2: the theme fields ---------- */
+/* ---------- step 2: the category fields ---------- */
+/* Which fields the server has said are already claimed by someone else this season. Indexed the
+   same way as state.themes, and cleared whenever a field changes, since the old answer no longer
+   applies to new text. */
+var taken = [];
+
 function buildFields(){
+  taken = [];
   var box = $("fields");
   box.textContent = "";
   for (var i = 0; i < NFIELDS + 1; i++){
@@ -410,15 +416,52 @@ function buildFields(){
       flag.hidden = true;
       lab.appendChild(flag);
 
+      /* Asks the server whether someone else has already claimed this exact category this season.
+         Debounced, and it fails silently: if the network is unavailable the field just stays as it
+         was and the server still refuses the clash at Submit. First to submit keeps it, which is
+         Joe's own rule from 2026-10-22. */
+      var timer = null;
+      function askTaken(value){
+        if (!CFG.endpoint || !state.person) return;
+        var v = value;
+        clearTimeout(timer);
+        timer = setTimeout(function(){
+          fetch(CFG.endpoint + "?action=taken&season=" + encodeURIComponent(SEASON)
+                + "&person=" + encodeURIComponent(state.person)
+                + "&theme=" + encodeURIComponent(v))
+            .then(function(r){ return r.json(); })
+            .then(function(d){
+              if (!d || !d.ok || inp.value !== v) return;   // stale answer, they kept typing
+              taken[i] = !!d.taken;
+              flag.hidden = false;
+              if (d.taken){
+                flag.className = "flag stop";
+                flag.textContent = "";
+                flag.appendChild(el("b", null, "Already claimed. "));
+                flag.appendChild(document.createTextNode(
+                  "Someone else submitted this one for this season before you. Whoever submits "
+                  + "first keeps it, so please choose another."));
+              } else {
+                flag.className = "flag ok";
+                flag.textContent = "New to the family, and nobody else has claimed it. Good to go.";
+              }
+              refreshSubmit();
+            })
+            .catch(function(){ /* offline is not a verdict; Submit will still be checked */ });
+        }, 450);
+      }
+
       function update(){
         state.themes[i] = inp.value;
+        taken[i] = false;
         save();
         var r = check(inp.value);
         if (!r){ flag.hidden = true; inp.setCustomValidity(""); refreshSubmit(); return; }
         flag.hidden = false;
         flag.className = "flag " + r.level;
         if (r.level === "ok"){
-          flag.textContent = "Not used before. Good to go.";
+          flag.textContent = "Not used in a past season. Checking with the others...";
+          askTaken(inp.value);
         } else {
           flag.textContent = "";
           flag.appendChild(el("b", null, r.level === "stop" ? "Already used. " : "Very close. "));
@@ -447,7 +490,13 @@ function filled(){
   return out;
 }
 
+/* Two reasons a category is blocked: the family used it in a past season (checked here, instantly,
+   against the baked list), or someone else has already claimed it this season (checked by the
+   server, so the answer arrives a moment later). Either one stops Submit. */
 function blocked(){
+  for (var i = 0; i < NFIELDS + 1; i++){
+    if (taken[i] && (state.themes[i] || "").trim()) return true;
+  }
   return filled().some(function(f){
     var r = check(f.theme);
     return r && r.level === "stop";
