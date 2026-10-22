@@ -129,12 +129,40 @@ button.ghost{background:transparent; color:var(--ink); border-color:var(--line-s
 .banner strong{font-weight:700}
 
 /* ---- used-themes reference ---- */
+/* The reference list is a disclosure. Joe's note, 2026-10-22: at a glance nobody realised it
+   opened. So it gets an accent band, a rotating chevron and a literal "Tap to open" cue, and the
+   default browser marker is removed so the custom one is the only one. */
 details{margin-top:18px; border:1px solid var(--line); border-radius:var(--radius);
-  background:var(--card); box-shadow:var(--shadow)}
-summary{padding:16px 20px; cursor:pointer; font-weight:600; font-family:Fraunces,Georgia,serif;
-  font-size:1.1rem; border-radius:var(--radius)}
-summary::marker{color:var(--accent)}
+  background:var(--card); box-shadow:var(--shadow); overflow:hidden}
+summary{
+  padding:16px 18px; cursor:pointer; font-weight:600; font-family:Fraunces,Georgia,serif;
+  font-size:1.1rem; display:flex; align-items:center; gap:12px;
+  background:var(--accent-soft); color:var(--ink);
+  border-left:4px solid var(--accent);
+  list-style:none; /* Firefox */
+}
+summary::-webkit-details-marker{display:none} /* Safari and old Chrome */
+summary:hover{filter:brightness(.97)}
+summary:focus-visible{outline:3px solid var(--accent); outline-offset:-3px}
+.chev{
+  flex:none; width:26px; height:26px; border-radius:50%;
+  background:var(--accent); color:var(--accent-ink);
+  display:grid; place-items:center; font-family:inherit; font-size:1rem; line-height:1;
+  transition:transform .18s ease;
+}
+details[open] .chev{transform:rotate(90deg)}
+.sum-text{flex:1 1 auto; min-width:0}
+.sum-cue{
+  flex:none; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  font-size:.72rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase;
+  color:var(--accent); border:1px solid currentColor; border-radius:999px; padding:4px 9px;
+}
+@media (max-width:420px){ .sum-cue{display:none} } /* the chevron carries it on a small screen */
 .used{padding:0 20px 18px}
+/* A season with no categories at all still gets a line, so the list never looks like it is
+   missing a season. Season 1 is the real case: it had none. */
+.none{margin:0; padding:10px 0 2px; border-top:1px solid var(--line);
+  color:var(--ink-soft); font-size:.93rem; font-style:italic}
 .used h3{font-size:.78rem; letter-spacing:.09em; text-transform:uppercase; color:var(--accent);
   margin:16px 0 8px; font-family:inherit; font-weight:700}
 .used ul{list-style:none; margin:0; padding:0}
@@ -189,8 +217,12 @@ footer{margin-top:30px; color:var(--ink-faint); font-size:.86rem; text-align:cen
     <div id="already-body"></div>
   </section>
 
-  <details>
-    <summary>Themes we have already used <span id="used-count"></span></summary>
+  <details id="used-box">
+    <summary>
+      <span class="chev" aria-hidden="true">&#9654;</span>
+      <span class="sum-text">Themes we have already used <span id="used-count"></span></span>
+      <span class="sum-cue" id="sum-cue">Tap to open</span>
+    </summary>
     <div class="used" id="used"></div>
   </details>
 </main>
@@ -514,16 +546,35 @@ function loadAlready(){
   $("used-count").textContent = "(" + THEMES.length + ")";
   var box = $("used"), bySeason = {};
   THEMES.forEach(function(t){ (bySeason[t.s] = bySeason[t.s] || []).push(t); });
-  Object.keys(bySeason).sort().forEach(function(s){
+
+  /* Walk every season from 1 to the highest, not just the ones that have themes. A season with
+     none still gets a heading and a line saying so, otherwise the list silently starts at Season 2
+     and reads as though a season went missing. Season 1 genuinely had no categories. */
+  var highest = THEMES.reduce(function(m, t){ return Math.max(m, t.s); }, 1);
+  var NOTES = { 1: "No categories this season. Every pick was a free choice." };
+
+  for (var s = 1; s <= highest; s++){
     box.appendChild(el("h3", null, "Season " + s));
+    var list = bySeason[s];
+    if (!list || !list.length){
+      box.appendChild(el("p", "none", NOTES[s] || "No categories this season."));
+      continue;
+    }
     var ul = el("ul");
-    bySeason[s].forEach(function(t){
+    list.forEach(function(t){
       var li = el("li");
       li.appendChild(el("span", null, t.t));
       li.appendChild(el("span", null, t.by));
       ul.appendChild(li);
     });
     box.appendChild(ul);
+  }
+
+  /* The cue reads "Tap to open" when shut and "Tap to close" when open, so the control explains
+     itself in both states rather than only on the way in. */
+  var det = $("used-box"), cue = $("sum-cue");
+  det.addEventListener("toggle", function(){
+    cue.textContent = det.open ? "Tap to close" : "Tap to open";
   });
 })();
 
