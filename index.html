@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Family Movie Night</title>
-<meta name="description" content="Submit your theme picks for the next season of family movie night.">
+<meta name="description" content="Submit your category picks for the next season of family movie night.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap">
@@ -128,7 +128,23 @@ button.ghost{background:transparent; color:var(--ink); border-color:var(--line-s
 .banner.warn{background:var(--warn-soft); color:var(--warn)}
 .banner strong{font-weight:700}
 
-/* ---- used-themes reference ---- */
+/* ---- where everyone is up to ----
+   Joe, 2026-10-22, on seeing "Joe: Test one, Test two, test three" run together on one line:
+   "maybe have each one its own row there too? easier to read". So each category is its own row
+   with its rank label beside it, never a comma-joined list. */
+.who + .who{margin-top:14px; padding-top:14px; border-top:1px solid var(--line)}
+.who-name{margin:0 0 6px; font-weight:700; font-family:Fraunces,Georgia,serif; font-size:1.05rem}
+.who-none,.who-count{margin:0; color:var(--ink-faint); font-size:.92rem; font-style:italic}
+.who-list{list-style:none; margin:0; padding:0; display:grid; gap:7px}
+.who-list li{display:flex; align-items:baseline; gap:10px; flex-wrap:wrap}
+.who-rank{
+  flex:none; font-size:.68rem; font-weight:700; letter-spacing:.07em; text-transform:uppercase;
+  color:var(--accent); background:var(--accent-soft); border:1px solid var(--accent);
+  border-radius:999px; padding:3px 8px; white-space:nowrap;
+}
+.who-theme{flex:1 1 10rem; min-width:0; font-weight:600}
+
+/* ---- used-categories reference ---- */
 /* The reference list is a disclosure. Joe's note, 2026-10-22: at a glance nobody realised it
    opened. So it gets an accent band, a rotating chevron and a literal "Tap to open" cue, and the
    default browser marker is removed so the custom one is the only one. */
@@ -180,10 +196,11 @@ footer{margin-top:30px; color:var(--ink-faint); font-size:.86rem; text-align:cen
 
 <header>
   <div class="kicker">Family Movie Night</div>
-  <h1 id="h-title">Theme picks</h1>
+  <h1 id="h-title">Category picks</h1>
   <p class="lede" id="h-lede">
-    Pick your name, then type the themes you want for the next season. Everything you type is
-    checked against every theme we have already used, so you find out right away if one is taken.
+    Pick your name, then type the categories you want for the next season. Everything you type
+    is checked against every category we have already used, so you find out right away if one
+    is taken.
   </p>
 </header>
 
@@ -196,7 +213,7 @@ footer{margin-top:30px; color:var(--ink-faint); font-size:.86rem; text-align:cen
   </section>
 
   <section class="card" id="form-card" hidden>
-    <div class="step"><div class="num">2</div><h2 id="form-title">Your themes</h2></div>
+    <div class="step"><div class="num">2</div><h2 id="form-title">Your categories</h2></div>
     <p class="hint" id="form-hint"></p>
     <div id="fields"></div>
 
@@ -206,7 +223,7 @@ footer{margin-top:30px; color:var(--ink-faint); font-size:.86rem; text-align:cen
     </label>
 
     <div class="actions">
-      <button class="go" id="submit" type="button">Submit my themes</button>
+      <button class="go" id="submit" type="button">Submit my categories</button>
       <button class="go ghost" id="clear" type="button">Start over</button>
     </div>
     <div id="result" hidden></div>
@@ -220,7 +237,7 @@ footer{margin-top:30px; color:var(--ink-faint); font-size:.86rem; text-align:cen
   <details id="used-box">
     <summary>
       <span class="chev" aria-hidden="true">&#9654;</span>
-      <span class="sum-text">Themes we have already used <span id="used-count"></span></span>
+      <span class="sum-text">Categories we have already used <span id="used-count"></span></span>
       <span class="sum-cue" id="sum-cue">Tap to open</span>
     </summary>
     <div class="used" id="used"></div>
@@ -304,7 +321,7 @@ function check(value){
   if (!v) return null;
   var vb = bare(value), i, row;
   for (i = 0; i < INDEX.length; i++){
-    if (INDEX[i].n === v) return { level: "stop", hit: INDEX[i].t, why: "the same theme" };
+    if (INDEX[i].n === v) return { level: "stop", hit: INDEX[i].t, why: "the same category" };
   }
   for (i = 0; i < INDEX.length; i++){
     row = INDEX[i];
@@ -335,7 +352,7 @@ function save(){
 }
 
 /* ---------- header and footer ---------- */
-$("h-title").textContent = SEASON + " theme picks";
+$("h-title").textContent = SEASON + " category picks";
 if (CFG.due){
   var d = new Date(CFG.due + "T12:00:00");
   if (!isNaN(d)){
@@ -343,14 +360,14 @@ if (CFG.due){
     $("h-lede").appendChild(el("strong", null, " Due " + due + "."));
   }
 }
-$("foot").textContent = "Each person picks " + NFIELDS + " themes that have never been used before. "
+$("foot").textContent = "Each person picks " + NFIELDS + " categories that have never been used before. "
   + THEMES.length + " themes have been used across Seasons 1 to 4.";
 
 if (!CFG.endpoint){
   var note = $("setup-note");
   note.hidden = false;
   note.innerHTML = "<strong>Saving is not switched on yet.</strong> You can fill this in and check "
-    + "your themes against the old ones right now, but the Submit button cannot send them "
+    + "your categories against the old ones right now, but the Submit button cannot send them "
     + "anywhere until Joe finishes the setup. Nothing you type here has been saved.";
 }
 
@@ -376,7 +393,7 @@ function buildFields(){
       var isBackup = (i === NFIELDS);
       var lab = el("label", "fld");
       var span = el("span");
-      span.appendChild(document.createTextNode(isBackup ? "Backup idea " : "Theme " + (i + 1) + " "));
+      span.appendChild(document.createTextNode(isBackup ? "Backup idea " : "Category " + (i + 1) + " "));
       var opt = el("span", "opt", isBackup ? "(optional, in case one is taken)" : "");
       span.appendChild(opt);
       lab.appendChild(span);
@@ -443,9 +460,9 @@ function refreshSubmit(){
   var btn = $("submit");
   btn.disabled = !state.person || need < NFIELDS || blocked() || !CFG.endpoint;
   if (!CFG.endpoint) btn.textContent = "Saving not switched on yet";
-  else if (blocked()) btn.textContent = "Change the used theme first";
-  else if (need < NFIELDS) btn.textContent = "Fill in " + NFIELDS + " themes";
-  else btn.textContent = "Submit my themes";
+  else if (blocked()) btn.textContent = "Change the used category first";
+  else if (need < NFIELDS) btn.textContent = "Fill in " + NFIELDS + " categories";
+  else btn.textContent = "Submit my categories";
 }
 
 /* ---------- submit ---------- */
@@ -530,17 +547,35 @@ $("clear").addEventListener("click", function(){
    and nobody is swayed by what is already on the board. The server enforces it: until everyone is
    in it returns counts only and an empty rows array, so there is nothing to peek at even for
    someone who opens the endpoint directly. Joe sees everything in the spreadsheet regardless. */
+/* Labels a row by its rank. Joe, 2026-10-22: "maybe put category 1 and category 2 somewhere too."
+   Rank is not decoration: in Season 4 everyone's FIRST category ran in the first half of the
+   season and their SECOND in the second half, so which is which genuinely matters. */
+function rankLabel(r){
+  if (String(r.kind) === "backup") return "Backup";
+  var n = parseInt(r.rank, 10);
+  return (n >= 1 && n <= NFIELDS) ? "Category " + n : "Category";
+}
+
 function loadAlready(){
   if (!CFG.endpoint) return;
-  fetch(CFG.endpoint + "?action=themes&season=" + encodeURIComponent(SEASON))
+  var url = CFG.endpoint + "?action=themes&season=" + encodeURIComponent(SEASON)
+          + (state.person ? "&person=" + encodeURIComponent(state.person) : "");
+  fetch(url)
     .then(function(r){ return r.json(); })
     .then(function(data){
       if (!data || !data.ok) return;
       var counts = data.counts || {};
       var byPerson = {};
       (data.rows || []).forEach(function(r){
-        if (r.kind === "backup") return;          // backups stay private even after the reveal
-        (byPerson[r.person] = byPerson[r.person] || []).push(r.theme);
+        (byPerson[r.person] = byPerson[r.person] || []).push(r);
+      });
+      Object.keys(byPerson).forEach(function(p){
+        byPerson[p].sort(function(a, b){
+          // Backups last, otherwise by rank, so Category 1 always reads above Category 2.
+          var ab = String(a.kind) === "backup", bb = String(b.kind) === "backup";
+          if (ab !== bb) return ab ? 1 : -1;
+          return (parseInt(a.rank, 10) || 0) - (parseInt(b.rank, 10) || 0);
+        });
       });
 
       var body = $("already-body");
@@ -550,32 +585,43 @@ function loadAlready(){
       PEOPLE.forEach(function(p){
         var n = counts[p] || 0;
         if (n) any = true;
-        var line = el("p");
+        var block = el("div", "who");
+        var head = el("p", "who-name", p + (p === state.person ? " (you)" : ""));
+        block.appendChild(head);
+
         if (!n){
-          line.className = "hint";
-          line.textContent = p + ": nothing yet";
-        } else if (data.revealed && byPerson[p]){
-          line.appendChild(el("strong", null, p + ": "));
-          line.appendChild(document.createTextNode(byPerson[p].join(", ")));
+          block.appendChild(el("p", "who-none", "Nothing yet"));
+        } else if (byPerson[p]){
+          /* ONE PER ROW. Joe, 2026-10-22, on seeing "Joe: Test one, Test two, test three":
+             "maybe have each one its own row there too? easier to read". It is also his standing
+             rule everywhere else, so the display follows it too. */
+          var ul = el("ul", "who-list");
+          byPerson[p].forEach(function(r){
+            var li = el("li");
+            li.appendChild(el("span", "who-rank", rankLabel(r)));
+            li.appendChild(el("span", "who-theme", r.theme));
+            ul.appendChild(li);
+          });
+          block.appendChild(ul);
         } else {
-          line.appendChild(el("strong", null, p + ": "));
-          line.appendChild(document.createTextNode(
-            n + (n === 1 ? " category in" : " categories in")));
+          block.appendChild(el("p", "who-count",
+            n + (n === 1 ? " category in" : " categories in") + ", hidden for now"));
         }
-        body.appendChild(line);
+        body.appendChild(block);
       });
 
       var note = el("p", "hint");
       note.textContent = data.revealed
         ? "Everyone is in, so all the categories are now showing."
-        : "Everyone's categories stay hidden until all four of you have submitted, so nobody is "
-          + "influenced by what is already there. If you happen to pick one someone else already "
-          + "sent, you will be told when you submit, without being told whose it was.";
+        : "You can see your own, but everyone else's stays hidden until all four of you have "
+          + "submitted, so nobody is influenced by what is already there. If you happen to pick "
+          + "one someone else already sent, you will be told when you submit, without being told "
+          + "whose it was.";
       body.appendChild(note);
 
       $("already").hidden = !any;
       $("already").querySelector("h2").textContent =
-        data.revealed ? "Everyone's categories" : "Who has sent theirs in";
+        data.revealed ? "Everyone's categories" : "Where everyone is up to";
     })
     .catch(function(){ /* read-back is a nicety; never let it break the form */ });
 }
@@ -625,8 +671,8 @@ function render(){
   var on = !!state.person;
   $("form-card").hidden = !on;
   if (on){
-    $("form-title").textContent = state.person + ", your " + NFIELDS + " themes";
-    $("form-hint").textContent = "Themes nobody has ever picked before. "
+    $("form-title").textContent = state.person + ", your " + NFIELDS + " categories";
+    $("form-hint").textContent = "Categories nobody has ever picked before. "
       + "Type and it checks itself as you go.";
   }
   refreshSubmit();
