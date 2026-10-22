@@ -155,6 +155,7 @@ footer a{color:var(--accent)}
     <button type="button" data-view="search" role="tab">Search a movie</button>
     <button type="button" data-view="movies" role="tab">Everything we have seen</button>
     <button type="button" data-view="cats" role="tab">Categories used</button>
+    <button type="button" data-view="stats" role="tab">How we rate</button>
     <a href="index.html">Submit categories</a>
     <a href="picks.html">Submit movie picks</a>
   </nav>
@@ -191,6 +192,14 @@ footer a{color:var(--accent)}
       </div>
       <p class="count" id="m-count"></p>
       <ul class="hits" id="m-hits"></ul>
+    </div>
+  </section>
+
+  <!-- HOW WE RATE -->
+  <section id="v-stats" hidden>
+    <div class="card">
+      <p class="hint" id="stats-intro"></p>
+      <div id="stats-body"></div>
     </div>
   </section>
 
@@ -392,7 +401,59 @@ function drawMovies(){
 })();
 
 /* ---------- view switching ---------- */
-var VIEWS = ["search", "movies", "cats"];
+/* How each of us rates, across everything we have watched together. Joe asked for this on
+   2026-10-22, including the comparison to IMDb, RT critics and Letterboxd over the SAME films.
+   All of the arithmetic lives in lib.js so it is testable; this only draws it. */
+function drawStats(){
+  var host = $("stats-body");
+  host.textContent = "";
+  var s = FM.careerStats();
+  if (!s){
+    $("stats-intro").textContent = "";
+    host.appendChild(el("p", "hint",
+      "Our individual scores are not published on this site, so this cannot be worked out here."));
+    return;
+  }
+  $("stats-intro").textContent = "Across the " + s.films
+    + " films we have watched together. Every average skips a blank rather than counting it as a "
+    + "zero, and each person is measured against the group over only the films they rated.";
+
+  s.people.forEach(function(r){
+    var row = el("div", "fm-stat fm-p-" + r.person);
+    row.appendChild(el("span", "fm-stat-who", r.person));
+    row.appendChild(el("b", "fm-stat-avg", r.avg.toFixed(2)));
+    row.appendChild(el("span", "fm-stat-delta",
+      (r.vsGroup >= 0 ? "+" : "") + r.vsGroup.toFixed(2) + " vs the group"));
+    row.appendChild(el("p", "fm-stat-note",
+      r.high + " times the most generous, " + r.low + " times the toughest"
+      + (r.rated < s.films ? " · rated " + r.rated + " of " + s.films : "")));
+    host.appendChild(row);
+  });
+
+  var box = el("div", "fm-stat-src");
+  box.appendChild(el("p", "fm-stat-head", "The same films, scored elsewhere"));
+  Object.keys(s.sources).forEach(function(name){
+    var v = s.sources[name];
+    var row = el("div", "fm-stat");
+    row.appendChild(el("span", "fm-stat-who", name));
+    if (v.avg === null){
+      // 🛑 Never fill this with a plausible figure. It would become the number the family
+      //    compares itself against, which is the worst possible place for an invented one.
+      row.appendChild(el("p", "fm-stat-note", name === "Letterboxd"
+        ? "No API we are allowed to use, so this stays blank unless one of us types the numbers in."
+        : "Not loaded yet. Fills itself once the free OMDb key is in."));
+    } else {
+      row.appendChild(el("b", "fm-stat-avg", v.avg.toFixed(2)));
+      row.appendChild(el("span", "fm-stat-delta", "out of 5"));
+      row.appendChild(el("p", "fm-stat-note",
+        "averaged over " + v.count + " of our " + v.of + " films"));
+    }
+    box.appendChild(row);
+  });
+  host.appendChild(box);
+}
+
+var VIEWS = ["search", "movies", "stats", "cats"];
 function show(v){
   if (VIEWS.indexOf(v) === -1) v = "search";
   VIEWS.forEach(function(name){
@@ -402,6 +463,7 @@ function show(v){
     b.setAttribute("aria-selected", String(b.getAttribute("data-view") === v));
   });
   if (v === "movies") drawMovies();
+  if (v === "stats") drawStats();
   if (v === "search") $("q").focus();
 }
 Array.prototype.forEach.call($("views").querySelectorAll("button"), function(b){

@@ -336,6 +336,100 @@ window.FM = (function () {
     return true;
   }
 
+  /* ---------- how each of us rates, across everything ---------------------------------------
+     Joe, 2026-10-22: *"somewhere each of us 4 should show our total average across all movies we
+     have watched together and can even compare to what rotten tomatoes, imdb and letterbodx has
+     for the same movies."*
+
+     Two things make this honest rather than just arithmetic:
+       * A person's average is compared to the group average over EXACTLY the films THEY rated,
+         not over all 345. Otherwise Kathy, who sat one out, would be measured against a group
+         figure that includes a film she never saw.
+       * Blank ratings are skipped everywhere, never counted as zero.
+
+     Returns null when the payload has no ratings, which is the public build's state until Joe
+     says to publish them.
+  ------------------------------------------------------------------------------------------- */
+  function num(v) {
+    var n = parseFloat(v);
+    return isNaN(n) ? null : n;
+  }
+
+  function mean(a) {
+    if (!a.length) return null;
+    var t = 0;
+    a.forEach(function (n) { t += n; });
+    return t / a.length;
+  }
+
+  function careerStats() {
+    var seen = MOVIES.filter(function (m) { return m.r && m.st === "Watched"; });
+    if (!seen.length) return null;
+
+    var high = {}, low = {};
+    PEOPLE.forEach(function (p) { high[p] = 0; low[p] = 0; });
+    seen.forEach(function (m) {
+      var got = {};
+      PEOPLE.forEach(function (p, i) {
+        var n = num(m.r[i]);
+        if (n !== null) got[p] = n;
+      });
+      var vals = Object.keys(got).map(function (k) { return got[k]; });
+      if (vals.length < 2) return;
+      var mx = Math.max.apply(null, vals), mn = Math.min.apply(null, vals);
+      if (mx === mn) return;            // unanimous, so nobody is the high or the low
+      Object.keys(got).forEach(function (p) {
+        if (got[p] === mx) high[p]++;
+        if (got[p] === mn) low[p]++;
+      });
+    });
+
+    var people = PEOPLE.map(function (p, i) {
+      var mine = [], grp = [];
+      seen.forEach(function (m) {
+        var n = num(m.r[i]);
+        if (n === null) return;
+        mine.push(n);
+        var got = [];
+        m.r.forEach(function (v) { var x = num(v); if (x !== null) got.push(x); });
+        grp.push(mean(got));
+      });
+      var avg = mean(mine);
+      return {
+        person: p, rated: mine.length, avg: avg,
+        vsGroup: avg === null ? null : avg - mean(grp),
+        high: high[p], low: low[p]
+      };
+    });
+
+    /* The outside sources, averaged over the SAME films, so the comparison is like for like.
+       Every one of them is null until the OMDb key is in. 🛑 Never substitute a plausible
+       number here: a made-up average would silently become the thing Joe compares himself to. */
+    function srcAvg(key, div) {
+      var vals = [];
+      seen.forEach(function (m) {
+        var raw = m.e && m.e[key];
+        var n = num(raw);
+        if (n !== null) vals.push(n / div);
+      });
+      return { avg: mean(vals), count: vals.length, of: seen.length };
+    }
+
+    return {
+      films: seen.length,
+      people: people,
+      everyRating: mean(seen.reduce(function (acc, m) {
+        m.r.forEach(function (v) { var n = num(v); if (n !== null) acc.push(n); });
+        return acc;
+      }, [])),
+      sources: {
+        "IMDb": srcAvg("imdb", 2),
+        "RT critics": srcAvg("rt", 20),
+        "Letterboxd": srcAvg("lb", 1)
+      }
+    };
+  }
+
   /** Puts an unmissable warning at the top of a page and returns false when the film list did
    *  not load. Call it before anything that depends on knowing what has been watched. */
   function requireData(hostId) {
@@ -360,7 +454,7 @@ window.FM = (function () {
     norm: norm, compact: compact, noart: noart,
     lookup: lookup, seasonName: seasonName,
     tag: tag, letterboxd: letterboxd, poster: poster, verdict: verdict,
-    PEOPLE: PEOPLE, ratings: ratings,
+    PEOPLE: PEOPLE, ratings: ratings, careerStats: careerStats,
     tmdb: tmdb, liveSearch: liveSearch
   };
 })();
