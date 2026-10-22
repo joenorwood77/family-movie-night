@@ -151,6 +151,7 @@ footer a{color:var(--accent)}
   <a class="other" href="search.html">Just looking something up? Search instead &#8594;</a>
 </header>
 
+<div id="datawarn" class="banner stop" hidden></div>
 <div id="setup" class="banner warn" hidden></div>
 
 <main>
@@ -276,12 +277,38 @@ function buildKinds(){
     });
   }
 
-  box.appendChild(slotButton("Birthday", "", "Birthday movie",
-    owed.birthday ? owed.birthday + " submitted" : "for your birthday week", false));
+  /* Birthday picks have no deadline: Joe, 2026-10-22, "a spot people can submit their birthday
+     movie whenever they want... just suggest at least a week prior". So this shows a suggested
+     date per birthday rather than gating anything, and there is one slot per birthday that falls
+     inside the season, because every birthday inside the season earns a pick. */
+  var mine = FM.birthdaysFor(state.person);
+  if (!mine.length){
+    box.appendChild(slotButton("Birthday", "", "Birthday movie",
+      owed.birthday ? owed.birthday + " submitted" : "any time", false));
+  } else {
+    mine.forEach(function(b, i){
+      var submitBy = new Date(b.night.getTime() - 7 * 864e5);
+      var have = owed.birthday > i;
+      box.appendChild(slotButton("Birthday", "",
+        "Birthday movie · " + b.birthday.toLocaleDateString(undefined,
+          { month: "short", day: "numeric", year: "numeric" }),
+        have ? "submitted" : "watched around " + FM.niceDate(b.night)
+             + ", so send it by " + FM.niceDate(submitBy),
+        false));
+    });
+  }
 
-  $("kind-hint").textContent = LIVE.categories.length
-    ? "One film for each of the 8 categories, 8 Open Choice films, and your birthday film."
-    : "";
+  var hints = [];
+  if (LIVE.categories.length){
+    hints.push("One film for each of the 8 categories, plus 8 Open Choice films.");
+  }
+  if (mine.length > 1){
+    hints.push("Your birthday comes round " + mine.length + " times this season, so you get "
+      + mine.length + " birthday films.");
+  }
+  hints.push("Birthday films have no deadline. The dates above are a suggestion, and they shift "
+    + "if we skip any weeks.");
+  $("kind-hint").textContent = hints.join(" ");
 }
 
 function slotButton(kind, theme, label, sub, disabled){
@@ -340,7 +367,7 @@ function drawHits(results){
 
     var take = el("button", "take", blocked ? "Cannot pick this one" : "Pick this one");
     take.type = "button";
-    take.disabled = blocked || !CFG.endpoint;
+    take.disabled = blocked || !CFG.endpoint || !DATA_OK;
     take.addEventListener("click", function(){ submit(r, take); });
     box.appendChild(take);
 
@@ -354,7 +381,12 @@ var NOTE_OFF = '<div class="banner warn"><strong>Search is not switched on yet.<
 var NOTE_ERR = '<div class="banner stop">That search could not run just now. Please check your '
   + 'signal and try again.</div>';
 
+/* Without the film list this page cannot tell whether a film has already been watched, so it
+   must not let anybody claim one. Picking is disabled rather than guessing. */
+var DATA_OK = FM.requireData("datawarn");
+
 FM.liveSearch($("q"), 2, function(st, results){
+  if (!DATA_OK) return;
   var note = $("note"), count = $("count");
   if (st === "idle"){ $("hits").textContent = ""; count.textContent = ""; note.textContent = "";
     return; }

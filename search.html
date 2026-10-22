@@ -159,6 +159,8 @@ footer a{color:var(--accent)}
   </nav>
 </header>
 
+<div id="datawarn" class="banner stop" hidden></div>
+
 <main>
   <!-- SEARCH -->
   <section id="v-search">
@@ -255,7 +257,16 @@ var NOTE_OFF = '<div class="banner warn"><strong>Search is not switched on yet.<
 var NOTE_ERR = '<div class="banner stop">That search could not run just now. Please check your '
   + 'signal and try again. Nothing is wrong with the list itself.</div>';
 
+/* No film list means no trustworthy verdict, so the search box is taken away entirely
+   rather than left to answer wrongly. */
+var DATA_OK = FM.requireData("datawarn");
+if (!DATA_OK){
+  $("q").disabled = true;
+  $("q").placeholder = "Unavailable until the film list loads";
+}
+
 FM.liveSearch($("q"), 2, function(state, results){
+  if (!DATA_OK) return;
   var note = $("s-note"), count = $("s-count");
   if (state === "idle"){
     $("s-hits").textContent = ""; count.textContent = ""; note.textContent = "";

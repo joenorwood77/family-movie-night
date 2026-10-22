@@ -212,6 +212,7 @@ footer{margin-top:30px; color:var(--ink-faint); font-size:.86rem; text-align:cen
   <a class="other" href="search.html">Have we watched a movie? Search it &#8594;</a>
 </header>
 
+<div id="datawarn" class="banner stop" hidden></div>
 <div id="setup-note" class="banner warn" hidden></div>
 
 <main>
@@ -318,6 +319,20 @@ function dist(a, b){
     prev = cur;
   }
   return prev[b.length];
+}
+
+/* 🛑 "No repeat categories, ever" is enforced ONLY by this page checking the list in
+   themes.js. The server checks the current season but knows nothing of past ones. So if that
+   file did not load, the hard rule is simply not being applied, and submitting would be worse
+   than waiting. The floor is a sanity check: there were 28 on 2026-10-22 and the list only grows.
+   A silently empty list is exactly how a repeat would slip through. */
+var DATA_OK = THEMES.length >= 20;
+if (!DATA_OK){
+  var dw = $("datawarn");
+  dw.hidden = false;
+  dw.innerHTML = "<strong>The list of categories we have already used did not load, so this page "
+    + "cannot check whether your idea is a repeat.</strong> Please reload. Submitting now could "
+    + "duplicate a category from an earlier season, which is the one thing we never do.";
 }
 
 var INDEX = THEMES.map(function(t){
@@ -515,8 +530,9 @@ function refreshSubmit(){
   var items = filled();
   var need = items.filter(function(f){ return !f.backup; }).length;
   var btn = $("submit");
-  btn.disabled = !state.person || need < NFIELDS || blocked() || !CFG.endpoint;
-  if (!CFG.endpoint) btn.textContent = "Saving not switched on yet";
+  btn.disabled = !state.person || need < NFIELDS || blocked() || !CFG.endpoint || !DATA_OK;
+  if (!DATA_OK) btn.textContent = "Reload the page first";
+  else if (!CFG.endpoint) btn.textContent = "Saving not switched on yet";
   else if (blocked()) btn.textContent = "Change the used category first";
   else if (need < NFIELDS) btn.textContent = "Fill in " + NFIELDS + " categories";
   else btn.textContent = "Submit my categories";

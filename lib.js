@@ -16,6 +16,15 @@ window.FM = (function () {
 
   var IMG = "https://image.tmdb.org/t/p/w154";
 
+  /* 🛑 DATA INTEGRITY GATE. If movies.js did not load, or loaded truncated, MOVIES is empty or
+     short and every lookup would answer "free to pick" - including for films the family watched
+     years ago. A confidently wrong answer is far worse than no answer, so the pages check this
+     and refuse to give a verdict at all rather than give a false one.
+     The floor is a sanity check, not the exact count: the real list was 354 on 2026-10-22 and
+     only grows. A number below this means something is wrong with the file, not with the data. */
+  var EXPECTED_MIN = 300;
+  var dataOk = MOVIES.length >= EXPECTED_MIN;
+
   /* ---------- small DOM helpers ---------- */
   function $(id) { return document.getElementById(id); }
   function el(tag, cls, text) {
@@ -170,8 +179,90 @@ window.FM = (function () {
     });
   }
 
+  /* ---------- birthday movie nights ---------------------------------------------------------
+     The rule Joe chose on 2026-10-22, from three options shown with their real dates: a birthday
+     film goes on the NEAREST movie night either side of the birthday. If two people land on the
+     same night, whoever's birthday is closer keeps it and the other moves to the following night.
+     On a Tuesday season that tie-break never fires; on a Wednesday one it does, because Juli and
+     Joe both land on 13 October 2027.
+
+     Dates are APPROXIMATE and the page must say so: skipped weeks push the season's end later,
+     which can pull another birthday inside it, and the movie night itself can move.
+
+     🛑 NEVER HARDCODE TUESDAY. CFG.movieNight is the season DEFAULT only. Joe, 2026-10-22: the
+        night sometimes moves to Wednesday for a few months, and sometimes for a single week.
+        Every past season happening to start on a Tuesday is exactly what makes it look fixed.
+  ------------------------------------------------------------------------------------------- */
+  function nearestNight(d, weekday) {
+    var back = (d.getDay() - weekday + 7) % 7;
+    var before = new Date(d.getTime() - back * 864e5);
+    var after = new Date(before.getTime() + 7 * 864e5);
+    return (d - before) <= (after - d) ? before : after;
+  }
+
+  function birthdayNights() {
+    var start = CFG.seasonStart ? new Date(CFG.seasonStart + "T12:00:00") : null;
+    var bdays = CFG.birthdays || {};
+    if (!start || isNaN(start)) return [];
+    var night = (CFG.movieNight == null) ? 2 : CFG.movieNight;
+    var end = new Date(start.getTime() + (CFG.weeks || 70) * 7 * 864e5);
+
+    var out = [];
+    Object.keys(bdays).forEach(function (name) {
+      var md = bdays[name];
+      for (var y = start.getFullYear(); y <= end.getFullYear(); y++) {
+        var b = new Date(y, md[0] - 1, md[1], 12);
+        if (b < start || b > end) continue;
+        out.push({ person: name, birthday: b, night: nearestNight(b, night) });
+      }
+    });
+
+    // The tie-break: closer birthday keeps the night, the other moves on a week.
+    out.sort(function (a, b) { return a.night - b.night; });
+    for (var i = 0; i < out.length; i++) {
+      for (var j = i + 1; j < out.length; j++) {
+        if (+out[i].night !== +out[j].night) continue;
+        var gi = Math.abs(out[i].night - out[i].birthday);
+        var gj = Math.abs(out[j].night - out[j].birthday);
+        var loser = gi <= gj ? out[j] : out[i];
+        loser.night = new Date(loser.night.getTime() + 7 * 864e5);
+        loser.moved = true;
+      }
+    }
+    out.sort(function (a, b) { return a.night - b.night; });
+    return out;
+  }
+
+  /** Just this person's, soonest first. */
+  function birthdaysFor(person) {
+    return birthdayNights().filter(function (r) { return r.person === person; });
+  }
+
+  function niceDate(d) {
+    return d.toLocaleDateString(undefined,
+      { weekday: "short", month: "long", day: "numeric", year: "numeric" });
+  }
+
+  /** Puts an unmissable warning at the top of a page and returns false when the film list did
+   *  not load. Call it before anything that depends on knowing what has been watched. */
+  function requireData(hostId) {
+    if (dataOk) return true;
+    var host = document.getElementById(hostId);
+    if (host) {
+      host.hidden = false;
+      host.className = "banner stop";
+      host.innerHTML = "<strong>The film list did not load, so this page cannot tell you what we "
+        + "have already watched.</strong> Please reload the page. If it keeps happening, tell Joe "
+        + "rather than relying on what you see here, because without that list everything would "
+        + "look free to pick.";
+    }
+    return false;
+  }
+
   return {
-    MOVIES: MOVIES, IMG: IMG,
+    MOVIES: MOVIES, IMG: IMG, dataOk: dataOk, requireData: requireData,
+    nearestNight: nearestNight, birthdayNights: birthdayNights,
+    birthdaysFor: birthdaysFor, niceDate: niceDate,
     $: $, el: el,
     norm: norm, compact: compact, noart: noart,
     lookup: lookup, seasonName: seasonName,
