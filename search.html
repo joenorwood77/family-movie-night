@@ -224,6 +224,7 @@ footer a{color:var(--accent)}
 <script src="config.js"></script>
 <script src="themes.js"></script>
 <script src="movies.js"></script>
+<script src="aliases.js"></script>
 <script src="awards.js"></script>
 <script src="lib.js"></script>
 <script>
@@ -520,6 +521,29 @@ $("foot").textContent = watched + " films watched, " + (MOVIES.length - watched)
   + " already picked and still to come, across Seasons 1 to 4 and the bonus films.";
 
 show(location.hash.replace("#", "") || "search");
+
+/* ---------- auto-sync -------------------------------------------------------------------
+   Joe, 2026-10-22: *"will this then auto sync when new scores are added or how it know when
+   to update scores."* The baked list above is history and renders immediately; this reads the
+   ratings spreadsheet live and corrects it. It only ever adds or fixes, never empties, so a
+   failed read leaves a page that is still right, just not quite current. */
+function liveFoot(res){
+  var w = MOVIES.filter(function(m){ return m.st === "Watched"; }).length;
+  var base = w + " films watched, " + (MOVIES.length - w)
+    + " already picked and still to come, across Seasons 1 to 4 and the bonus films.";
+  if (res && res.ok && res.read){
+    base += " Up to date with the ratings spreadsheet as of "
+      + new Date(res.read).toLocaleString() + ".";
+  }
+  $("foot").textContent = base;
+}
+FM.syncLive(function(res){
+  if (!res.ok) return;                       // the baked history is already on screen
+  liveFoot(res);
+  var cur = location.hash.replace("#", "") || "search";
+  if (cur === "movies") drawMovies();
+  if (cur === "stats") drawStats();
+});
 })();
 </script>
 </body>

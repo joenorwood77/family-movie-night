@@ -433,6 +433,127 @@ window.FM = (function () {
     };
   }
 
+  /* ---------- auto-sync: the live ratings overlaid on the baked list -------------------------
+     Joe, 2026-10-22: *"will this then auto sync when new scores are added or how it know when to
+     update scores."*
+
+     The baked film list is HISTORY: it ships with the page, works with no network, and is what
+     the data-integrity gate counts. This overlays the live sheet on top of it, so a score added
+     tonight appears without anybody rebuilding the site.
+
+     🛑 IT ONLY EVER ADDS OR CORRECTS. It never empties a rating, never un-watches a film, and
+        never runs at all unless the live read looks sane. A sync that can delete is a sync that
+        will eventually delete everything, and this is the family's only record of years of
+        ratings.
+
+     ⚠️ Matching is by title and year, which means the sheet's known typos (Pyscho, Aguire,
+        Eastwck, Borat 2, Kill Bill Volume 1) will NOT match the project's corrected titles.
+        That is harmless: those are all old films whose ratings are already baked in and settled.
+        It is the newly watched films that need syncing, and those are typed correctly. The count
+        of unmatched rows is returned rather than swallowed, so if it ever grows we find out.
+  ------------------------------------------------------------------------------------------- */
+  var LIVE_MIN_ROWS = 300;        // same floor as the data gate: fewer means something is wrong
+
+  /* Generated into site/aliases.js from the ALIASES map in scripts/apply_sheet.py, which is the
+     ONE copy and carries a reason for every entry. Absent if a page does not load aliases.js,
+     in which case the sync still works and simply reports more unmatched rows. */
+  var ALIAS = window.FM_SHEET_ALIASES || {};
+
+  function liveRating(v) {
+    if (v === "na" || v === null || v === undefined || v === "") return null;
+    var n = parseFloat(v);
+    return isNaN(n) ? null : n;
+  }
+
+  function applyLive(payload) {
+    var res = { ok: false, updated: 0, newlyWatched: [], unmatched: [], read: null };
+    if (!payload || !payload.ok || !payload.rows || payload.rows.length < LIVE_MIN_ROWS) {
+      // Too few rows to be the real list. Leave the baked data exactly as it is.
+      res.reason = !payload || !payload.ok ? "the live read failed" : "the live list was short";
+      return res;
+    }
+    res.read = payload.read || null;
+
+    payload.rows.forEach(function (row) {
+      // The sheet names a few films differently from the project, and gets two years wrong.
+      // ALIAS is generated from the same map the baked data was built with, so the live sync
+      // matches exactly what the build matched. Without it, "La Strada (The Road)" never finds
+      // La Strada, and one of the five films about to be watched would never sync.
+      var t = row.t, y = row.y;
+      var alias = ALIAS[row.t + "|" + row.y];
+      if (alias) { t = alias[0]; y = alias[1]; }
+
+      var hit = lookup(t, y);
+      var m = hit.exact;
+      if (!m) { res.unmatched.push(row.t + " (" + row.y + ")"); return; }
+
+      var scores = (row.r || []).map(liveRating);
+      var anyReal = scores.some(function (n) { return n !== null; });
+      var changed = false;
+
+      if (anyReal) {
+        // Only write a rating that is actually there. A null in the live row leaves whatever is
+        // baked alone, so a half-filled sheet row can never wipe a real score.
+        var before = (m.r || []).join("|");
+        var next = PEOPLE.map(function (p, i) {
+          if (scores[i] !== null) return String(scores[i]);
+          return m.r ? m.r[i] : null;
+        });
+        if (next.join("|") !== before) { m.r = next; changed = true; }
+
+        if (m.st !== "Watched") {
+          m.st = "Watched";
+          res.newlyWatched.push(m.t + " (" + m.y + ")");
+          changed = true;
+        }
+
+        // Recompute the average from whatever is now there, skipping blanks. Never a zero.
+        var got = [];
+        (m.r || []).forEach(function (v) {
+          var n = parseFloat(v);
+          if (!isNaN(n)) got.push(n);
+        });
+        if (got.length) {
+          var t = 0;
+          got.forEach(function (n) { t += n; });
+          m.a = String(Math.round((t / got.length) * 1000) / 1000);
+        }
+      }
+
+      // The outside scores. RT arrives divided by ten, the way the sheet stores it.
+      var imdb = liveRating(row.i), rt = liveRating(row.rt);
+      if (imdb !== null || rt !== null) {
+        m.e = m.e || {};
+        if (imdb !== null && m.e.imdb !== String(imdb)) { m.e.imdb = String(imdb); changed = true; }
+        if (rt !== null) {
+          var pct = String(Math.round(rt * 10 * 100) / 100);
+          if (m.e.rt !== pct) { m.e.rt = pct; changed = true; }
+        }
+      }
+
+      if (changed) res.updated++;
+    });
+
+    res.ok = true;
+    return res;
+  }
+
+  /** Fetches the live ratings and overlays them, then calls back. Safe to call on page load:
+   *  a failure is silent to the viewer, because the baked data is already correct history. */
+  function syncLive(onDone) {
+    if (!CFG.endpoint) { onDone({ ok: false, reason: "no endpoint configured" }); return; }
+    fetch(CFG.endpoint + "?action=watched")
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (d && !d.ok && String(d.error || "").indexOf("Unknown action") > -1) {
+          onDone({ ok: false, reason: "not deployed yet" });
+          return;
+        }
+        onDone(applyLive(d));
+      })
+      .catch(function () { onDone({ ok: false, reason: "the network call failed" }); });
+  }
+
   /** Puts an unmissable warning at the top of a page and returns false when the film list did
    *  not load. Call it before anything that depends on knowing what has been watched. */
   function requireData(hostId) {
@@ -818,6 +939,7 @@ window.FM = (function () {
     easter: easter, thanksgiving: thanksgiving, holidaysBetween: holidaysBetween,
     readAdjustments: readAdjustments, buildSchedule: buildSchedule,
     eligibleBirthdays: eligibleBirthdays, placeholderSeason: placeholderSeason,
+    applyLive: applyLive, syncLive: syncLive,
     nearestNight: nearestNight, birthdayNights: birthdayNights,
     birthdaysFor: birthdaysFor, niceDate: niceDate,
     $: $, el: el,

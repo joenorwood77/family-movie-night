@@ -279,6 +279,7 @@ footer a{color:var(--accent)}
 
 <script src="config.js"></script>
 <script src="movies.js"></script>
+<script src="aliases.js"></script>
 <script src="lib.js"></script>
 <script>
 (function () {
@@ -759,13 +760,30 @@ footer a{color:var(--accent)}
     // be a row of blank weeks, which looks like an answer and is not one.
     if (!FM.requireData("datawarn")) return;
 
-    $("stale").textContent = "Which films are left comes from the ratings spreadsheet, which Joe "
-      + "refreshes by hand today. A film watched since the last refresh can still show here as "
-      + "coming up.";
+    $("stale").textContent = "Checking the ratings spreadsheet for anything watched since this "
+      + "page was built...";
 
     drawList();
     drawAdj();
     load();
+
+    /* Auto-sync. Which films are still to come depends on what has been rated, so this page is
+       the one that goes most wrong when the baked list is stale. The baked list is still shown
+       immediately; this only ever corrects it. */
+    FM.syncLive(function (res) {
+      if (!res.ok) {
+        $("stale").textContent = "Which films are left comes from the ratings spreadsheet. "
+          + "Reading it live is not switched on yet (" + (res.reason || "unavailable") + "), so "
+          + "a film watched very recently may still show here as coming up.";
+        return;
+      }
+      if (res.newlyWatched.length || res.updated) drawList();
+      var when = res.read ? new Date(res.read).toLocaleString() : "just now";
+      $("stale").textContent = "Up to date with the ratings spreadsheet as of " + when + ". "
+        + (res.newlyWatched.length
+            ? "Marked as watched since this page was built: " + res.newlyWatched.join(", ") + "."
+            : "Nothing new since this page was built.");
+    });
   }
 
   init();
