@@ -132,8 +132,19 @@ button.take:disabled{opacity:.4; cursor:not-allowed}
   border-top:1px solid var(--line); font-size:.95rem}
 .prog b{font-family:Fraunces,Georgia,serif}
 .mine{list-style:none; margin:10px 0 0; padding:0}
-.mine li{display:flex; justify-content:space-between; gap:10px; align-items:baseline;
-  padding:9px 0; border-top:1px solid var(--line); font-size:.95rem}
+.mine li{display:flex; flex-wrap:wrap; justify-content:space-between; gap:8px;
+  align-items:center; padding:9px 0; border-top:1px solid var(--line); font-size:.95rem}
+.mine li > span:first-child{flex:1 1 10rem; min-width:0}
+/* Joe, 2026-11-11: changing a pick has to be EASY. Two taps, and the buttons are big enough
+   to hit on a phone without zooming. */
+button.chg{flex:none; min-height:38px; padding:7px 12px; font-size:.84rem; font-weight:700;
+  border-radius:9px; border:2px solid var(--line-strong); background:var(--card);
+  color:var(--ink); cursor:pointer}
+button.chg:hover{border-color:var(--accent); color:var(--accent)}
+.swapping{border-left:5px solid var(--accent); background:var(--accent-soft);
+  border-radius:11px; padding:12px 14px; margin:0 0 12px}
+.swapping b{display:block}
+.swapping button{margin-top:9px}
 .mine .slot{flex:none; font-size:.7rem; font-weight:700; letter-spacing:.06em;
   text-transform:uppercase; color:var(--accent); background:var(--accent-soft);
   border:1px solid var(--accent); border-radius:999px; padding:3px 8px}
@@ -214,7 +225,9 @@ var LS = "fm.picks.v1";
 /* All title matching comes from lib.js, the one copy the whole site shares. */
 var $ = FM.$, el = FM.el;
 
-var state = { person: "", kind: "", theme: "" };
+// `changing` is deliberately NOT restored from localStorage: a half-finished swap from days
+// ago would point at a pick that may no longer exist.
+var state = { person: "", kind: "", theme: "", changing: null };
 try {
   var s = JSON.parse(localStorage.getItem(LS) || "{}");
   if (s && PEOPLE.indexOf(s.person) > -1) state.person = s.person;
@@ -366,7 +379,8 @@ function drawHits(results){
 
     box.appendChild(FM.letterboxd(r.t, r.y));
 
-    var take = el("button", "take", blocked ? "Cannot pick this one" : "Pick this one");
+    var take = el("button", "take", blocked ? "Cannot pick this one"
+      : (state.changing ? "Swap to this one" : "Pick this one"));
     take.type = "button";
     take.disabled = blocked || !CFG.endpoint || !DATA_OK;
     take.addEventListener("click", function(){ submit(r, take); });
@@ -404,9 +418,114 @@ FM.liveSearch($("q"), 2, function(st, results){
 });
 
 /* ---------- submitting one pick ---------- */
+/* ---------- changing a pick ----------------------------------------------------------------
+   The old pick is RETIRED, never deleted, and a new row is written. So the sheet keeps the
+   whole story, and the film somebody moved away from becomes free for the others at once.
+   Changing keeps the same slot: an Open Choice stays an Open Choice, a category pick stays in
+   that category. That is why only the film has to be chosen again. */
+function startChange(r){
+  state.changing = { title: r.title, year: r.year, pick_type: r.pick_type, theme: r.theme };
+  state.kind = r.pick_type;
+  state.theme = r.theme || "";
+  save();
+  render();
+  var q = $("q");
+  if (q){ q.value = ""; q.focus(); }
+  if (q && q.scrollIntoView) q.scrollIntoView({ block: "center" });
+}
+
+function cancelChange(){
+  state.changing = null;
+  save();
+  render();
+}
+
+function dropPick(r){
+  if (!confirmish("Remove " + r.title + " from your picks? You can add something else "
+                  + "afterwards, and the old pick stays on the record.")) return;
+  send({
+    kind: "pickchange",
+    person: state.person,
+    season: SEASON,
+    old_title: r.title,
+    old_year: r.year,
+    drop: "yes"
+  }, null, "Removed " + r.title + ".");
+}
+
+/* The browser's confirm() is fine here: this page is a real website, not an artifact, and the
+   action is reversible because nothing is ever deleted. The Yes/No popup Joe specified was for
+   cancelling a movie week, which moves everybody's dates. */
+function confirmish(msg){
+  try { return window.confirm(msg); } catch (e) { return true; }
+}
+
+/** One POST, one honest answer. Used by every change: a swap, or removing a pick.
+ *  Apps Script cannot set an HTTP status, so the real result rides in the body as `ok`. */
+function send(payload, btn, okText){
+  if (!CFG.endpoint){
+    $("note").innerHTML = '<div class="banner warn">Saving is not switched on yet, so nothing '
+      + 'was changed.</div>';
+    return;
+  }
+  fetch(CFG.endpoint, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify(payload),
+    redirect: "follow"
+  })
+  .then(function(res){ return res.json(); })
+  .then(function(d){
+    if (btn){ btn.textContent = "Pick this one"; btn.disabled = false; }
+    if (!d || !d.ok){
+      var err = String((d && d.error) || "");
+      if (err.indexOf("Unknown kind") > -1){
+        $("note").innerHTML = '<div class="banner warn"><strong>Changing a pick is not switched '
+          + 'on yet.</strong> Joe has one setup step left. Nothing was changed, and trying again '
+          + 'will not help.</div>';
+        return;
+      }
+      // A refusal the server made on purpose is not a breakage. Show its own words.
+      $("note").innerHTML = '<div class="banner warn">'
+        + (err || "That was not accepted. Nothing was changed.") + '</div>';
+      refresh();
+      return;
+    }
+    $("note").innerHTML = '<div class="banner ok"><strong>Done.</strong> ' + okText + '</div>';
+    state.changing = null;
+    state.kind = ""; state.theme = "";
+    $("q").value = "";
+    $("hits").textContent = "";
+    $("count").textContent = "";
+    save();
+    refresh();
+  })
+  .catch(function(){
+    if (btn){ btn.textContent = "Pick this one"; btn.disabled = false; }
+    $("note").innerHTML = '<div class="banner stop">That did not send, so nothing was changed. '
+      + 'Please check your signal and try again.</div>';
+  });
+}
+
 function submit(r, btn){
   btn.disabled = true;
   btn.textContent = "Saving...";
+  if (state.changing){
+    var was = state.changing;
+    send({
+      kind: "pickchange",
+      person: state.person,
+      season: SEASON,
+      old_title: was.title,
+      old_year: was.year,
+      title: r.t,
+      year: r.y,
+      tmdb_id: r.id,
+      pick_type: was.pick_type,
+      theme: was.theme || ""
+    }, btn, "Changed " + was.title + " to " + r.t + ".");
+    return;
+  }
   var payload = {
     kind: "picks",
     person: state.person,
@@ -483,6 +602,16 @@ function drawMine(){
     var li = el("li");
     li.appendChild(el("span", null, r.title + (r.year ? " (" + r.year + ")" : "")));
     li.appendChild(el("span", "slot", slotLabel(r)));
+    /* Joe, 2026-11-11: *"how will the site handle it when someone wants to change their movie
+       choice a week or so before their turn? please make this easy to change."* Two taps: this
+       button, then the film you want instead. Nothing is lost, because the old pick is kept on
+       the record and the film you move away from frees up for everyone else straight away. */
+    var change = el("button", "chg", "Change");
+    change.onclick = function(){ startChange(r); };
+    li.appendChild(change);
+    var remove = el("button", "chg", "Remove");
+    remove.onclick = function(){ dropPick(r); };
+    li.appendChild(remove);
     ul.appendChild(li);
   });
   $("mine-title").textContent = state.person ? state.person + ", your picks so far"
@@ -529,10 +658,25 @@ function render(){
   Array.prototype.forEach.call($("people").children, function(b){
     b.setAttribute("aria-pressed", String(b.textContent === state.person));
   });
-  $("c-kind").hidden = !state.person;
-  $("c-find").hidden = !(state.person && state.kind);
-  if (state.person) buildKinds();
-  if (state.kind){
+  $("c-kind").hidden = !state.person || !!state.changing;
+  $("c-find").hidden = !(state.person && (state.kind || state.changing));
+  if (state.person && !state.changing) buildKinds();
+  if (state.changing){
+    var was = state.changing;
+    $("find-title").textContent = "Find a replacement";
+    $("note").innerHTML = "";
+    var box = el("div", "swapping");
+    box.appendChild(el("b", null, "Changing " + was.title
+      + (was.year ? " (" + was.year + ")" : "")));
+    box.appendChild(document.createTextNode("It stays in the same slot: "
+      + (was.pick_type === "Dealer's Choice" ? (was.theme || "that category") : was.pick_type)
+      + ". Find the film you want instead and tap it. " + was.title
+      + " frees up for everyone else straight away."));
+    var cx = el("button", null, "Cancel, keep " + was.title);
+    cx.onclick = cancelChange;
+    box.appendChild(cx);
+    $("note").appendChild(box);
+  } else if (state.kind){
     $("find-title").textContent = "Find a film for "
       + (state.kind === "Dealer's Choice" ? state.theme : state.kind);
   }

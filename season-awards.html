@@ -1,0 +1,816 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Season Awards</title>
+<meta name="description" content="The Razzie works itself out, you rank the Best Picture shortlist, and the Sleeper is drawn from four nominations.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap">
+<link rel="stylesheet" href="theme.css">
+<style>
+:root{
+  color-scheme: light;
+  --bg:#fbf7f0; --card:#ffffff; --ink:#1b1512; --ink-soft:#574b43; --ink-faint:#7b6d63;
+  --line:#e2d7c9; --line-strong:#c9b9a6;
+  --accent:#a3321e; --accent-ink:#ffffff; --accent-soft:#fdeee9;
+  --ok:#1d6b45; --ok-soft:#e6f4ec;
+  --warn:#8a5200; --warn-soft:#fdf1dc;
+  --stop:#9d1c1c; --stop-soft:#fdeaea;
+  --shadow:0 1px 2px rgba(27,21,18,.07), 0 8px 24px rgba(27,21,18,.06);
+  --radius:14px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --bg:#15120f; --card:#211c18; --ink:#f7f1e8; --ink-soft:#ccbfb2; --ink-faint:#a2958a;
+    --line:#352c25; --line-strong:#4d4036;
+    --accent:#ff8f6b; --accent-ink:#2a0f06; --accent-soft:#38201a;
+    --ok:#6ddc9f; --ok-soft:#14301f;
+    --warn:#ffc266; --warn-soft:#33250c;
+    --stop:#ff8f8f; --stop-soft:#3a1616;
+    --shadow:0 1px 2px rgba(0,0,0,.5), 0 8px 24px rgba(0,0,0,.4);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --bg:#15120f; --card:#211c18; --ink:#f7f1e8; --ink-soft:#ccbfb2; --ink-faint:#a2958a;
+  --line:#352c25; --line-strong:#4d4036;
+  --accent:#ff8f6b; --accent-ink:#2a0f06; --accent-soft:#38201a;
+  --ok:#6ddc9f; --ok-soft:#14301f;
+  --warn:#ffc266; --warn-soft:#33250c;
+  --stop:#ff8f8f; --stop-soft:#3a1616;
+  --shadow:0 1px 2px rgba(0,0,0,.5), 0 8px 24px rgba(0,0,0,.4);
+}
+
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font:17px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  padding-block: 0 56px;
+  padding-left:max(18px,env(safe-area-inset-left,0px));
+  padding-right:max(18px,env(safe-area-inset-right,0px));
+}
+.wrap{max-width:46rem; margin:0 auto}
+h1,h2{font-family:Fraunces,Georgia,"Times New Roman",serif; font-weight:700;
+  text-wrap:balance; margin:0}
+h1{font-size:clamp(1.8rem,6.5vw,2.4rem); line-height:1.1; letter-spacing:-.01em}
+header{padding-block:30px 6px}
+.kicker{font-size:.76rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--accent); margin-bottom:9px}
+.lede{color:var(--ink-soft); margin:10px 0 0}
+
+nav.views{display:flex; flex-wrap:wrap; gap:8px; margin:18px 0 0}
+nav.views a{
+  flex:1 1 7rem; min-height:46px; padding:11px 14px; font-size:.97rem; font-weight:600;
+  border-radius:11px; background:var(--card); color:var(--ink); text-decoration:none;
+  border:2px solid var(--line-strong); display:grid; place-items:center; text-align:center;
+}
+nav.views a:hover{border-color:var(--accent)}
+
+.card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
+  box-shadow:var(--shadow); padding:18px; margin-top:16px}
+.card h2{font-size:1.15rem; margin-bottom:4px}
+.hint{color:var(--ink-faint); font-size:.9rem; margin:6px 0 0}
+.rule{color:var(--ink-soft); font-size:.92rem; margin:6px 0 0; font-style:italic}
+.step{font-size:.72rem; font-weight:700; letter-spacing:.09em; text-transform:uppercase;
+  color:var(--accent); margin:0 0 7px}
+
+input[type=text],select{
+  width:100%; font:inherit; font-size:17px; color:var(--ink); background:var(--bg);
+  border:2px solid var(--line-strong); border-radius:11px; padding:13px 14px;
+}
+input:focus,select:focus{outline:3px solid var(--accent-soft); outline-offset:1px;
+  border-color:var(--accent)}
+
+button{font:inherit; font-size:1rem; font-weight:700; cursor:pointer; min-height:48px;
+  padding:12px 18px; border-radius:11px; border:2px solid var(--line-strong);
+  background:var(--card); color:var(--ink)}
+button.primary{background:var(--accent); color:var(--accent-ink); border-color:var(--accent)}
+button.small{min-height:40px; padding:8px 13px; font-size:.88rem}
+button:disabled{opacity:.5; cursor:default}
+
+.banner{border-radius:12px; padding:14px 16px; margin-top:16px; border:2px solid}
+.banner.ok{background:var(--ok-soft); color:var(--ok); border-color:var(--ok)}
+.banner.warn{background:var(--warn-soft); color:var(--warn); border-color:var(--warn)}
+.banner.stop{background:var(--stop-soft); color:var(--stop); border-color:var(--stop)}
+
+.who,.seasons{display:flex; flex-wrap:wrap; gap:8px; margin-top:10px}
+.who button,.seasons button{flex:1 1 6rem}
+.who button[aria-pressed=true],.seasons button[aria-pressed=true]{
+  background:var(--accent); color:var(--accent-ink); border-color:var(--accent)}
+
+.trophy{border-left:5px solid var(--accent); background:var(--accent-soft);
+  border-radius:11px; padding:14px 16px; margin-top:12px}
+.trophy .big{font-family:Fraunces,Georgia,serif; font-weight:700; font-size:1.3rem;
+  line-height:1.15; margin:0}
+.trophy .sub{color:var(--ink-soft); font-size:.9rem; margin:5px 0 0}
+.num{font-family:Fraunces,Georgia,serif; font-weight:700; font-size:2rem; line-height:1;
+  color:var(--accent)}
+
+ol.pick,ul.plain{list-style:none; margin:12px 0 0; padding:0}
+ol.pick li,ul.plain li{
+  border:1px solid var(--line); border-left:5px solid var(--line-strong); border-radius:11px;
+  padding:11px 13px; margin-bottom:8px; background:var(--card);
+  display:flex; gap:11px; align-items:center;
+}
+ol.pick li.chosen{border-left-color:var(--accent); background:var(--accent-soft)}
+ol.pick li .rank{
+  flex:0 0 2.1rem; height:2.1rem; border-radius:50%; display:grid; place-items:center;
+  font-weight:700; font-size:.95rem; border:2px solid var(--line-strong); color:var(--ink-faint);
+}
+ol.pick li.chosen .rank{background:var(--accent); color:var(--accent-ink);
+  border-color:var(--accent)}
+ol.pick li .t{flex:1 1 auto; min-width:0}
+ol.pick li .t b{font-weight:600}
+ol.pick li .t span{display:block; color:var(--ink-faint); font-size:.84rem}
+
+table.pts{width:100%; border-collapse:collapse; margin-top:12px; font-size:.95rem}
+table.pts th,table.pts td{text-align:left; padding:9px 8px; border-bottom:1px solid var(--line)}
+table.pts th{font-size:.76rem; text-transform:uppercase; letter-spacing:.06em;
+  color:var(--ink-soft)}
+table.pts td.n{text-align:right; font-weight:700; white-space:nowrap}
+table.pts tr.win td{background:var(--accent-soft)}
+
+.bar{height:9px; border-radius:99px; background:var(--line); overflow:hidden; margin-top:5px}
+.bar > i{display:block; height:100%; background:var(--accent)}
+
+.chips{display:flex; flex-wrap:wrap; gap:7px; margin-top:10px}
+.chip{border:2px solid var(--line-strong); border-radius:999px; padding:5px 12px;
+  font-size:.88rem; font-weight:600}
+.chip.in{border-color:var(--ok); color:var(--ok); background:var(--ok-soft)}
+.chip.out{color:var(--ink-faint)}
+
+.row2{display:flex; flex-wrap:wrap; gap:10px; margin-top:12px}
+.row2 > *{flex:1 1 9rem}
+
+.scrim{position:fixed; inset:0; background:rgba(12,8,5,.62); display:grid; place-items:center;
+  padding:18px; z-index:50}
+.scrim[hidden]{display:none}
+.modal{background:var(--card); color:var(--ink); border:2px solid var(--line-strong);
+  border-radius:16px; box-shadow:var(--shadow); padding:20px; max-width:30rem; width:100%}
+.modal h2{font-size:1.15rem}
+.modal p{margin:10px 0 0}
+.modal .acts{display:flex; gap:10px; margin-top:18px}
+.modal .acts button{flex:1 1 auto}
+footer{color:var(--ink-faint); font-size:.85rem; margin-top:30px; padding-top:16px;
+  border-top:1px solid var(--line)}
+footer a{color:var(--accent)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <p class="kicker">Family Movie Night</p>
+  <h1>Season awards</h1>
+  <p class="lede">Three awards. The Razzie works itself out from the ratings, Best Picture is
+    ranked and scored on points, and the Sleeper comes down to a draw.</p>
+  <nav class="views">
+    <a href="search.html">Have we watched it?</a>
+    <a href="schedule.html">Schedule</a>
+    <a href="picks.html">Submit movie picks</a>
+    <a href="trivia.html">Trivia</a>
+  </nav>
+</header>
+
+<div id="datawarn" class="banner stop" hidden></div>
+<div id="offwarn" class="banner warn" hidden></div>
+<div id="msg" class="banner ok" hidden></div>
+
+<section class="card">
+  <p class="step">Step 1</p>
+  <h2>Who are you?</h2>
+  <div class="who" id="who"></div>
+  <p class="step" style="margin-top:16px">Step 2</p>
+  <h2>Which season?</h2>
+  <div class="seasons" id="seasons"></div>
+</section>
+
+<section class="card">
+  <h2>Razzie</h2>
+  <p class="rule">The movie with our lowest average as a group.</p>
+  <div id="razzie"></div>
+</section>
+
+<section class="card">
+  <h2>Best Picture</h2>
+  <p class="rule">Every film we all rated 5. Then we each rank them, and the film ranked best
+    scores the most points.</p>
+  <div id="bpwarn"></div>
+  <div id="bpshort"></div>
+  <div id="bpmine"></div>
+  <div id="bpresult"></div>
+</section>
+
+<section class="card">
+  <h2>Sleeper</h2>
+  <p class="rule">We each nominate the film that surprised us and most exceeded our
+    expectations. Then one of the nominations is drawn.</p>
+  <div id="sleeper"></div>
+</section>
+
+<section class="card">
+  <h2>Previous winners</h2>
+  <div id="past"></div>
+</section>
+
+<footer>
+  <p>The Razzie is worked out from the ratings, so nobody votes on it. Best Picture and the
+  Sleeper are hidden until all four of us are in, so nobody can see how it is going before
+  deciding.</p>
+</footer>
+
+</div>
+
+<div class="scrim" id="scrim" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="mtitle">
+    <h2 id="mtitle">Are you sure?</h2>
+    <div id="mbody"></div>
+    <div class="acts">
+      <button id="mno">No, go back</button>
+      <button id="myes" class="primary">Yes, do it</button>
+    </div>
+  </div>
+</div>
+
+<script src="config.js"></script>
+<script src="movies.js"></script>
+<script src="aliases.js"></script>
+<script src="awards.js"></script>
+<script src="lib.js"></script>
+<script>
+(function () {
+  "use strict";
+  var CFG = window.FM_CONFIG || {};
+  var $ = FM.$, el = FM.el;
+
+  var state = { person: "", season: "4", ranking: [], server: null, off: false };
+
+  try {
+    var saved = localStorage.getItem("fm.awards.person");
+    if (saved && FM.PEOPLE.indexOf(saved) > -1) state.person = saved;
+  } catch (e) {}
+
+  function seasonLabel() { return "Season " + state.season; }
+
+  function say(cls, text) {
+    var m = $("msg");
+    m.className = "banner " + cls;
+    m.textContent = text;
+    m.hidden = false;
+  }
+  function quiet() { $("msg").hidden = true; }
+
+  /* ---------- the popup ---------- */
+  var pending = null;
+  function openModal(title, build, onYes, yesLabel) {
+    $("mtitle").textContent = title;
+    var b = $("mbody");
+    b.innerHTML = "";
+    build(b);
+    $("myes").textContent = yesLabel || "Yes, do it";
+    pending = onYes;
+    $("scrim").hidden = false;
+    $("mno").focus();
+  }
+  function closeModal() { $("scrim").hidden = true; pending = null; }
+  $("mno").onclick = closeModal;
+  $("myes").onclick = function () { var go = pending; closeModal(); if (go) go(); };
+  $("scrim").onclick = function (ev) { if (ev.target === $("scrim")) closeModal(); };
+  document.addEventListener("keydown", function (ev) {
+    if (ev.key === "Escape" && !$("scrim").hidden) closeModal();
+  });
+
+  /* ---------- the Razzie: computed, nobody votes ---------- */
+  function drawRazzie() {
+    var host = $("razzie");
+    host.innerHTML = "";
+    var rz = FM.razzie(state.season);
+    if (!rz) {
+      host.appendChild(el("p", "hint", "No rated films in this season yet."));
+      return;
+    }
+    rz.films.forEach(function (m) {
+      var box = el("div", "trophy");
+      box.appendChild(el("p", "big", m.t + (m.y ? " (" + m.y + ")" : "")));
+      box.appendChild(el("p", "sub", "Picked by " + m.p + ". Group average "
+        + rz.avg.toFixed(2) + "."));
+      host.appendChild(box);
+    });
+    if (rz.films.length > 1) {
+      host.appendChild(el("p", "hint", "A tie, so the group decides between them."));
+    }
+    if (rz.runnersUp.length) {
+      var t = el("table", "pts");
+      var hd = el("tr");
+      ["Also down there", "Average"].forEach(function (h) { hd.appendChild(el("th", null, h)); });
+      t.appendChild(el("thead", null)).appendChild(hd);
+      var tb = el("tbody");
+      rz.runnersUp.forEach(function (r) {
+        var tr = el("tr");
+        tr.appendChild(el("td", null, r.film.t + (r.film.y ? " (" + r.film.y + ")" : "")));
+        tr.appendChild(el("td", "n", r.avg.toFixed(2)));
+        tb.appendChild(tr);
+      });
+      t.appendChild(tb);
+      host.appendChild(t);
+    }
+  }
+
+  /* ---------- Best Picture ---------- */
+  function shortlist() { return FM.bestPictureShortlist(state.season); }
+
+  function drawBP() {
+    var sl = shortlist();
+    var warn = $("bpwarn");
+    warn.innerHTML = "";
+
+    // 🛑 A ballot cast against a shortlist that later grows is not a ballot for the same
+    //    contest. So say so loudly while the season is still running.
+    if (sl.pending > 0) {
+      var w = el("div", "banner warn");
+      w.appendChild(el("strong", null, sl.pending + " film"
+        + (sl.pending === 1 ? "" : "s") + " in this season "
+        + (sl.pending === 1 ? "has" : "have") + " not been rated yet."));
+      w.appendChild(document.createTextNode(" The shortlist can still change, so it is worth "
+        + "waiting until the season is finished before ranking. If it does change, everyone's "
+        + "ranking has to be done again."));
+      warn.appendChild(w);
+    }
+
+    var host = $("bpshort");
+    host.innerHTML = "";
+    if (!sl.films.length) {
+      host.appendChild(el("p", "hint", "No film in this season has a 5 from all four of us, "
+        + "so there is no shortlist."));
+      $("bpmine").innerHTML = "";
+      $("bpresult").innerHTML = "";
+      return;
+    }
+
+    host.appendChild(el("p", "step", "The shortlist: " + sl.films.length + " films"));
+    var tip = el("p", "hint", "Tap them in order, best first. Tap again to take one back off.");
+    host.appendChild(tip);
+
+    var ol = el("ol", "pick");
+    sl.films.forEach(function (m) {
+      var key = FM.filmKey(m.t, m.y);
+      var at = state.ranking.indexOf(key);
+      var li = el("li", at > -1 ? "chosen" : null);
+      li.appendChild(el("span", "rank", at > -1 ? String(at + 1) : "-"));
+      var t = el("div", "t");
+      t.appendChild(el("b", null, m.t + (m.y ? " (" + m.y + ")" : "")));
+      t.appendChild(el("span", null, "picked by " + m.p));
+      li.appendChild(t);
+      li.onclick = function () {
+        var i = state.ranking.indexOf(key);
+        if (i > -1) state.ranking.splice(i, 1);
+        else state.ranking.push(key);
+        saveDraft();
+        drawBP();
+      };
+      ol.appendChild(li);
+    });
+    host.appendChild(ol);
+
+    var mine = $("bpmine");
+    mine.innerHTML = "";
+    var done = state.ranking.length === sl.films.length;
+    var row = el("div", "row2");
+    var go = el("button", done ? "primary" : null,
+      done ? "Send my ranking" : "Ranked " + state.ranking.length + " of " + sl.films.length);
+    go.disabled = !done;
+    go.onclick = function () { sendRanking(sl); };
+    row.appendChild(go);
+    if (state.ranking.length) {
+      var clear = el("button", "small", "Start over");
+      clear.onclick = function () { state.ranking = []; saveDraft(); drawBP(); };
+      row.appendChild(clear);
+    }
+    mine.appendChild(row);
+
+    drawBPResult(sl);
+  }
+
+  function drawBPResult(sl) {
+    var host = $("bpresult");
+    host.innerHTML = "";
+    var srv = state.server;
+    if (!srv || !srv.ok) return;
+
+    var chips = el("div", "chips");
+    FM.PEOPLE.forEach(function (p) {
+      var inYet = (srv.bpDone || []).indexOf(p) > -1;
+      chips.appendChild(el("span", "chip " + (inYet ? "in" : "out"),
+        p + (inYet ? " has ranked" : " has not ranked")));
+    });
+    host.appendChild(chips);
+
+    if (!srv.bpRevealed) {
+      host.appendChild(el("p", "hint", "The points stay hidden until all four rankings are in."));
+      return;
+    }
+
+    var ballots = {};
+    Object.keys(srv.bp || {}).forEach(function (p) {
+      ballots[p] = (srv.bp[p] || []).map(function (r) { return FM.filmKey(r.title, r.year); });
+    });
+    var res = FM.borda(ballots, sl.films);
+
+    if (res.stale.length) {
+      var w = el("div", "banner warn");
+      w.appendChild(el("strong", null, res.stale.join(" and ")
+        + (res.stale.length > 1 ? " have " : " has ")
+        + "a ranking from an older shortlist, so it is not counted."));
+      w.appendChild(document.createTextNode(" The shortlist changed after they ranked. They need "
+        + "to rank again."));
+      host.appendChild(w);
+    }
+
+    res.winners.forEach(function (m) {
+      var box = el("div", "trophy");
+      box.appendChild(el("p", "big", m.t + (m.y ? " (" + m.y + ")" : "")));
+      box.appendChild(el("p", "sub", "Picked by " + m.p));
+      host.appendChild(box);
+    });
+    if (res.winners.length > 1) {
+      host.appendChild(el("p", "hint", "A tie on points, so the group decides between them."));
+    }
+
+    var t = el("table", "pts");
+    var hd = el("tr");
+    ["Film", "Points", "Firsts"].forEach(function (h) { hd.appendChild(el("th", null, h)); });
+    t.appendChild(el("thead", null)).appendChild(hd);
+    var tb = el("tbody");
+    res.table.forEach(function (r, i) {
+      var tr = el("tr", i === 0 ? "win" : null);
+      var td = el("td");
+      td.appendChild(el("b", null, r.film.t + (r.film.y ? " (" + r.film.y + ")" : "")));
+      var bar = el("div", "bar");
+      var fill = el("i");
+      fill.style.width = Math.round(100 * r.points / Math.max(1, res.maxPoints)) + "%";
+      bar.appendChild(fill);
+      td.appendChild(bar);
+      tr.appendChild(td);
+      tr.appendChild(el("td", "n", String(r.points)));
+      tr.appendChild(el("td", "n", String(r.firsts)));
+      tb.appendChild(tr);
+    });
+    t.appendChild(tb);
+    host.appendChild(t);
+    host.appendChild(el("p", "hint", "Top of the shortlist is worth " + sl.films.length
+      + " points from each of us, down to 1 for last. The most any film could score is "
+      + res.maxPoints + "."));
+  }
+
+  function sendRanking(sl) {
+    if (!state.person) { say("warn", "Tap your name at the top first."); return; }
+    var byKey = {};
+    sl.films.forEach(function (m) { byKey[FM.filmKey(m.t, m.y)] = m; });
+    var items = state.ranking.map(function (k, i) {
+      var m = byKey[k];
+      return { title: m.t, year: m.y, rank: i + 1 };
+    });
+    openModal("Send your Best Picture ranking?", function (b) {
+      b.appendChild(el("p", null, "Your top three: "
+        + items.slice(0, 3).map(function (x) { return x.rank + ". " + x.title; }).join(", ")
+        + (items.length > 3 ? ", and " + (items.length - 3) + " more." : ".")));
+      b.appendChild(el("p", null, "You can send a new ranking any time before the points are "
+        + "worked out. The old one is replaced."));
+    }, function () {
+      post({ act: "rank", items: items }, "Your ranking is in.");
+    }, "Yes, send it");
+  }
+
+  /* ---------- the Sleeper ---------- */
+  function drawSleeper() {
+    var host = $("sleeper");
+    host.innerHTML = "";
+    var srv = state.server;
+
+    var films = FM.seasonFilms(state.season).slice();
+    films.sort(function (a, b) { return a.t.localeCompare(b.t); });
+
+    if (srv && srv.ok) {
+      var chips = el("div", "chips");
+      FM.PEOPLE.forEach(function (p) {
+        var inYet = (srv.nomDone || []).indexOf(p) > -1;
+        chips.appendChild(el("span", "chip " + (inYet ? "in" : "out"),
+          p + (inYet ? " has nominated" : " has not nominated")));
+      });
+      host.appendChild(chips);
+    }
+
+    // The result, if it has been drawn. Shown first, because once it exists it is the answer.
+    if (srv && srv.ok && srv.draw) {
+      var box = el("div", "trophy");
+      box.appendChild(el("p", "big", srv.draw.title
+        + (srv.draw.year ? " (" + srv.draw.year + ")" : "")));
+      box.appendChild(el("p", "sub", "Drawn" + (srv.draw.by ? " by " + srv.draw.by : "")
+        + (srv.draw.at ? " on " + new Date(srv.draw.at).toLocaleDateString() : "")));
+      host.appendChild(box);
+      if (srv.draw.note) {
+        host.appendChild(el("p", "hint", "On the record: " + srv.draw.note));
+      }
+      host.appendChild(el("p", "hint", "The draw happens once and is kept, so it cannot be "
+        + "rolled again until somebody deliberately undoes it."));
+      var un = el("button", "small", "Undo the draw");
+      un.onclick = askUndraw;
+      host.appendChild(el("div", "row2")).appendChild(un);
+      return;
+    }
+
+    // Your nomination.
+    var mine = (srv && srv.ok && srv.nominations && srv.nominations[state.person]) || null;
+    host.appendChild(el("p", "step", mine ? "Your nomination" : "Nominate one film"));
+    if (mine) {
+      host.appendChild(el("p", null, mine.title + (mine.year ? " (" + mine.year + ")" : "")));
+    }
+    var sel = el("select");
+    sel.appendChild(el("option", null, mine ? "Change it to..." : "Pick a film..."));
+    sel.firstChild.value = "";
+    films.forEach(function (m) {
+      var o = el("option", null, m.t + (m.y ? " (" + m.y + ")" : ""));
+      o.value = FM.filmKey(m.t, m.y);
+      sel.appendChild(o);
+    });
+    host.appendChild(sel);
+    var row = el("div", "row2");
+    var nb = el("button", "primary", mine ? "Change my nomination" : "Send my nomination");
+    nb.onclick = function () {
+      var key = sel.value;
+      if (!key) { say("warn", "Pick a film from the list first."); return; }
+      var m = films.filter(function (x) { return FM.filmKey(x.t, x.y) === key; })[0];
+      if (!m) return;
+      openModal("Nominate " + m.t + "?", function (b) {
+        b.appendChild(el("p", null, "This is your one nomination for the Sleeper. You can "
+          + "change it until the draw happens."));
+      }, function () {
+        post({ act: "nominate", title: m.t, year: m.y }, "Nominated " + m.t + ".");
+      }, "Yes, nominate it");
+    };
+    row.appendChild(nb);
+    host.appendChild(row);
+
+    if (!srv || !srv.ok) return;
+
+    // The draw, once all four are in.
+    if (srv.nomDone.length !== FM.PEOPLE.length) {
+      var left = FM.PEOPLE.filter(function (p) { return srv.nomDone.indexOf(p) === -1; });
+      host.appendChild(el("p", "hint", "The draw can happen once all four of us have nominated. "
+        + "Still waiting on " + left.join(" and ") + "."));
+      return;
+    }
+
+    if (!srv.nomRevealed) return;
+
+    var noms = {};
+    Object.keys(srv.nominations).forEach(function (p) {
+      var n = srv.nominations[p];
+      noms[p] = { key: FM.filmKey(n.title, n.year), title: n.title, year: n.year };
+    });
+    var tk = FM.sleeperTickets(noms, false);
+
+    host.appendChild(el("p", "step", "In the draw"));
+    var t = el("table", "pts");
+    var hd = el("tr");
+    ["Film", "Nominated by", "Chance"].forEach(function (h) { hd.appendChild(el("th", null, h)); });
+    t.appendChild(el("thead", null)).appendChild(hd);
+    var tb = el("tbody");
+    tk.films.forEach(function (f) {
+      var tr = el("tr");
+      tr.appendChild(el("td", null, f.title + (f.year ? " (" + f.year + ")" : "")));
+      tr.appendChild(el("td", null, f.who.join(", ")));
+      tr.appendChild(el("td", "n", Math.round(f.chance * 100) + "%"));
+      tb.appendChild(tr);
+    });
+    t.appendChild(tb);
+    host.appendChild(t);
+    if (tk.films.length < FM.PEOPLE.length) {
+      host.appendChild(el("p", "hint", "A film nominated by two of us holds two of the four "
+        + "tickets, so it has double the chance rather than winning outright."));
+    }
+
+    var drow = el("div", "row2");
+    var db = el("button", "primary", "Draw the Sleeper");
+    db.onclick = function () {
+      openModal("Draw the Sleeper now?", function (b) {
+        b.appendChild(el("p", null, "One of the four nominations is picked at random."));
+        b.appendChild(el("p", null, "This happens ONCE. The result is kept, along with the list "
+          + "it was drawn from, and it cannot be rolled again unless somebody deliberately "
+          + "undoes it."));
+      }, function () {
+        post({ act: "draw" }, "Drawn.");
+      }, "Yes, draw it");
+    };
+    drow.appendChild(db);
+    host.appendChild(drow);
+  }
+
+  function askUndraw() {
+    // The field is held by reference rather than looked up by id, so there is no id in the
+    // script that does not exist in the markup. check_awards_page.py asserts that.
+    var field = null;
+    openModal("Undo the Sleeper draw?", function (b) {
+      b.appendChild(el("p", null, "This is here to fix a mistake, not to re-roll a result "
+        + "somebody did not like."));
+      b.appendChild(el("p", null, "Type DRAW to confirm."));
+      field = el("input");
+      field.type = "text";
+      field.setAttribute("autocapitalize", "characters");
+      field.setAttribute("aria-label", "Type DRAW to confirm");
+      b.appendChild(field);
+    }, function () {
+      var word = (field && field.value) || "";
+      post({ act: "undraw", confirm: word.trim().toUpperCase() }, "The draw was undone.");
+    }, "Undo it");
+  }
+
+  /* ---------- previous winners ---------- */
+  function drawPast() {
+    var host = $("past");
+    host.innerHTML = "";
+    var aw = (window.FM_AWARDS && window.FM_AWARDS.awards) || [];
+    var kinds = (window.FM_AWARDS && window.FM_AWARDS.kinds) || [];
+    var seasons = [];
+    FM.MOVIES.forEach(function (m) {
+      var s = String(m.s);
+      if (s !== "Outside" && seasons.indexOf(s) === -1) seasons.push(s);
+    });
+    seasons.sort(function (a, b) { return (+a) - (+b); });
+
+    // 🎯 Every season gets a line, including the ones with nothing recorded. Joe's rule from the
+    //    categories list: an empty group still needs a line saying it is empty.
+    seasons.forEach(function (s) {
+      var mine = aw.filter(function (a) { return String(a.s) === s; });
+      var box = el("div", "trophy");
+      box.style.borderLeftColor = mine.length ? "" : "var(--line-strong)";
+      box.style.background = mine.length ? "" : "var(--card)";
+      box.appendChild(el("p", "step", "Season " + s));
+      if (!mine.length) {
+        box.appendChild(el("p", "sub", "Nothing recorded yet."));
+      } else {
+        kinds.forEach(function (k) {
+          var hit = mine.filter(function (a) { return a.a === k; })[0];
+          box.appendChild(el("p", "sub", k + ": " + (hit
+            ? hit.t + (hit.y ? " (" + hit.y + ")" : "") + ", " + hit.p
+            : "not recorded")));
+        });
+      }
+      host.appendChild(box);
+    });
+  }
+
+  /* ---------- the server ---------- */
+  function post(extra, okText) {
+    if (!CFG.endpoint) { offline(); return; }
+    if (!state.person) { say("warn", "Tap your name at the top first."); return; }
+    say("warn", "Saving...");
+    var body = { kind: "awards", person: state.person, season: seasonLabel(), act: extra.act };
+    Object.keys(extra).forEach(function (k) { body[k] = extra[k]; });
+    fetch(CFG.endpoint, {
+      method: "POST",
+      // text/plain keeps this a simple CORS request, so no preflight OPTIONS that Apps Script
+      // cannot answer. Do not "fix" this header.
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify(body)
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (!d || !d.ok) {
+          var err = String((d && d.error) || "");
+          if (err.indexOf("Unknown action") > -1 || err.indexOf("Unknown kind") > -1) {
+            offline();
+            return;
+          }
+          say("stop", "Nothing was saved. " + (err || "Tell Joe."));
+          return;
+        }
+        state.server = d.state || state.server;
+        say("ok", okText);
+        redraw();
+      })
+      .catch(function () {
+        say("stop", "Nothing was saved, the connection failed. Your ranking is still on screen.");
+      });
+  }
+
+  function offline() {
+    state.off = true;
+    $("offwarn").hidden = false;
+    $("offwarn").innerHTML = "<strong>Sending an award vote is not switched on yet.</strong> "
+      + "Joe has one setup step left. The Razzie below is worked out from the ratings and is "
+      + "correct, and you can see the Best Picture shortlist, but rankings and nominations "
+      + "cannot be sent yet. Trying again will not help.";
+    quiet();
+  }
+
+  function load() {
+    if (!CFG.endpoint) { offline(); return; }
+    fetch(CFG.endpoint + "?action=awards&season=" + encodeURIComponent(seasonLabel())
+          + "&person=" + encodeURIComponent(state.person))
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (!d || !d.ok) {
+          if (String(d && d.error || "").indexOf("Unknown action") > -1) offline();
+          return;
+        }
+        state.server = d;
+        // If this person already has a ranking on the server, show it rather than an empty one.
+        var mine = (d.bp || {})[state.person];
+        if (mine && mine.length && !state.ranking.length) {
+          state.ranking = mine.map(function (r) { return FM.filmKey(r.title, r.year); });
+        }
+        redraw();
+      })
+      .catch(function () { /* the computed Razzie and shortlist still show */ });
+  }
+
+  /* ---------- a local draft, so a long ranking is never lost ---------- */
+  function draftKey() { return "fm.awards.rank." + state.season + "." + state.person; }
+  function saveDraft() {
+    try { localStorage.setItem(draftKey(), JSON.stringify(state.ranking)); } catch (e) {}
+  }
+  function loadDraft() {
+    state.ranking = [];
+    try {
+      var raw = localStorage.getItem(draftKey());
+      if (raw) state.ranking = JSON.parse(raw) || [];
+    } catch (e) { state.ranking = []; }
+  }
+
+  function redraw() {
+    drawRazzie();
+    drawBP();
+    drawSleeper();
+  }
+
+  function drawWho() {
+    var box = $("who");
+    box.innerHTML = "";
+    FM.PEOPLE.forEach(function (p) {
+      var b = el("button", null, p);
+      b.setAttribute("aria-pressed", state.person === p ? "true" : "false");
+      b.onclick = function () {
+        state.person = p;
+        try { localStorage.setItem("fm.awards.person", p); } catch (e) {}
+        loadDraft();
+        drawWho();
+        redraw();
+        load();
+      };
+      box.appendChild(b);
+    });
+  }
+
+  function init() {
+    drawWho();
+
+    var seasons = [];
+    FM.MOVIES.forEach(function (m) {
+      var s = String(m.s);
+      if (s !== "Outside" && seasons.indexOf(s) === -1) seasons.push(s);
+    });
+    seasons.sort(function (a, b) { return (+b) - (+a); });
+    var box = $("seasons");
+    seasons.forEach(function (s) {
+      var b = el("button", null, "Season " + s);
+      b.setAttribute("aria-pressed", state.season === s ? "true" : "false");
+      b.onclick = function () {
+        state.season = s;
+        Array.prototype.forEach.call(box.children, function (c) {
+          c.setAttribute("aria-pressed", "false");
+        });
+        b.setAttribute("aria-pressed", "true");
+        state.server = null;
+        loadDraft();
+        redraw();
+        load();
+      };
+      box.appendChild(b);
+    });
+
+    // 🛑 Without the film list there is no shortlist and no Razzie, and a blank page would look
+    //    like an answer.
+    if (!FM.requireData("datawarn")) return;
+
+    loadDraft();
+    drawPast();
+    redraw();
+    load();
+
+    // The live ratings matter here more than anywhere: an award computed on a stale rating is
+    // simply the wrong award.
+    FM.syncLive(function (res) {
+      if (res.ok && (res.updated || res.newlyWatched.length)) redraw();
+    });
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>

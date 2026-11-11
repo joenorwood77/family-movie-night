@@ -433,6 +433,185 @@ window.FM = (function () {
     };
   }
 
+  /* ---------- the season awards --------------------------------------------------------------
+     Joe's three rules, 2026-11-11, in his own words:
+
+       RAZZIE      *"goes to the movie that has our lowest average as a group."*
+                   Entirely computed. Nobody votes, nobody submits anything.
+
+       BEST PICTURE *"we narrow down all movies from the season we all rated 5 stars. Then we
+                   each rank all of the 5 star movies and we will use a point system... lets
+                   pretend there will be 10 movies we had at 5 stars. Then the movie we each
+                   rank as the best so 1 out of 10, it gets 10 points per person, and 2nd
+                   highest 9, and so on until 1 for 10th place. Most points wins."*
+                   He added *"i am sure there is a name for this"* - there is: a BORDA COUNT.
+
+       SLEEPER     *"each nominate which movie surprised and most exceeded our expectations.
+                   Then we randomly choose one of those 4."*
+
+     ✅ VERIFIED AGAINST SEASON 1, whose winners are known from Miriam's Movie Awards sheet:
+        the Razzie rule picks The Jazz Singer, the single lowest average of 104 films at 1.375,
+        and The Green Mile sits in the Best Picture shortlist with all four at 5. Both match.
+        scripts/check_awards.py asserts it, so the rules are tested against a real answer rather
+        than only against themselves.
+
+     ⚠️ "All four rated 5" and "averages exactly 5" are the SAME SET in every season, because an
+        average of 5 is only possible when all four gave a 5. So there was nothing to decide
+        between the two readings, and that is worth knowing rather than guessing at.
+  ------------------------------------------------------------------------------------------- */
+  function seasonFilms(season) {
+    return MOVIES.filter(function (m) {
+      return String(m.s) === String(season) && m.st === "Watched" && m.r;
+    });
+  }
+
+  function scoresOf(m) {
+    var out = [];
+    (m.r || []).forEach(function (v) {
+      var n = parseFloat(v);
+      if (!isNaN(n)) out.push(n);
+    });
+    return out;
+  }
+
+  function avgOf(m) {
+    var got = scoresOf(m);
+    return got.length ? mean(got) : null;
+  }
+
+  /** The Razzie: lowest group average in the season. Ties are returned as ties, never broken by
+   *  picking the first one, because a tie is a real result the group should settle itself. */
+  function razzie(season) {
+    var rated = seasonFilms(season).filter(function (m) { return scoresOf(m).length; });
+    if (!rated.length) return null;
+    var scored = rated.map(function (m) { return { film: m, avg: avgOf(m) }; });
+    scored.sort(function (a, b) { return a.avg - b.avg; });
+    var low = scored[0].avg;
+    return {
+      avg: low,
+      films: scored.filter(function (x) { return x.avg === low; })
+                   .map(function (x) { return x.film; }),
+      runnersUp: scored.slice(1, 6).filter(function (x) { return x.avg > low; })
+    };
+  }
+
+  /** The Best Picture shortlist: every film in the season that ALL FOUR rated 5.
+   *  🛑 A film nobody has finished rating cannot qualify, so a season still in progress can have
+   *     its shortlist grow. `pending` says how many films are still unrated, and the page warns
+   *     about it, because a ballot cast against a shortlist that later grows is not a ballot
+   *     for the same contest. */
+  function bestPictureShortlist(season) {
+    var all = MOVIES.filter(function (m) { return String(m.s) === String(season); });
+    var pending = all.filter(function (m) {
+      return m.st !== "Watched" || !m.r || !scoresOf(m).length;
+    });
+    var short = all.filter(function (m) {
+      if (m.st !== "Watched" || !m.r) return false;
+      var got = scoresOf(m);
+      return got.length === PEOPLE.length && got.every(function (n) { return n === 5; });
+    });
+    short.sort(function (a, b) { return a.t.localeCompare(b.t); });
+    return { films: short, pending: pending.length, total: all.length };
+  }
+
+  function filmKey(t, y) { return norm(t) + "|" + (y || ""); }
+
+  /**
+   * The Borda count Joe described. `ballots` is { person: [filmKey, ...] } best first.
+   * With N films on the shortlist, 1st place scores N and last place scores 1.
+   *
+   * 🛑 A ballot that does not cover exactly the current shortlist is IGNORED, and named in
+   *    `stale`, rather than being counted partially. Half-counting a ballot would hand the award
+   *    to whoever happened to rank the most films.
+   */
+  function borda(ballots, shortlist) {
+    var keys = shortlist.map(function (m) { return filmKey(m.t, m.y); });
+    var N = keys.length;
+    var points = {}, firsts = {};
+    keys.forEach(function (k) { points[k] = 0; firsts[k] = 0; });
+
+    var counted = [], stale = [];
+    Object.keys(ballots || {}).forEach(function (person) {
+      var order = (ballots[person] || []).filter(function (k) { return keys.indexOf(k) > -1; });
+      var unique = [];
+      order.forEach(function (k) { if (unique.indexOf(k) === -1) unique.push(k); });
+      if (unique.length !== N) { stale.push(person); return; }
+      counted.push(person);
+      unique.forEach(function (k, i) {
+        points[k] += (N - i);
+        if (i === 0) firsts[k]++;
+      });
+    });
+
+    var table = shortlist.map(function (m) {
+      var k = filmKey(m.t, m.y);
+      return { film: m, points: points[k], firsts: firsts[k] };
+    });
+    // Points decide it. A tie on points is shown as a tie; first-place votes are displayed as
+    // extra information, never used to break it, because Joe's rule says "most points wins".
+    table.sort(function (a, b) {
+      if (b.points !== a.points) return b.points - a.points;
+      return a.film.t.localeCompare(b.film.t);
+    });
+    var top = table.length ? table[0].points : 0;
+    return {
+      table: table,
+      counted: counted,
+      stale: stale,
+      complete: counted.length === PEOPLE.length,
+      maxPoints: N * PEOPLE.length,
+      winners: table.filter(function (r) { return r.points === top && top > 0; })
+                    .map(function (r) { return r.film; })
+    };
+  }
+
+  /**
+   * The Sleeper. Each person nominates one film; one nomination is then drawn.
+   *
+   * ⚠️ JOE ASKED FOR A DECISION HERE: *"If a movie is nominated by 2+, then we needed to decide
+   *    if it auto wins or if it just gets extra chance of winning."* The default below is EXTRA
+   *    CHANCE, because it is what his own sentence already describes - *"we randomly choose one
+   *    of those 4"* draws from four nominations, so a film nominated twice simply holds two of
+   *    the four tickets. It keeps the draw he likes and still rewards agreement, and if all four
+   *    name the same film it wins outright by arithmetic. Switch `autoWin` to true for the other
+   *    rule; everything else is unchanged.
+   */
+  function sleeperTickets(nominations, autoWin) {
+    var tickets = [];
+    Object.keys(nominations || {}).forEach(function (person) {
+      var n = nominations[person];
+      if (n && n.key) tickets.push({ person: person, key: n.key, title: n.title, year: n.year });
+    });
+    var byFilm = {};
+    tickets.forEach(function (t) {
+      byFilm[t.key] = byFilm[t.key] || { key: t.key, title: t.title, year: t.year, who: [] };
+      byFilm[t.key].who.push(t.person);
+    });
+    var films = Object.keys(byFilm).map(function (k) { return byFilm[k]; });
+    films.sort(function (a, b) { return b.who.length - a.who.length; });
+
+    var most = films.length ? films[0].who.length : 0;
+    var auto = (autoWin && most > 1)
+      ? films.filter(function (f) { return f.who.length === most; })
+      : [];
+
+    return {
+      tickets: tickets,
+      films: films.map(function (f) {
+        return {
+          key: f.key, title: f.title, year: f.year, who: f.who,
+          tickets: autoWin ? (f.who.length === most ? 1 : 0) : f.who.length,
+          chance: autoWin
+            ? (f.who.length === most ? 1 / Math.max(1, auto.length) : 0)
+            : f.who.length / Math.max(1, tickets.length)
+        };
+      }),
+      autoWin: !!autoWin,
+      autoWinners: auto,
+      ready: tickets.length === PEOPLE.length
+    };
+  }
+
   /* ---------- auto-sync: the live ratings overlaid on the baked list -------------------------
      Joe, 2026-10-22: *"will this then auto sync when new scores are added or how it know when to
      update scores."*
@@ -940,6 +1119,8 @@ window.FM = (function () {
     readAdjustments: readAdjustments, buildSchedule: buildSchedule,
     eligibleBirthdays: eligibleBirthdays, placeholderSeason: placeholderSeason,
     applyLive: applyLive, syncLive: syncLive,
+    razzie: razzie, bestPictureShortlist: bestPictureShortlist, borda: borda,
+    sleeperTickets: sleeperTickets, filmKey: filmKey, avgOf: avgOf, seasonFilms: seasonFilms,
     nearestNight: nearestNight, birthdayNights: birthdayNights,
     birthdaysFor: birthdaysFor, niceDate: niceDate,
     $: $, el: el,
