@@ -1,0 +1,775 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Movie Night Schedule</title>
+<meta name="description" content="Every movie night of the season, the holidays alongside them, and one tap to cancel a week.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap">
+<link rel="stylesheet" href="theme.css">
+<style>
+/* Same tokens as the rest of the site, so the pages read as one thing. Every token gets its
+   light value on bare :root first; both dark blocks only redefine. */
+:root{
+  color-scheme: light;
+  --bg:#fbf7f0; --card:#ffffff; --ink:#1b1512; --ink-soft:#574b43; --ink-faint:#7b6d63;
+  --line:#e2d7c9; --line-strong:#c9b9a6;
+  --accent:#a3321e; --accent-ink:#ffffff; --accent-soft:#fdeee9;
+  --ok:#1d6b45; --ok-soft:#e6f4ec;
+  --warn:#8a5200; --warn-soft:#fdf1dc;
+  --stop:#9d1c1c; --stop-soft:#fdeaea;
+  --shadow:0 1px 2px rgba(27,21,18,.07), 0 8px 24px rgba(27,21,18,.06);
+  --radius:14px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --bg:#15120f; --card:#211c18; --ink:#f7f1e8; --ink-soft:#ccbfb2; --ink-faint:#a2958a;
+    --line:#352c25; --line-strong:#4d4036;
+    --accent:#ff8f6b; --accent-ink:#2a0f06; --accent-soft:#38201a;
+    --ok:#6ddc9f; --ok-soft:#14301f;
+    --warn:#ffc266; --warn-soft:#33250c;
+    --stop:#ff8f8f; --stop-soft:#3a1616;
+    --shadow:0 1px 2px rgba(0,0,0,.5), 0 8px 24px rgba(0,0,0,.4);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --bg:#15120f; --card:#211c18; --ink:#f7f1e8; --ink-soft:#ccbfb2; --ink-faint:#a2958a;
+  --line:#352c25; --line-strong:#4d4036;
+  --accent:#ff8f6b; --accent-ink:#2a0f06; --accent-soft:#38201a;
+  --ok:#6ddc9f; --ok-soft:#14301f;
+  --warn:#ffc266; --warn-soft:#33250c;
+  --stop:#ff8f8f; --stop-soft:#3a1616;
+  --shadow:0 1px 2px rgba(0,0,0,.5), 0 8px 24px rgba(0,0,0,.4);
+}
+
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font:17px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  padding-block: 0 56px;
+  padding-left:max(18px,env(safe-area-inset-left,0px));
+  padding-right:max(18px,env(safe-area-inset-right,0px));
+}
+.wrap{max-width:46rem; margin:0 auto}
+h1,h2{font-family:Fraunces,Georgia,"Times New Roman",serif; font-weight:700;
+  text-wrap:balance; margin:0}
+h1{font-size:clamp(1.8rem,6.5vw,2.4rem); line-height:1.1; letter-spacing:-.01em}
+header{padding-block:30px 6px}
+.kicker{font-size:.76rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--accent); margin-bottom:9px}
+.lede{color:var(--ink-soft); margin:10px 0 0}
+
+nav.views{display:flex; flex-wrap:wrap; gap:8px; margin:18px 0 0}
+nav.views a{
+  flex:1 1 7rem; min-height:46px; padding:11px 14px; font-size:.97rem; font-weight:600;
+  border-radius:11px; background:var(--card); color:var(--ink); text-decoration:none;
+  border:2px solid var(--line-strong); display:grid; place-items:center; text-align:center;
+}
+nav.views a:hover{border-color:var(--accent)}
+
+.card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
+  box-shadow:var(--shadow); padding:18px; margin-top:16px}
+.card h2{font-size:1.1rem; margin-bottom:4px}
+.hint{color:var(--ink-faint); font-size:.9rem; margin:6px 0 0}
+.step{font-size:.72rem; font-weight:700; letter-spacing:.09em; text-transform:uppercase;
+  color:var(--accent); margin:0 0 7px}
+
+label.fld{display:block; font-size:.8rem; font-weight:700; color:var(--ink-soft);
+  text-transform:uppercase; letter-spacing:.06em; margin:0 0 5px}
+input[type=text],input[type=date],select{
+  width:100%; font:inherit; font-size:17px; color:var(--ink); background:var(--bg);
+  border:2px solid var(--line-strong); border-radius:11px; padding:13px 14px;
+}
+input:focus,select:focus{outline:3px solid var(--accent-soft); outline-offset:1px;
+  border-color:var(--accent)}
+
+button{font:inherit; font-size:1rem; font-weight:700; cursor:pointer; min-height:48px;
+  padding:12px 18px; border-radius:11px; border:2px solid var(--line-strong);
+  background:var(--card); color:var(--ink)}
+button.primary{background:var(--accent); color:var(--accent-ink); border-color:var(--accent)}
+button.danger{background:var(--stop-soft); color:var(--stop); border-color:var(--stop)}
+button.small{min-height:40px; padding:8px 13px; font-size:.88rem}
+button:disabled{opacity:.5; cursor:default}
+
+.banner{border-radius:12px; padding:14px 16px; margin-top:16px; border:2px solid}
+.banner.ok{background:var(--ok-soft); color:var(--ok); border-color:var(--ok)}
+.banner.warn{background:var(--warn-soft); color:var(--warn); border-color:var(--warn)}
+.banner.stop{background:var(--stop-soft); color:var(--stop); border-color:var(--stop)}
+.banner strong{color:inherit}
+
+.who{display:flex; flex-wrap:wrap; gap:8px; margin-top:10px}
+.who button{flex:1 1 6rem}
+.who button[aria-pressed=true]{background:var(--accent); color:var(--accent-ink);
+  border-color:var(--accent)}
+
+.seasons{display:flex; gap:8px; margin-top:12px}
+.seasons button{flex:1 1 auto}
+.seasons button[aria-pressed=true]{background:var(--accent); color:var(--accent-ink);
+  border-color:var(--accent)}
+
+/* ---- the week list -----------------------------------------------------------------------
+   One row per movie night. A phone reads this top to bottom, so the date leads and everything
+   else hangs off it. Nothing here depends on colour alone: a cancelled week is struck through
+   AND says Cancelled, a birthday week has a left edge AND says Birthday. */
+ol.weeks{list-style:none; margin:14px 0 0; padding:0}
+ol.weeks li{
+  border:1px solid var(--line); border-left:5px solid var(--line-strong);
+  border-radius:11px; padding:12px 14px; margin-bottom:9px; background:var(--card);
+  display:grid; grid-template-columns:1fr auto; gap:6px 12px; align-items:start;
+}
+ol.weeks li.next{border-color:var(--accent); border-left-color:var(--accent);
+  background:var(--accent-soft)}
+ol.weeks li.bday{border-left-color:var(--accent)}
+ol.weeks li.gone{border-left-color:var(--stop); background:var(--stop-soft)}
+ol.weeks li.gone .title{text-decoration:line-through}
+ol.weeks li.holiday{border-left-color:var(--warn); background:var(--warn-soft);
+  grid-template-columns:1fr; padding:9px 14px}
+ol.weeks li.past{opacity:.62}
+.when{font-weight:700; font-size:.97rem}
+.title{font-size:1.04rem; margin:2px 0 0}
+.title.blank{color:var(--ink-faint); font-style:italic; font-weight:400}
+.sub{color:var(--ink-soft); font-size:.87rem; margin:3px 0 0}
+.slot{color:var(--ink-faint); font-size:.78rem; font-weight:700; letter-spacing:.05em;
+  text-transform:uppercase}
+.rowact{grid-column:2; grid-row:1 / span 3; align-self:center}
+.badges{display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; grid-column:1 / -1}
+.badge{font-size:.74rem; font-weight:700; letter-spacing:.05em; text-transform:uppercase;
+  border-radius:999px; padding:3px 9px; border:1.5px solid}
+.badge.bday{color:var(--accent); border-color:var(--accent); background:var(--card)}
+.badge.gone{color:var(--stop); border-color:var(--stop); background:var(--card)}
+.badge.hol{color:var(--warn); border-color:var(--warn); background:var(--card)}
+.badge.now{color:var(--accent-ink); background:var(--accent); border-color:var(--accent)}
+
+.row2{display:flex; flex-wrap:wrap; gap:10px; margin-top:12px}
+.row2 > *{flex:1 1 9rem}
+
+table.adj{width:100%; border-collapse:collapse; margin-top:12px; font-size:.92rem}
+table.adj th,table.adj td{text-align:left; padding:9px 8px; border-bottom:1px solid var(--line);
+  vertical-align:top}
+table.adj th{font-size:.76rem; text-transform:uppercase; letter-spacing:.06em;
+  color:var(--ink-soft)}
+
+/* ---- the Yes / No confirmation Joe asked for, 2026-09-15 --------------------------------
+   *"make sure a popup confirmation window confirms yes or no before doing anything"*. Built
+   into the page rather than using the browser's confirm(), so it can say exactly what will
+   happen and to which date, and so it looks the same on every phone. */
+.scrim{position:fixed; inset:0; background:rgba(12,8,5,.62); display:grid; place-items:center;
+  padding:18px; z-index:50}
+.scrim[hidden]{display:none}
+.modal{background:var(--card); color:var(--ink); border:2px solid var(--line-strong);
+  border-radius:16px; box-shadow:var(--shadow); padding:20px; max-width:30rem; width:100%}
+.modal h2{font-size:1.15rem}
+.modal p{margin:10px 0 0}
+.modal .acts{display:flex; gap:10px; margin-top:18px}
+.modal .acts button{flex:1 1 auto}
+fieldset{border:0; padding:0; margin:14px 0 0}
+fieldset legend{font-size:.8rem; font-weight:700; color:var(--ink-soft);
+  text-transform:uppercase; letter-spacing:.06em; padding:0; margin-bottom:7px}
+.opts{display:flex; flex-wrap:wrap; gap:8px}
+.opts label{flex:1 1 6rem; border:2px solid var(--line-strong); border-radius:11px;
+  padding:11px 12px; font-weight:600; cursor:pointer; display:flex; gap:8px;
+  align-items:center; min-height:48px; background:var(--bg)}
+.opts input{margin:0; width:20px; height:20px; accent-color:var(--accent)}
+.opts label:has(input:checked){border-color:var(--accent); background:var(--accent-soft);
+  color:var(--accent)}
+footer{color:var(--ink-faint); font-size:.85rem; margin-top:30px; padding-top:16px;
+  border-top:1px solid var(--line)}
+footer a{color:var(--accent)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <p class="kicker">Family Movie Night</p>
+  <h1>The schedule</h1>
+  <p class="lede">Every movie night, worked out from one simple rule: we watch on the same night
+    each week. Change a night, cancel a week, or take a break, and every date after it moves by
+    itself.</p>
+  <nav class="views">
+    <a href="search.html">Have we watched it?</a>
+    <a href="index.html">Submit categories</a>
+    <a href="picks.html">Submit movie picks</a>
+    <a href="trivia.html">Trivia</a>
+  </nav>
+</header>
+
+<div id="datawarn" class="banner stop" hidden></div>
+<div id="offwarn" class="banner warn" hidden></div>
+<div id="msg" class="banner ok" hidden></div>
+
+<section class="card">
+  <p class="step">Step 1</p>
+  <h2>Who are you?</h2>
+  <p class="hint">Only needed so the rest of us can see who cancelled a week and why. Anyone can
+    cancel one.</p>
+  <div class="who" id="who"></div>
+</section>
+
+<section class="card">
+  <h2 id="nexthead">Next movie night</h2>
+  <div id="next"></div>
+  <div class="seasons" id="seasons"></div>
+</section>
+
+<section class="card">
+  <h2>The whole season</h2>
+  <p class="hint" id="sumline"></p>
+  <ol class="weeks" id="list"></ol>
+</section>
+
+<section class="card">
+  <h2>Change the night</h2>
+  <p class="hint">We normally watch on the same night every week. Use this if the night moves for
+    one week, or for a few months.</p>
+  <div class="row2">
+    <div>
+      <label class="fld" for="nfrom">From this movie night</label>
+      <input type="date" id="nfrom">
+    </div>
+    <div>
+      <label class="fld" for="nto">Until (leave as is for one week only)</label>
+      <input type="date" id="nto">
+    </div>
+    <div>
+      <label class="fld" for="nwd">New night</label>
+      <select id="nwd"></select>
+    </div>
+  </div>
+  <div class="row2">
+    <button id="nightgo" class="primary">Change the night</button>
+  </div>
+</section>
+
+<section class="card">
+  <h2>Changes we have made</h2>
+  <p class="hint" id="adjnone">Nothing changed yet. The season runs on its usual night.</p>
+  <div id="adjwrap" hidden>
+    <table class="adj">
+      <thead><tr><th>What</th><th>When</th><th>Who</th><th></th></tr></thead>
+      <tbody id="adjbody"></tbody>
+    </table>
+    <p class="hint">Undo puts the date back and leaves a record. Nothing is ever deleted.</p>
+  </div>
+</section>
+
+<footer>
+  <p>Dates are worked out, never stored, so one change moves everything after it and undo puts it
+  back exactly. Birthday films stay on their own week.</p>
+  <p id="stale"></p>
+</footer>
+
+</div>
+
+<div class="scrim" id="scrim" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="mtitle">
+    <h2 id="mtitle">Are you sure?</h2>
+    <div id="mbody"></div>
+    <div class="acts">
+      <button id="mno">No, leave it</button>
+      <button id="myes" class="primary">Yes, do it</button>
+    </div>
+  </div>
+</div>
+
+<script src="config.js"></script>
+<script src="movies.js"></script>
+<script src="lib.js"></script>
+<script>
+(function () {
+  "use strict";
+  var CFG = window.FM_CONFIG || {};
+  var $ = FM.$, el = FM.el;
+
+  var DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  var REASONS = ["Vacation", "Sick", "Break"];
+  var NIGHT = (CFG.movieNight == null) ? 2 : CFG.movieNight;
+  var TODAY = FM.parseDay(new Date());
+
+  var state = {
+    person: "",
+    season: "5",           // "4" = finish the current season, "5" = the new one
+    adjRows: [],
+    built: null,
+    endpointOn: null       // null = not asked yet, false = action missing, true = answering
+  };
+
+  /* ---- who you are. Remembered per phone, never sent anywhere else. ---- */
+  try {
+    var saved = localStorage.getItem("fm.schedule.person");
+    if (saved && FM.PEOPLE.indexOf(saved) > -1) state.person = saved;
+  } catch (e) {}
+
+  function drawWho() {
+    var box = $("who");
+    box.innerHTML = "";
+    FM.PEOPLE.forEach(function (p) {
+      var b = el("button", null, p);
+      b.setAttribute("aria-pressed", state.person === p ? "true" : "false");
+      b.onclick = function () {
+        state.person = p;
+        try { localStorage.setItem("fm.schedule.person", p); } catch (e) {}
+        drawWho();
+      };
+      box.appendChild(b);
+    });
+  }
+
+  /* Adjustments belong to the season being looked at. Finishing Season 4 and planning Season 5
+     are two different schedules, and a week cancelled in one must not move the other. */
+  function seasonLabel() {
+    return state.season === "4" ? "Season 4" : (CFG.season || "Season 5");
+  }
+
+  function say(cls, text) {
+    var m = $("msg");
+    m.className = "banner " + cls;
+    m.textContent = text;
+    m.hidden = false;
+  }
+  function quiet() { $("msg").hidden = true; }
+
+  /* ---- the films -------------------------------------------------------------------------
+     Season 5 has no picks yet, so its slots are placeholders and say so. Season 4's remaining
+     films are real, and come from the watched ledger.
+     ⚠️ That ledger is refreshed from the ratings spreadsheet by hand today, so a film watched
+     since the last refresh can still show as coming up. The footer says so rather than letting
+     anyone think the page is wrong. */
+  function nextNightOnOrAfter(d, night) {
+    var ahead = (night - d.getDay() + 7) % 7;
+    return FM.addDays(d, ahead);
+  }
+
+  function season4Films() {
+    return FM.MOVIES
+      .filter(function (m) { return String(m.s) === "4" && m.st !== "Watched"; })
+      .sort(function (a, b) { return (a.o || 0) - (b.o || 0); })
+      .map(function (m) {
+        return { title: m.t, year: m.y, person: m.p,
+                 kind: m.k === "Birthday" ? "Birthday" : (m.th ? "Dealer's Choice" : "Open Choice"),
+                 theme: m.th || "" };
+      });
+  }
+
+  function skipWeeksIn(adj) {
+    var t = 0;
+    adj.forEach(function (a) { if (a.kind === "skip") t += a.weeks; });
+    return t;
+  }
+
+  function build() {
+    var adj = FM.readAdjustments(state.adjRows);
+    var start, films;
+    if (state.season === "4") {
+      films = season4Films();
+      start = nextNightOnOrAfter(TODAY, NIGHT);
+    } else {
+      start = FM.parseDay(CFG.seasonStart) || nextNightOnOrAfter(TODAY, NIGHT);
+      films = FM.placeholderSeason({
+        start: start, night: NIGHT, birthdays: CFG.birthdays || {},
+        skipWeeks: skipWeeksIn(adj)
+      });
+    }
+    state.built = FM.buildSchedule({
+      start: start, night: NIGHT, films: films, adjustments: adj,
+      birthdays: CFG.birthdays || {}
+    });
+    state.films = films;
+    return state.built;
+  }
+
+  function shortDate(d) {
+    return d.toLocaleDateString(undefined,
+      { weekday: "short", month: "short", day: "numeric", year: "numeric" });
+  }
+
+  /* ---- the list ---- */
+  function drawList() {
+    var out = build();
+    var list = $("list");
+    list.innerHTML = "";
+
+    var weeks = out.weeks;
+    if (!weeks.length) {
+      list.appendChild(el("p", "hint", "Nothing to schedule for this season yet."));
+      return;
+    }
+
+    // The holidays Joe asked to see alongside the films, 2026-09-15. Reference only: they never
+    // move anything by themselves.
+    var hols = FM.holidaysBetween(FM.addDays(weeks[0].date, -6),
+                                  FM.addDays(weeks[weeks.length - 1].date, 6));
+    var hi = 0;
+    var nextIdx = -1;
+    for (var i = 0; i < weeks.length; i++) {
+      if (weeks[i].date >= TODAY) { nextIdx = i; break; }
+    }
+
+    weeks.forEach(function (w, idx) {
+      while (hi < hols.length && hols[hi].date < w.date) {
+        list.appendChild(holRow(hols[hi])); hi++;
+      }
+      list.appendChild(weekRow(w, idx, idx === nextIdx));
+    });
+    while (hi < hols.length) { list.appendChild(holRow(hols[hi])); hi++; }
+
+    var films = weeks.filter(function (w) { return w.kind !== "skip"; }).length;
+    var skips = weeks.length - films;
+    var label = state.season === "4" ? "Rest of Season 4" : "Season 5";
+    $("sumline").textContent = label + ": " + films + " movie night"
+      + (films === 1 ? "" : "s")
+      + (skips ? ", " + skips + " cancelled week" + (skips === 1 ? "" : "s") : "")
+      + ", finishing " + shortDate(weeks[weeks.length - 1].date)
+      + (out.unplaced ? ". " + out.unplaced + " film(s) could not be placed." : ".");
+
+    drawNext(weeks, nextIdx);
+  }
+
+  function holRow(h) {
+    var li = el("li", "holiday");
+    var top = el("div");
+    top.appendChild(el("span", "when", shortDate(h.date)));
+    li.appendChild(top);
+    var b = el("div", "badges");
+    b.appendChild(el("span", "badge hol", h.name));
+    li.appendChild(b);
+    return li;
+  }
+
+  function weekRow(w, idx, isNext) {
+    var cls = "";
+    if (w.kind === "skip") cls = "gone";
+    else if (w.kind === "birthday") cls = "bday";
+    if (isNext) cls += " next";
+    if (w.date < TODAY) cls += " past";
+    var li = el("li", cls.trim());
+
+    var main = el("div");
+    main.appendChild(el("p", "when", shortDate(w.date)));
+
+    if (w.kind === "skip") {
+      main.appendChild(el("p", "title", "No movie this week"));
+      main.appendChild(el("p", "sub", w.reason + (w.person ? ", marked by " + w.person : "")));
+    } else {
+      var f = w.film;
+      if (f && f.title) {
+        main.appendChild(el("p", "title", f.title + (f.year ? " (" + f.year + ")" : "")));
+        main.appendChild(el("p", "sub",
+          (f.person ? f.person + "'s pick" : "") +
+          (f.theme ? ', for the category "' + f.theme + '"' : f.kind ? ", " + f.kind : "")));
+      } else if (w.kind === "birthday") {
+        main.appendChild(el("p", "title blank", w.person + "'s birthday film, not chosen yet"));
+        main.appendChild(el("p", "sub", "Due about a week before this night"));
+      } else {
+        main.appendChild(el("p", "title blank", "Not picked yet"));
+        main.appendChild(el("p", "sub", (w.film && w.film.kind) || ""));
+      }
+      main.appendChild(el("p", "slot", "Film " + w.slot));
+    }
+    li.appendChild(main);
+
+    if (w.kind !== "skip" && w.date >= TODAY) {
+      var act = el("div", "rowact");
+      var b = el("button", "small danger", "Cancel");
+      b.onclick = function () { askSkip(w); };
+      act.appendChild(b);
+      li.appendChild(act);
+    }
+
+    var badges = el("div", "badges");
+    if (isNext) badges.appendChild(el("span", "badge now", "Next up"));
+    if (w.kind === "birthday") {
+      badges.appendChild(el("span", "badge bday", w.person + "'s birthday"));
+      if (w.weekSkipped) {
+        badges.appendChild(el("span", "badge gone",
+          "week cancelled, moved later in the week"));
+      }
+      if (w.moved) badges.appendChild(el("span", "badge bday", "moved a week to clear a clash"));
+    }
+    if (w.kind === "skip") badges.appendChild(el("span", "badge gone", "Cancelled"));
+    if (badges.childNodes.length) li.appendChild(badges);
+    return li;
+  }
+
+  function drawNext(weeks, nextIdx) {
+    var box = $("next");
+    box.innerHTML = "";
+    if (nextIdx < 0) {
+      box.appendChild(el("p", "hint", "Every night in this list has passed."));
+      return;
+    }
+    var w = weeks[nextIdx];
+    box.appendChild(el("p", "when", shortDate(w.date)));
+    if (w.kind === "skip") {
+      box.appendChild(el("p", "title", "No movie that week: " + w.reason));
+    } else if (w.film && w.film.title) {
+      box.appendChild(el("p", "title", w.film.title
+        + (w.film.year ? " (" + w.film.year + ")" : "")));
+      box.appendChild(el("p", "sub", w.film.person ? w.film.person + "'s pick" : ""));
+    } else {
+      box.appendChild(el("p", "title blank", "Nobody has picked this one yet"));
+    }
+  }
+
+  /* ---- the Yes / No popup ---------------------------------------------------------------
+     Joe, 2026-09-15: *"make sure a popup confirmation window confirms yes or no before doing
+     anything"*. Nothing is sent until Yes. */
+  var pending = null;
+
+  function openModal(title, buildBody, onYes) {
+    $("mtitle").textContent = title;
+    var body = $("mbody");
+    body.innerHTML = "";
+    buildBody(body);
+    pending = onYes;
+    $("scrim").hidden = false;
+    $("mno").focus();
+  }
+  function closeModal() { $("scrim").hidden = true; pending = null; }
+
+  $("mno").onclick = closeModal;
+  $("myes").onclick = function () {
+    var go = pending;
+    closeModal();
+    if (go) go();
+  };
+  $("scrim").onclick = function (ev) { if (ev.target === $("scrim")) closeModal(); };
+  document.addEventListener("keydown", function (ev) {
+    if (ev.key === "Escape" && !$("scrim").hidden) closeModal();
+  });
+
+  function askSkip(w) {
+    if (!state.person) { say("warn", "Tap your name at the top first."); return; }
+    openModal("Cancel " + shortDate(w.date) + "?", function (body) {
+      body.appendChild(el("p", null,
+        w.kind === "birthday"
+          ? "This is " + w.person + "'s birthday week. The birthday film does not move to another "
+            + "week; it moves to a couple of days later in this same week."
+          : "Every movie after this one moves back. Nothing else changes, and you can undo it."));
+
+      var fs = el("fieldset");
+      fs.appendChild(el("legend", null, "Why?"));
+      var opts = el("div", "opts");
+      REASONS.forEach(function (r, i) {
+        var lab = el("label");
+        var inp = el("input");
+        inp.type = "radio"; inp.name = "reason"; inp.value = r;
+        if (i === 0) inp.checked = true;
+        lab.appendChild(inp);
+        lab.appendChild(el("span", null, r));
+        opts.appendChild(lab);
+      });
+      fs.appendChild(opts);
+      body.appendChild(fs);
+
+      var fs2 = el("fieldset");
+      fs2.appendChild(el("legend", null, "How long?"));
+      var o2 = el("div", "opts");
+      [["1", "Just this week"], ["2", "This week and next"]].forEach(function (pair, i) {
+        var lab = el("label");
+        var inp = el("input");
+        inp.type = "radio"; inp.name = "weeks"; inp.value = pair[0];
+        if (i === 0) inp.checked = true;
+        lab.appendChild(inp);
+        lab.appendChild(el("span", null, pair[1]));
+        o2.appendChild(lab);
+      });
+      fs2.appendChild(o2);
+      body.appendChild(fs2);
+    }, function () {
+      var reason = (document.querySelector('input[name=reason]:checked') || {}).value || "Break";
+      var weeks = (document.querySelector('input[name=weeks]:checked') || {}).value || "1";
+      post({ act: "skip", date: FM.dayKey(w.date), weeks: weeks, reason: reason },
+           "Cancelled " + shortDate(w.date) + ". Everything after it moved back.");
+    });
+  }
+
+  $("nightgo").onclick = function () {
+    if (!state.person) { say("warn", "Tap your name at the top first."); return; }
+    var from = $("nfrom").value, to = $("nto").value || $("nfrom").value;
+    var wd = $("nwd").value;
+    if (!from) { say("warn", "Pick the movie night this starts from."); return; }
+    if (to < from) { say("warn", "The end date is before the start date."); return; }
+    var one = (to === from);
+    openModal("Move movie night to " + DAYS[+wd] + "?", function (body) {
+      body.appendChild(el("p", null, one
+        ? "Just the week of " + from + " moves to " + DAYS[+wd] + ". Every other week stays on "
+          + DAYS[NIGHT] + "."
+        : "Every movie night from " + from + " to " + to + " moves to " + DAYS[+wd]
+          + ". Weeks outside those dates stay on " + DAYS[NIGHT] + "."));
+      body.appendChild(el("p", null, "No films are added or lost. Only the dates change."));
+    }, function () {
+      post({ act: "night", start: from, end: to, weekday: wd },
+           "Movie night is now " + DAYS[+wd] + (one ? " for that week." : " for those dates."));
+    });
+  };
+
+  function askUndo(row) {
+    if (!state.person) { say("warn", "Tap your name at the top first."); return; }
+    openModal("Undo this change?", function (body) {
+      body.appendChild(el("p", null, describe(row)));
+      body.appendChild(el("p", null,
+        "The dates go back to how they were. The change stays on the record, marked undone."));
+    }, function () {
+      post({ act: "undo", adj_id: row.adj_id }, "Undone. The dates are back.");
+    });
+  }
+
+  function describe(r) {
+    var kind = String(r.kind || "").toLowerCase();
+    if (kind === "skip") {
+      return "No movie for " + (r.weeks > 1 ? r.weeks + " weeks" : "a week")
+        + " from " + r.start_date + ", because of " + (r.reason || "a break").toLowerCase() + ".";
+    }
+    if (kind === "night") {
+      var wd = DAYS[parseInt(r.weekday, 10)] || "a different night";
+      return r.end_date && r.end_date !== r.start_date
+        ? "Movie night moved to " + wd + " from " + r.start_date + " to " + r.end_date + "."
+        : "Movie night moved to " + wd + " for the week of " + r.start_date + ".";
+    }
+    return "A change on " + r.start_date + ".";
+  }
+
+  function drawAdj() {
+    var rows = state.adjRows.filter(function (r) { return r && r.adj_id; });
+    $("adjnone").hidden = rows.length > 0;
+    $("adjwrap").hidden = rows.length === 0;
+    var tb = $("adjbody");
+    tb.innerHTML = "";
+    rows.forEach(function (r) {
+      var tr = el("tr");
+      var undone = String(r.undone || "").toLowerCase() === "yes";
+      tr.appendChild(el("td", null, describe(r) + (undone ? " (undone)" : "")));
+      tr.appendChild(el("td", null, String(r.timestamp || "").slice(0, 10)));
+      tr.appendChild(el("td", null, r.person || ""));
+      var td = el("td");
+      if (!undone) {
+        var b = el("button", "small", "Undo");
+        b.onclick = function () { askUndo(r); };
+        td.appendChild(b);
+      }
+      tr.appendChild(td);
+      tb.appendChild(tr);
+    });
+  }
+
+  /* ---- talking to the Apps Script ---- */
+  function post(extra, okText) {
+    if (!CFG.endpoint) { offline(); return; }
+    quiet();
+    say("warn", "Saving...");
+    var body = { kind: "schedule", person: state.person,
+                 season: seasonLabel(), act: extra.act };
+    Object.keys(extra).forEach(function (k) { body[k] = extra[k]; });
+    fetch(CFG.endpoint, {
+      method: "POST",
+      // text/plain on purpose: it keeps this a "simple" CORS request so the browser sends no
+      // preflight OPTIONS, which Apps Script cannot answer. Do not "fix" this header.
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify(body)
+    })
+      .then(function (r) { return r.json(); })
+      // Apps Script cannot set an HTTP status on its output, so the answer rides in the body.
+      .then(function (d) {
+        if (!d || !d.ok) {
+          var err = String((d && d.error) || "");
+          if (err.indexOf("Unknown action") > -1 || err.indexOf("Unknown kind") > -1) {
+            offline();
+            return;
+          }
+          say("stop", "Nothing was changed. " + (err || "Tell Joe."));
+          return;
+        }
+        state.adjRows = d.rows || state.adjRows;
+        drawAdj();
+        drawList();
+        say("ok", okText);
+      })
+      .catch(function () {
+        say("stop", "Nothing was changed, the save did not go through. Check your signal and "
+          + "try again, or tell Joe.");
+      });
+  }
+
+  function offline() {
+    state.endpointOn = false;
+    $("offwarn").hidden = false;
+    $("offwarn").innerHTML = "<strong>Changing the schedule is not switched on yet.</strong> "
+      + "Joe has one setup step left. Everything below is correct and you can read the whole "
+      + "season, but Cancel and Change the night will not save until then. "
+      + "Trying again will not help.";
+    quiet();
+  }
+
+  function load() {
+    if (!CFG.endpoint) { offline(); return; }
+    fetch(CFG.endpoint + "?action=schedule&season=" + encodeURIComponent(seasonLabel()))
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (!d || !d.ok) {
+          var err = String((d && d.error) || "");
+          if (err.indexOf("Unknown action") > -1) { offline(); return; }
+          return;
+        }
+        state.endpointOn = true;
+        state.adjRows = d.rows || [];
+        drawAdj();
+        drawList();
+      })
+      .catch(function () { /* the computed schedule still shows; nothing to add */ });
+  }
+
+  /* ---- start up ---- */
+  function init() {
+    drawWho();
+
+    var sel = $("nwd");
+    DAYS.forEach(function (name, i) {
+      var o = el("option", null, name);
+      o.value = String(i);
+      if (i === NIGHT) o.selected = true;
+      sel.appendChild(o);
+    });
+
+    var seasons = [["4", "Finish Season 4"], ["5", "Season 5"]];
+    var box = $("seasons");
+    seasons.forEach(function (pair) {
+      var b = el("button", null, pair[1]);
+      b.setAttribute("aria-pressed", state.season === pair[0] ? "true" : "false");
+      b.onclick = function () {
+        state.season = pair[0];
+        Array.prototype.forEach.call(box.children, function (c) {
+          c.setAttribute("aria-pressed", "false");
+        });
+        b.setAttribute("aria-pressed", "true");
+        state.adjRows = [];
+        drawAdj();
+        drawList();
+        load();
+      };
+      box.appendChild(b);
+    });
+
+    // 🛑 The film list is what tells this page what is coming up. Without it the schedule would
+    // be a row of blank weeks, which looks like an answer and is not one.
+    if (!FM.requireData("datawarn")) return;
+
+    $("stale").textContent = "Which films are left comes from the ratings spreadsheet, which Joe "
+      + "refreshes by hand today. A film watched since the last refresh can still show here as "
+      + "coming up.";
+
+    drawList();
+    drawAdj();
+    load();
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>

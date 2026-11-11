@@ -449,8 +449,375 @@ window.FM = (function () {
     return false;
   }
 
+  /* ---------- the schedule ------------------------------------------------------------------
+     Joe, 2026-10-22: *"i suggest we schedule everything as if we will always have movie night on
+     tuesdays but i want it easy for us to change throughout the season if for a week or a few
+     months, and also if we end up taking a week or two break."*
+
+     🛑 DATES ARE COMPUTED, NEVER STORED. Only two things are stored: the slot ORDER and a list
+     of ADJUSTMENTS. Everything on screen is derived from those two. That is the whole reason a
+     change is easy: altering one adjustment re-derives every later date for free, and removing
+     it undoes the change completely. Storing dates would mean rewriting dozens of rows for one
+     cancelled week, and undo would be guesswork.
+
+     🛑 NEVER HARDCODE TUESDAY. The default is CFG.movieNight and an adjustment can move it for a
+     single week or for months. scripts/check_schedule.py runs all of this on a Wednesday season
+     as well as a Tuesday one, for exactly that reason.
+
+     🛑 BIRTHDAY FILMS DO NOT MOVE WHEN A WEEK IS SKIPPED. Regular films flow around them. That
+     is why a skip cannot be "add 7 days to everything" and why this is a placement pass rather
+     than arithmetic on a list.
+  ------------------------------------------------------------------------------------------- */
+  function pad(n) { return (n < 10 ? "0" : "") + n; }
+
+  /** Local-noon dates everywhere, so a timezone can never shift a day. */
+  function parseDay(s) {
+    if (s instanceof Date) return new Date(s.getFullYear(), s.getMonth(), s.getDate(), 12);
+    var d = new Date(String(s).slice(0, 10) + "T12:00:00");
+    return isNaN(d) ? null : d;
+  }
+
+  function dayKey(d) {
+    return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+  }
+
+  function addDays(d, n) {
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate() + n, 12);
+  }
+
+  function sameDay(a, b) { return a && b && dayKey(a) === dayKey(b); }
+
+  /* The 7 holidays Joe asked to see on the schedule, 2026-09-15. Reference only: they never move
+     a film by themselves. Easter and Thanksgiving are computed because they move every year. */
+  function easter(y) {
+    var a = y % 19, b = Math.floor(y / 100), c = y % 100;
+    var d = Math.floor(b / 4), e = b % 4;
+    var f = Math.floor((b + 8) / 25), g = Math.floor((b - f + 1) / 3);
+    var h = (19 * a + b - d - g + 15) % 30;
+    var i = Math.floor(c / 4), k = c % 4;
+    var l = (32 + 2 * e + 2 * i - h - k) % 7;
+    var m = Math.floor((a + 11 * h + 22 * l) / 451);
+    var month = Math.floor((h + l - 7 * m + 114) / 31);
+    var day = ((h + l - 7 * m + 114) % 31) + 1;
+    return new Date(y, month - 1, day, 12);
+  }
+
+  /** Fourth Thursday in November. */
+  function thanksgiving(y) {
+    var d = new Date(y, 10, 1, 12);
+    var first = (4 - d.getDay() + 7) % 7;      // 4 = Thursday
+    return new Date(y, 10, 1 + first + 21, 12);
+  }
+
+  function holidaysBetween(from, to) {
+    var a = parseDay(from), b = parseDay(to);
+    if (!a || !b) return [];
+    var out = [];
+    for (var y = a.getFullYear(); y <= b.getFullYear(); y++) {
+      out.push({ name: "New Year's Day", date: new Date(y, 0, 1, 12) });
+      out.push({ name: "Easter", date: easter(y) });
+      out.push({ name: "Halloween", date: new Date(y, 9, 31, 12) });
+      out.push({ name: "Thanksgiving", date: thanksgiving(y) });
+      out.push({ name: "Christmas Eve", date: new Date(y, 11, 24, 12) });
+      out.push({ name: "Christmas Day", date: new Date(y, 11, 25, 12) });
+      out.push({ name: "New Year's Eve", date: new Date(y, 11, 31, 12) });
+    }
+    return out.filter(function (h) { return h.date >= a && h.date <= b; })
+              .sort(function (x, y2) { return x.date - y2.date; });
+  }
+
+  /** Normalises a stored adjustment row into dates and numbers. Anything unusable is dropped
+   *  rather than guessed at, because a half-understood adjustment would silently move films. */
+  function readAdjustments(rows) {
+    var out = [];
+    (rows || []).forEach(function (r) {
+      if (!r || String(r.undone || "").toLowerCase() === "yes") return;
+      var kind = String(r.kind || "").toLowerCase();
+      var start = parseDay(r.start_date);
+      if (!start) return;
+      if (kind === "skip") {
+        var w = parseInt(r.weeks, 10);
+        out.push({
+          kind: "skip", start: start, weeks: (w >= 1 && w <= 8) ? w : 1,
+          reason: String(r.reason || "").trim() || "Break",
+          person: String(r.person || "").trim(), id: String(r.adj_id || "")
+        });
+      } else if (kind === "night") {
+        var wd = parseInt(r.weekday, 10);
+        if (isNaN(wd) || wd < 0 || wd > 6) return;
+        out.push({
+          kind: "night", start: start, end: parseDay(r.end_date) || start, weekday: wd,
+          reason: String(r.reason || "").trim(), person: String(r.person || "").trim(),
+          id: String(r.adj_id || "")
+        });
+      }
+    });
+    return out.sort(function (a, b) { return a.start - b.start; });
+  }
+
+  /** Which weekday this week runs on. The BASELINE date is what gets tested, so the answer never
+   *  depends on the answer. Always shifts forward within the week, so the order cannot invert. */
+  function nightShift(baseline, defaultNight, adjustments) {
+    var wd = defaultNight;
+    adjustments.forEach(function (a) {
+      if (a.kind !== "night") return;
+      if (baseline >= a.start && baseline <= a.end) wd = a.weekday;
+    });
+    return (wd - defaultNight + 7) % 7;
+  }
+
+  /**
+   * Lays a season of films onto movie nights.
+   *
+   *   start        first movie night of the season (ISO string or Date)
+   *   night        default weekday, 0 = Sunday. NOT a constant; see the banner above.
+   *   films        ordered slots: { title, year, person, kind, theme, status }.
+   *                kind === "Birthday" marks a film that is date-anchored.
+   *   adjustments  from readAdjustments()
+   *   birthdays    { name: [month, day] }, used to decide WHICH week is anchored
+   *
+   * Returns { weeks: [...], unplaced: n }. Each week is one of:
+   *   { date, kind: "film",     film, slot }
+   *   { date, kind: "birthday", film, slot, person }
+   *   { date, kind: "skip",     reason, person, adjId }
+   */
+  function buildSchedule(opts) {
+    var o = opts || {};
+    var start = parseDay(o.start);
+    var films = (o.films || []).slice();
+    var adj = o.adjustments || [];
+    var defaultNight = (o.night == null) ? 2 : o.night;
+    if (!start) return { weeks: [], unplaced: films.length };
+
+    var skips = adj.filter(function (a) { return a.kind === "skip"; });
+    var skipWeeks = 0;
+    skips.forEach(function (s) { skipWeeks += s.weeks; });
+
+    // Enough weeks for every film plus every skipped week, with a little headroom so a skip
+    // sitting past the end of the season still has somewhere to land.
+    var need = films.length + skipWeeks;
+    var weeks = [];
+    for (var k = 0; k < need + 8 && k < 600; k++) {
+      var baseline = addDays(start, 7 * k);
+      weeks.push({
+        baseline: baseline,
+        date: addDays(baseline, nightShift(baseline, defaultNight, adj)),
+        kind: null
+      });
+    }
+
+    // 1. THE ANCHORED BIRTHDAY WEEKS COME FIRST, before the skips. Birthday slots are the only
+    //    date-anchored thing in the whole project, so they claim their week by date and a skip
+    //    works around them rather than the other way round. Nearest movie night to the birthday,
+    //    and when two people want the same night the closer birthday keeps it (Joe, 2026-10-22).
+    var open = weeks.slice();
+    // 🛑 The season ends at the last week that can hold a film, NOT at the headroom weeks above.
+    //    Using the headroom would pull in a birthday that falls after the season really ends and
+    //    invent a slot nobody owes a film for. Kathy's 3/29/2028 is exactly that case.
+    var lastIdx = Math.max(0, Math.min(weeks.length, need) - 1);
+    var last = weeks.length ? weeks[lastIdx].date : start;
+
+    // Only anchor a birthday the film list actually has a slot for, so the week structure
+    // follows the data instead of the data being asked to follow the weeks.
+    var bdayOwed = {};
+    films.forEach(function (f) {
+      if (f && f.kind === "Birthday" && f.person) {
+        bdayOwed[f.person] = (bdayOwed[f.person] || 0) + 1;
+      }
+    });
+    var anyOwed = Object.keys(bdayOwed).length > 0;
+
+    var wants = [];
+    Object.keys(o.birthdays || {}).forEach(function (name) {
+      var md = o.birthdays[name];
+      for (var y = start.getFullYear(); y <= last.getFullYear(); y++) {
+        var b = new Date(y, md[0] - 1, md[1], 12);
+        if (b < start || b > last) continue;
+        var best = null;
+        open.forEach(function (w) {
+          if (!best || Math.abs(w.date - b) < Math.abs(best.date - b)) best = w;
+        });
+        if (best) wants.push({ person: name, birthday: b, week: best });
+      }
+    });
+    wants.sort(function (a, b) { return a.birthday - b.birthday; });
+    if (anyOwed) {
+      var seenFor = {};
+      wants = wants.filter(function (w) {
+        seenFor[w.person] = (seenFor[w.person] || 0) + 1;
+        return seenFor[w.person] <= (bdayOwed[w.person] || 0);
+      });
+    }
+    wants.forEach(function (want) {
+      var taken = wants.filter(function (o2) {
+        return o2 !== want && o2.week === want.week && o2.settled;
+      });
+      if (taken.length) {
+        var holder = taken[0];
+        var mine = Math.abs(want.week.date - want.birthday);
+        var theirs = Math.abs(holder.week.date - holder.birthday);
+        var move = mine < theirs ? holder : want;
+        var from = weeks.indexOf(move.week);
+        for (var i = from + 1; i < weeks.length; i++) {
+          if (weeks[i].kind === null && !wants.some(function (o3) { return o3.week === weeks[i]; })) {
+            move.week = weeks[i];
+            move.moved = true;
+            break;
+          }
+        }
+      }
+      want.settled = true;
+    });
+    wants.forEach(function (want) {
+      if (want.week.kind === null) {
+        want.week.kind = "birthday";
+        want.week.person = want.person;
+        want.week.birthday = want.birthday;
+        want.week.moved = !!want.moved;
+      }
+    });
+
+    // 2. the skipped weeks. A skip names the night being cancelled; weeks > 1 takes the ones
+    //    straight after it too, which is Joe's "a week or two break" as ONE adjustment rather
+    //    than two features.
+    //
+    //    🛑 A SKIP LANDING ON A BIRTHDAY WEEK DOES NOT PUSH THE BIRTHDAY FILM TO ANOTHER WEEK.
+    //    Joe, 2026-09-15: a cancelled birthday week means the birthday film *"most likely just
+    //    move to later in the week."* He said "most likely", so this is the DEFAULT and the page
+    //    says so and lets it be changed; it is not a hard rule. The regular films are unaffected,
+    //    because that week still gets watched.
+    skips.forEach(function (s) {
+      var at = -1;
+      for (var i = 0; i < weeks.length; i++) {
+        if (sameDay(weeks[i].date, s.start) || sameDay(weeks[i].baseline, s.start)) { at = i; break; }
+      }
+      if (at < 0) {                      // not a movie night we know: take the next one after it
+        for (var j = 0; j < weeks.length; j++) {
+          if (weeks[j].date >= s.start) { at = j; break; }
+        }
+      }
+      if (at < 0) return;
+      for (var n = 0; n < s.weeks && at + n < weeks.length; n++) {
+        var w = weeks[at + n];
+        if (w.kind === "skip") continue;
+        if (w.kind === "birthday") {
+          w.weekSkipped = true;
+          w.skipReason = s.reason;
+          w.skipPerson = s.person;
+          w.skipAdjId = s.id;
+          w.date = addDays(w.date, 2);
+          continue;
+        }
+        w.kind = "skip";
+        w.reason = s.reason;
+        w.person = s.person;
+        w.adjId = s.id;
+      }
+    });
+
+    // 3. the films. Birthday films go only in birthday weeks, everything else flows around them.
+    var bdayFilms = films.filter(function (f) { return f && f.kind === "Birthday"; });
+    var normal = films.filter(function (f) { return !f || f.kind !== "Birthday"; });
+    var slot = 0, placed = 0;
+    weeks.forEach(function (w) {
+      if (w.kind === "skip") return;
+      if (w.kind === "birthday") {
+        var mine = null;
+        for (var i = 0; i < bdayFilms.length; i++) {
+          if (bdayFilms[i] && bdayFilms[i].person === w.person) { mine = bdayFilms.splice(i, 1)[0]; break; }
+        }
+        w.film = mine || null;
+        w.slot = ++slot;
+        if (mine) placed++;
+        return;
+      }
+      if (!normal.length) return;
+      w.kind = "film";
+      w.film = normal.shift();
+      w.slot = ++slot;
+      placed++;
+    });
+
+    var used = [];
+    weeks.forEach(function (w) { if (w.kind) used.push(w); });
+    // Trim the trailing headroom: weeks past the last real one are not part of the season.
+    var lastReal = -1;
+    for (var z = used.length - 1; z >= 0; z--) {
+      if (used[z].kind !== "skip" || z === 0) { lastReal = z; break; }
+    }
+    return {
+      weeks: used.slice(0, lastReal + 1),
+      unplaced: normal.length + bdayFilms.length,
+      placed: placed
+    };
+  }
+
+  /* 🛑 HOW LONG IS A SEASON? IT IS A FIXED POINT, NOT A SUM. Joe settled this 2026-10-22:
+     *"if we watch movies a week of anyones bday, they get a free pick, even if they had one
+     previously this season."* So 64 is the fixed part (32 Dealer's Choice + 32 Open Choice) and
+     every birthday falling inside the season adds a film. But each added film makes the season a
+     week longer, which can pull in yet another birthday. Iterate until it stops moving.
+
+     🛑 Do not hardcode 68, or 70, or 17 per person. The 2026-10-22 note records 69 films with no
+     skipped weeks and 70 with two or more, converging there. This function reproduces that, and
+     scripts/check_schedule.py asserts both numbers. */
+  function eligibleBirthdays(opts) {
+    var o = opts || {};
+    var start = parseDay(o.start);
+    var bdays = o.birthdays || {};
+    var fixed = o.fixed == null ? 64 : o.fixed;
+    var skipWeeks = o.skipWeeks || 0;
+    if (!start) return [];
+
+    var found = [], guard = 0;
+    while (guard++ < 20) {
+      var weeks = fixed + found.length + skipWeeks;
+      var end = addDays(start, (weeks - 1) * 7);
+      var next = [];
+      Object.keys(bdays).forEach(function (name) {
+        var md = bdays[name];
+        for (var y = start.getFullYear(); y <= end.getFullYear() + 1; y++) {
+          var b = new Date(y, md[0] - 1, md[1], 12);
+          // The night can sit a few days either side of the birthday, so a birthday just past
+          // the final night still counts. Half a week is the honest window.
+          if (b < addDays(start, -3) || b > addDays(end, 3)) continue;
+          next.push({ person: name, birthday: b });
+        }
+      });
+      next.sort(function (a, b) { return a.birthday - b.birthday; });
+      if (next.length === found.length) return next;
+      found = next;
+    }
+    return found;
+  }
+
+  /** Placeholder slots for a season whose picks are not in yet, so the schedule can be looked at
+   *  before anyone has chosen a film. Pass `birthdayPeople`, or let it work them out. */
+  function placeholderSeason(opts) {
+    var o = opts || {};
+    var fixed = o.fixed == null ? 64 : o.fixed;
+    var people = o.birthdayPeople;
+    if (!people) {
+      people = eligibleBirthdays(o).map(function (b) { return b.person; });
+    }
+    var out = [];
+    for (var i = 0; i < fixed; i++) {
+      // The shape the group already uses: 4 Dealer's Choice weeks then 4 Open Choice, proven
+      // against Season 4's slots on 2026-10-22. Labels only; nobody has picked anything yet.
+      out.push({ title: null, kind: (i % 8) < 4 ? "Dealer's Choice" : "Open Choice" });
+    }
+    people.forEach(function (p) {
+      out.push({ title: null, kind: "Birthday", person: p });
+    });
+    return out;
+  }
+
   return {
     MOVIES: MOVIES, IMG: IMG, dataOk: dataOk, requireData: requireData,
+    parseDay: parseDay, dayKey: dayKey, addDays: addDays, sameDay: sameDay,
+    easter: easter, thanksgiving: thanksgiving, holidaysBetween: holidaysBetween,
+    readAdjustments: readAdjustments, buildSchedule: buildSchedule,
+    eligibleBirthdays: eligibleBirthdays, placeholderSeason: placeholderSeason,
     nearestNight: nearestNight, birthdayNights: birthdayNights,
     birthdaysFor: birthdaysFor, niceDate: niceDate,
     $: $, el: el,
