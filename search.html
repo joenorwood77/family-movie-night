@@ -194,6 +194,9 @@ footer a{color:var(--accent)}
         <div><label for="f-sort">Sort</label><select id="f-sort"></select></div>
       </div>
       <p class="count" id="m-count"></p>
+      <!-- Filled by drawMovies() from the shipped 1001 list. Left empty, and the
+           paragraph stays invisible, if that list did not load. -->
+      <p class="count k1001-prog" id="m-1001"></p>
       <ul class="hits" id="m-hits"></ul>
     </div>
   </section>
@@ -227,6 +230,8 @@ footer a{color:var(--accent)}
 <script src="movies.js"></script>
 <script src="aliases.js"></script>
 <script src="awards.js"></script>
+<!-- The 1001 Movies list. Generated from the sibling project, which owns it. -->
+<script src="thousand.js"></script>
 <script src="lib.js"></script>
 <script>
 (function(){
@@ -262,6 +267,10 @@ function drawHits(results){
     // right here in the search results instead of only in the full list. Renders nothing for a
     // film we have not rated, which includes every result that is new to us.
     if (hit.exact) FM.ratings(box, hit.exact);
+    // On the 1001 list? Matched by IMDb ID when TMDB gave us one, by title and year
+    // otherwise. Adds nothing for a film that is not on the list, and says so plainly
+    // when a DIFFERENT film of the same name is.
+    FM.badge1001(box, r.t, r.y, r.imdb_id || r.imdb || null);
     box.appendChild(letterboxd(r.t, r.y));
     if (r.overview) box.appendChild(el("p", "blurb", r.overview));
     li.appendChild(box);
@@ -345,6 +354,16 @@ function drawMovies(){
   });
 
   $("m-count").textContent = rows.length + " of " + MOVIES.length + " titles";
+  // "as we try to finish it" is how Joe put it, so the list needs the score, not just
+  // a label per film. Both figures come from the data; nothing here is hardcoded.
+  // The never-dropped number is the honest finish line: a film that every numbered
+  // edition kept is one the book has never changed its mind about.
+  var kp = FM.k1001Progress();
+  $("m-1001").textContent = kp.ok
+    ? "On the 1001 Movies list: " + kp.on + " of " + kp.total
+      + "  ·  " + kp.never + " of the " + kp.neverTotal
+      + " that every numbered edition kept"
+    : "";
   var ul = $("m-hits");
   ul.textContent = "";
   rows.slice(0, 400).forEach(function(m){
@@ -366,6 +385,7 @@ function drawMovies(){
     // Renders nothing at all when the payload ships without ratings, which is the public
     // build's deliberate state. Never assume the block appeared.
     FM.ratings(box, m);
+    FM.badge1001(box, m.t, m.y, m.i || null);
     box.appendChild(letterboxd(m.t, m.y));
     li.appendChild(box);
     ul.appendChild(li);

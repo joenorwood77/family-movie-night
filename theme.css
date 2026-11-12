@@ -151,3 +151,32 @@
   font-size:11.5px; font-weight:700; letter-spacing:.04em; text-transform:uppercase;
   color:var(--ink-faint);
 }
+
+/* ---- the 1001 Movies label -------------------------------------------------------------------
+   Added 2026-11-11, when the sibling project finished the IMDb review and the library-catalogue
+   check on the editions.
+
+   🛑 DELIBERATELY NEUTRAL, reusing --fm-src, the same ink as IMDb, RT and Letterboxd. The 1001
+      list is an OUTSIDE SOURCE like those three, not a fifth person. Giving it its own hue would
+      put a tenth colour on a card that check_palette.py already proved cannot take nine, and the
+      three collisions it caught are recorded at the top of this file. Do not brand this gold.
+   The label is always the words "On the 1001 Movies list", in bold, so it never needs a colour
+   to be understood.
+--------------------------------------------------------------------------------------------- */
+.k1001{
+  margin:7px 0 0; font-size:12.5px; line-height:1.4; color:var(--ink-soft);
+  padding-left:9px; border-left:3px solid var(--line-strong);
+}
+.k1001 strong{color:var(--ink); font-weight:700}
+/* In a reprint or a national edition only, so outside the default scope. Quieter, but still
+   above the 4.5:1 floor, because "only in a foreign edition" is a real answer and not a nothing. */
+.k1001.k-held{color:var(--ink-faint)}
+.k1001.k-held strong{color:var(--ink-soft)}
+/* A different film of the same name IS on the list. This is the Sunshine case: saying nothing
+   would read as "not on the list" and claiming a match would be wrong, so it says both. */
+.k1001.k-near{border-left-style:dotted}
+.k1001.k-near strong{color:var(--ink-soft)}
+/* The progress line under the browse filters. Reads as a fact, not a banner: Joe asked for the
+   list "as we try to finish it", so the number is the point. Empty when the list did not load. */
+.k1001-prog{font-weight:700; color:var(--ink-soft)}
+.k1001-prog:empty{display:none}

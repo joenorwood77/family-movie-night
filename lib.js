@@ -45,10 +45,24 @@ window.FM = (function () {
      A year within 1 counts as the same film, because release years differ between countries and
      between TMDB and the family's own sheet.
   ----------------------------------------------------------------------------------------- */
+  /* 🛑 THIS MUST STAY IN STEP WITH norm() IN scripts/match_1001.py, which does the same two
+     steps for the same reason. scripts/check_1001.py compares the two matchers on all of the
+     family's films and FAILS if they disagree, the same discipline as normTheme() in Code.gs.
+
+     Both steps exist because the family's data and the 1001 list are DIFFERENT SOURCES that
+     spell the same film differently. Found 2026-11-11 by that comparison:
+       "&" -> " and "   the family sheet writes "Willy Wonka & the Chocolate Factory" and
+                        "Kind Hearts & Coronets"; the 1001 list spells both out as "and".
+                        Without this, two films the family owns silently dropped off the list.
+       apostrophes gone  so "Don't Look Up" meets "Dont Look Up" rather than becoming
+                        "don t look up". Dropping the character beats replacing it with a gap. */
   function norm(s) {
     return String(s || "")
       .normalize("NFD").replace(/[̀-ͯ]/g, "")
-      .toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+      .toLowerCase()
+      .replace(/&/g, " and ")
+      .replace(/['‘’`]/g, "")
+      .replace(/[^a-z0-9]+/g, " ").trim();
   }
   function compact(s) { return norm(s).replace(/ /g, ""); }
   function noart(s) { return norm(s).replace(/^(the|a|an) /, ""); }
@@ -1112,8 +1126,135 @@ window.FM = (function () {
     return out;
   }
 
+  /* ---------- the 1001 Movies list -----------------------------------------------------------
+     Joe, 2026-11-11: "i still want to find the official list of books for the 1001 movies to
+     watch before you die. so we can add it to the family movie site."
+
+     🛑 ONE COPY. Both the family's own films and a film somebody types into search are
+        labelled by the functions below. A second copy in a page would let the site answer
+        "is this on the list" two different ways depending which page you were looking at.
+
+     TWO WAYS TO MATCH, and the better one is used when it is available:
+       1. BY IMDb ID. Exact, and it cannot confuse two films that share a title. Every film on
+          the list has an ID as of 2026-11-11. Search gets an ID from TMDB through the Apps
+          Script proxy, so this is the path for a film the family has not seen.
+       2. BY TITLE AND YEAR, within one year, the same rule lookup() uses. This is the path for
+          the family's own 356 films, which carry no IMDb ID. scripts/check_1001.py proves it
+          returns exactly what the Python matcher returns, so the two cannot drift.
+
+     🛑 A SHARED TITLE WITH A YEAR GAP OF MORE THAN ONE IS NOT A MATCH. The list holds
+        Sunshine (1999, Szabo); the family watched Sunshine (2007, Boyle). Different films.
+        That case is returned as `near` so a page can show the caution, and is never counted.
+
+     `status` in data/1001_editions.csv says whether the BOOK can be proved to exist. It does
+     NOT decide whether a film counts, because the roster is the same either way. Tier does.
+  ----------------------------------------------------------------------------------------- */
+  var K = window.FM_1001 || { meta: {}, films: [] };
+  var K_MIN = 1000;                       // same idea as EXPECTED_MIN: a short file is a fault
+  var kOk = (K.films || []).length >= K_MIN;
+  var K_INDEX = {}, K_BY_ID = {};
+
+  function kAdd(key, f) {
+    if (!key) return;
+    (K_INDEX[key] = K_INDEX[key] || []).push(f);
+  }
+  (K.films || []).forEach(function (f) {
+    [f.t, f.o].concat(String(f.alt || "").split("|")).forEach(function (t) {
+      t = String(t || "").trim();
+      if (!t) return;
+      kAdd(norm(t), f);
+      kAdd(compact(t), f);
+      kAdd(noart(t), f);
+    });
+    if (f.i) K_BY_ID[f.i] = f;
+  });
+
+  /** Which editions a film is in, as a sentence. Reads the shipped roster, hardcodes nothing. */
+  function k1001Scope(f) {
+    var n = (K.meta && K.meta.usEditions) || 0;
+    if (f.u >= n && n) return "in all " + n + " numbered editions, so it was never dropped";
+    if (f.u) return "in " + f.u + " of the " + n + " numbered editions";
+    if (f.p) return "only in an in-between yearly reprint, not a numbered edition";
+    return "only in a foreign national edition";
+  }
+
+  /** The 1001 entry for a film, or null.
+   *
+   *  Returns {film, by, scope, numbered, near} where `by` is "imdb" or "title", `numbered` is
+   *  true when the film is in the site's default scope, and `near` holds same-title films whose
+   *  year is too far off to count. A caller that ignores `near` loses the Sunshine warning.
+   */
+  function on1001(title, year, imdbId) {
+    if (!kOk) return null;
+    if (imdbId && K_BY_ID[imdbId]) {
+      var f = K_BY_ID[imdbId];
+      return { film: f, by: "imdb", scope: k1001Scope(f), numbered: !!f.u, near: [] };
+    }
+    var pool = [], seen = {};
+    [norm(title), compact(title), noart(title)].forEach(function (k) {
+      (K_INDEX[k] || []).forEach(function (f) {
+        var id = f.i || (f.t + "|" + f.y);
+        if (!seen[id]) { seen[id] = 1; pool.push(f); }
+      });
+    });
+    if (!pool.length) return null;
+    var y = parseInt(year, 10), hit = null;
+    if (!isNaN(y)) {
+      for (var i = 0; i < pool.length; i++) {
+        var fy = parseInt(pool[i].y, 10);
+        if (!isNaN(fy) && Math.abs(fy - y) <= 1) { hit = pool[i]; break; }
+      }
+    } else if (pool.length === 1) {
+      hit = pool[0];
+    }
+    var near = pool.filter(function (f) { return f !== hit; });
+    if (!hit) return { film: null, by: "title", scope: "", numbered: false, near: near };
+    return { film: hit, by: "title", scope: k1001Scope(hit), numbered: !!hit.u, near: near };
+  }
+
+  /** The 1001 badge for a title, appended to `box`. Returns true when something was added. */
+  function badge1001(box, title, year, imdbId) {
+    var r = on1001(title, year, imdbId);
+    if (!r) return false;
+    if (!r.film) {
+      // A film of this name IS on the list, but it is a different film. Say so plainly rather
+      // than claiming a match or staying silent.
+      var n = el("div", "k1001 k-near");
+      n.appendChild(el("strong", null, "Not on the 1001 list."));
+      n.appendChild(document.createTextNode(
+        " A different film called " + r.near[0].t + " (" + r.near[0].y + ") is on it."));
+      box.appendChild(n);
+      return true;
+    }
+    var d = el("div", "k1001" + (r.numbered ? "" : " k-held"));
+    d.appendChild(el("strong", null, "On the 1001 Movies list"));
+    d.appendChild(document.createTextNode(" · " + r.scope));
+    box.appendChild(d);
+    return true;
+  }
+
+  /** How many of the family's own films are on the list, for the progress line. */
+  function k1001Progress(films) {
+    var list = films || MOVIES, on = 0, never = 0;
+    list.forEach(function (m) {
+      var r = on1001(m.t, m.y, m.i);
+      if (r && r.film && r.film.u) {
+        on++;
+        if (r.film.all) never++;
+      }
+    });
+    return {
+      ok: kOk,
+      on: on, never: never,
+      total: (K.meta && K.meta.numbered) || 0,
+      neverTotal: (K.meta && K.meta.neverDropped) || 0
+    };
+  }
+
   return {
     MOVIES: MOVIES, IMG: IMG, dataOk: dataOk, requireData: requireData,
+    K1001: K, k1001Ok: kOk, on1001: on1001, badge1001: badge1001,
+    k1001Progress: k1001Progress, k1001Scope: k1001Scope,
     parseDay: parseDay, dayKey: dayKey, addDays: addDays, sameDay: sameDay,
     easter: easter, thanksgiving: thanksgiving, holidaysBetween: holidaysBetween,
     readAdjustments: readAdjustments, buildSchedule: buildSchedule,
