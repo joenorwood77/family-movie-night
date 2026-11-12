@@ -12,7 +12,7 @@
 window.FM_CONFIG = {
   endpoint: "https://script.google.com/macros/s/AKfycbz3AWj7YSsOYhp3DLGvLr-Vv1gaZDl6G1MFY0XJIb5P3IFjmqT9_xfznT_fgRYxFqcr/exec",
   season: "Season 5",
-  due: "2026-11-01",
+  due: "2026-11-15",
   themesPerPerson: 2,
 
   /* Birthday movie nights are worked out from these.
