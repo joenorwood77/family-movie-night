@@ -203,10 +203,10 @@ footer a{color:var(--accent)}
   <!-- FILMS ALL FOUR HAVE SEEN, BUT NEVER TOGETHER. Joe's own list, off his spreadsheet.
        🛑 It maintains itself: a title disappears the moment that film is watched, because the
           filter runs here at render time against the live film list. Nobody edits anything. -->
-  <details class="fm-quiet" id="wish-box">
+  <details class="fm-quiet" id="nt-box">
     <summary>Films you have all seen, but never together</summary>
-    <p class="hint" id="wish-intro"></p>
-    <ul class="fm-wish" id="wish-list"></ul>
+    <p class="hint" id="nt-intro"></p>
+    <ul class="fm-not-together" id="nt-list"></ul>
   </details>
 </main>
 
@@ -699,15 +699,17 @@ refresh();
 </script>
 
 <script>
-/* The wishlist, filtered against what the family has already watched.
+/* Films all four have seen but never together, filtered against what they have watched.
+   🛑 NOT a wishlist, and deliberately not named one: every title here has already been
+      seen by all four of them. Joe uses "wishlist" for his own parked ideas.
    🛑 ONE COPY OF THE MATCHER: this calls FM.noart, the project's own normaliser, instead of
       growing its own. Joe's tab records NO YEARS, so the match is on title alone. That is a
       real limit: a different film sharing a title would also clear the entry. Leaving watched
       films on the list would be worse, and Joe asked for them to come off. */
 (function () {
-  var box = document.getElementById("wish-box");
+  var box = document.getElementById("nt-box");
   if (!box) return;
-  var list = (window.FM_EXTRAS || {}).wishlist || [];
+  var list = (window.FM_EXTRAS || {}).notTogether || [];
   if (!list.length || !window.FM || !window.FM_MOVIES) { box.hidden = true; return; }
   var seen = {};
   window.FM_MOVIES.forEach(function (m) {
@@ -716,11 +718,11 @@ refresh();
   var left = list.filter(function (t) { return !seen[FM.noart(t)]; });
   if (!left.length) { box.hidden = true; return; }
   var gone = list.length - left.length;
-  document.getElementById("wish-intro").textContent =
+  document.getElementById("nt-intro").textContent =
     left.length + " of " + list.length + " still to watch together."
     + (gone ? " " + gone + (gone === 1 ? " has" : " have") + " come off since you watched "
               + (gone === 1 ? "it." : "them.") : "");
-  var ul = document.getElementById("wish-list");
+  var ul = document.getElementById("nt-list");
   left.forEach(function (t) {
     var li = document.createElement("li");
     li.textContent = t;

@@ -183,7 +183,7 @@
 
 
 /* ---------------------------------------------------------------- quiet disclosures
-   Added 2026-11-15 for the rating scale on the search page and the wishlist on the picks page.
+   Added 2026-11-15 for the rating scale on the search page and the seen-apart list on the picks page.
    Joe asked for the scale to be SUBTLE, because the four of them each rate on their own
    personal scale, so it is a closed disclosure rather than a panel on the page.
    Colours come from the existing tokens only. No hex values live here. */
@@ -204,7 +204,7 @@
             font-variant-numeric:tabular-nums}
 .fm-scale i{font-style:normal; font-weight:700; color:var(--ink); min-width:8.5em}
 .fm-scale span{color:var(--ink-soft)}
-.fm-wish{margin:6px 0 0; padding:0 0 0 18px; font-size:14px; color:var(--ink);
+.fm-not-together{margin:6px 0 0; padding:0 0 0 18px; font-size:14px; color:var(--ink);
          columns:2; column-gap:24px}
-.fm-wish li{margin:0 0 5px; break-inside:avoid}
-@media (max-width:520px){ .fm-wish{columns:1} }
+.fm-not-together li{margin:0 0 5px; break-inside:avoid}
+@media (max-width:520px){ .fm-not-together{columns:1} }
