@@ -205,3 +205,68 @@
          columns:2; column-gap:24px}
 .fm-not-together li{margin:0 0 5px; break-inside:avoid}
 @media (max-width:520px){ .fm-not-together{columns:1} }
+
+
+/* ============================================================================================
+   THE HUB: the site's own navigation, on every page.
+   Markup is built by FM.hub() in lib.js, which holds the one copy of the destination list.
+
+   Added 2026-11-15, the night before the family were sent the link, because index.html had a
+   single link on it and the other six pages were undiscoverable from the page they land on.
+
+   🛑 EVERY COLOUR IS AN EXISTING TOKEN. No hex values, so the hub follows the palette into dark
+      mode automatically and check_palette.py stays true. Contrast is carried by --ink and
+      --ink-soft, both already proven against --card and --bg in both themes.
+   ============================================================================================ */
+.fm-hub{margin:38px 0 0; padding-top:20px; border-top:1px solid var(--line)}
+
+.fm-hub-head{
+  margin:0 0 13px; font-size:11.5px; font-weight:700; letter-spacing:.11em;
+  text-transform:uppercase; color:var(--ink-faint);
+}
+
+.fm-hub-grid{
+  display:grid; gap:11px;
+  grid-template-columns:repeat(auto-fit, minmax(212px, 1fr));
+}
+
+/* A whole card is the target, not just the words: a link you can hit with a thumb. */
+.fm-hub-card{
+  display:flex; flex-direction:column; gap:4px; min-width:0;
+  padding:14px 15px 15px;
+  background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
+  text-decoration:none; color:inherit; position:relative;
+  transition:border-color .16s ease, transform .16s ease, box-shadow .16s ease;
+}
+.fm-hub-card:hover,
+.fm-hub-card:focus-visible{
+  border-color:var(--accent); transform:translateY(-2px); box-shadow:var(--shadow);
+}
+.fm-hub-card:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+
+.fm-hub-t{
+  font-family:Fraunces,Georgia,serif; font-weight:700; font-size:1.02rem; line-height:1.2;
+  color:var(--ink); padding-right:18px;
+}
+.fm-hub-d{font-size:.8rem; line-height:1.45; color:var(--ink-soft)}
+
+/* The arrow sits in the corner and leans out on hover. Decorative only: the card is already a
+   link and the title already says where it goes, so a screen reader is told to skip it. */
+.fm-hub-card::after{
+  content:"\2192"; position:absolute; top:13px; right:14px;
+  font-size:15px; line-height:1; color:var(--ink-faint);
+  transition:transform .16s ease, color .16s ease;
+}
+.fm-hub-card:hover::after,
+.fm-hub-card:focus-visible::after{transform:translateX(3px); color:var(--accent)}
+
+@media (prefers-reduced-motion: reduce){
+  .fm-hub-card, .fm-hub-card::after{transition:none}
+  .fm-hub-card:hover, .fm-hub-card:focus-visible{transform:none}
+  .fm-hub-card:hover::after, .fm-hub-card:focus-visible::after{transform:none}
+}
+
+@media (max-width:420px){
+  .fm-hub-grid{grid-template-columns:1fr}
+  .fm-hub-card{padding:13px 14px}
+}

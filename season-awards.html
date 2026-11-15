@@ -217,6 +217,8 @@ footer a{color:var(--accent)}
   <div id="past"></div>
 </section>
 
+<div class="fm-hub" id="hub"></div>
+
 <footer>
   <p>The Razzie is worked out from the ratings, so nobody votes on it. Best Picture and the
   Sleeper are hidden until all four of us are in, so nobody can see how it is going before
@@ -818,6 +820,11 @@ footer a{color:var(--accent)}
 
   init();
 })();
+</script>
+<script>
+/* The site's own navigation. The one copy of the destination list lives in lib.js,
+   so a page can never go missing from one menu while appearing in another. */
+FM.hub("hub", "season-awards.html");
 </script>
 </body>
 </html>

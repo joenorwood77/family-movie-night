@@ -1423,6 +1423,136 @@ window.FM = (function () {
     };
   }
 
+
+  /* ==========================================================================================
+     THE SITE'S OWN NAVIGATION - THE ONE COPY
+
+     🛑 ONE COPY, for the same reason lib.js holds the only title matcher and theme.css the only
+        palette. Seven pages each hand-listing the other six is 42 links to keep in step, and
+        the failure is silent: a page simply stops being reachable from somewhere.
+
+     Found 2026-11-15, the day before the family were emailed the link: index.html, the ONE page
+     we know they will open, carried a single link (to search). Everything else on the site was
+     undiscoverable from the page they land on.
+
+     Each entry says what the page IS, in one short line, because a menu of bare names does not
+     tell someone who has never seen the site what any of it does. Joe: *"make it intuitive,
+     clear what the site offers and how to get to each spot but never too wordy."*
+     ======================================================================================== */
+  var HUB = [
+    { f: "index.html",         t: "Submit categories",
+      d: "Name the categories you want for next season" },
+    { f: "picks.html",         t: "Submit movie picks",
+      d: "Choose your films once the categories are set" },
+    { f: "search.html",        t: "Have we watched it?",
+      d: "Look up any film and see all four of our ratings" },
+    { f: "schedule.html",      t: "Schedule",
+      d: "Who picks which week, birthdays included" },
+    { f: "season-stats.html",  t: "Season stats",
+      d: "How every season turned out, one by one" },
+    { f: "season-awards.html", t: "Season awards",
+      d: "Best Picture, the Razzie and the Sleeper" },
+    { f: "trivia.html",        t: "Trivia",
+      d: "Questions to read out on movie night" }
+  ];
+
+  /**
+   * Draw the hub into `host` (an element or an id), leaving out the page you are already on.
+   * Returns how many links were drawn, which is what the test asserts against.
+   */
+  function hub(host, current) {
+    var box = (typeof host === "string") ? $(host) : host;
+    if (!box) return 0;
+    box.textContent = "";
+
+    var head = el("p", "fm-hub-head", "The rest of the site");
+    box.appendChild(head);
+
+    var grid = el("div", "fm-hub-grid");
+    var n = 0;
+    HUB.forEach(function (item) {
+      if (current && item.f === current) return;      // never link a page to itself
+      var a = el("a", "fm-hub-card");
+      a.href = item.f;
+      a.appendChild(el("span", "fm-hub-t", item.t));
+      a.appendChild(el("span", "fm-hub-d", item.d));
+      grid.appendChild(a);
+      n++;
+    });
+    box.appendChild(grid);
+    return n;
+  }
+
+  /* ==========================================================================================
+     HOW ONE SEASON TURNED OUT
+
+     The existing "How we rate" view answers a different question: how each PERSON rates across
+     everything, for all time. This answers how a SEASON went.
+
+     🛑 A BLANK RATING IS NEVER A ZERO, here as everywhere. A person's season average is taken
+        over the films THEY rated, and the group average over the films that HAVE a rating. A
+        season still being watched is reported as partly rated rather than quietly averaged.
+
+     🛑 A SEASON WITH NOTHING IN IT STILL GETS AN ANSWER, with zeroes and empty lists, so the
+        page can give it a line that says so. Joe's rule: an empty group still needs a line.
+     ======================================================================================== */
+  function seasonStats(season) {
+    var all = MOVIES.filter(function (m) { return String(m.s) === String(season); });
+    var watched = all.filter(function (m) { return m.st === "Watched"; });
+    var rated = watched.filter(function (m) { return m.r && scoresOf(m).length; });
+
+    var people = PEOPLE.map(function (p, i) {
+      var mine = [];
+      rated.forEach(function (m) {
+        var n = num(m.r[i]);
+        if (n !== null) mine.push(n);
+      });
+      return { person: p, rated: mine.length, avg: mean(mine) };
+    });
+
+    var scored = rated.map(function (m) { return { film: m, avg: avgOf(m) }; });
+    scored.sort(function (a, b) { return b.avg - a.avg; });
+
+    // Ties are returned as ties. Two films really can share the season's best average, and
+    // picking whichever sorted first would invent a winner that the ratings do not name.
+    var top = [], low = [];
+    if (scored.length) {
+      var hi = scored[0].avg, lo = scored[scored.length - 1].avg;
+      top = scored.filter(function (x) { return x.avg === hi; });
+      low = scored.filter(function (x) { return x.avg === lo; });
+    }
+
+    var cats = ((window.FM_THEMES) || []).filter(function (t) {
+      return String(t.s) === String(season);
+    });
+
+    return {
+      season: String(season),
+      total: all.length,
+      watched: watched.length,
+      rated: rated.length,
+      unrated: watched.length - rated.length,
+      groupAvg: mean(scored.map(function (x) { return x.avg; })),
+      people: people,
+      top: top,
+      low: low,
+      unanimous: bestPictureShortlist(season).films.length,
+      categories: cats,
+      k1001: k1001Progress(rated)
+    };
+  }
+
+  /** Every season label in the data, in order, with "Outside" left out. */
+  function seasonList() {
+    var out = [];
+    MOVIES.forEach(function (m) {
+      var s = String(m.s);
+      if (s !== "Outside" && out.indexOf(s) === -1) out.push(s);
+    });
+    out.sort(function (a, b) { return (+a) - (+b); });
+    return out;
+  }
+
   return {
     MOVIES: MOVIES, IMG: IMG, dataOk: dataOk, requireData: requireData,
     K1001: K, k1001Ok: kOk, on1001: on1001, badge1001: badge1001,
@@ -1434,6 +1564,7 @@ window.FM = (function () {
     applyLive: applyLive, syncLive: syncLive,
     razzie: razzie, bestPictureShortlist: bestPictureShortlist, borda: borda,
     randomizeSeason: randomizeSeason, rngFrom: rngFrom, shuffled: shuffled,
+    hub: hub, HUB: HUB, seasonStats: seasonStats, seasonList: seasonList,
     sleeperTickets: sleeperTickets, filmKey: filmKey, avgOf: avgOf, seasonFilms: seasonFilms,
     nearestNight: nearestNight, birthdayNights: birthdayNights,
     birthdaysFor: birthdaysFor, niceDate: niceDate,

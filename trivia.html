@@ -222,6 +222,8 @@ footer a{color:var(--accent)}
   </div>
 </main>
 
+<div class="fm-hub" id="hub"></div>
+
 <footer>
   <p id="foot"></p>
   <p><b>Why you have to paste it:</b> IMDb's trivia is licensed, so no website is allowed to fetch
@@ -588,6 +590,11 @@ $("foot").textContent = "Checked against all " + MOVIES.length + " films we have
 restore();
 paint();
 })();
+</script>
+<script>
+/* The site's own navigation. The one copy of the destination list lives in lib.js,
+   so a page can never go missing from one menu while appearing in another. */
+FM.hub("hub", "trivia.html");
 </script>
 </body>
 </html>

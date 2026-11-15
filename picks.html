@@ -210,6 +210,8 @@ footer a{color:var(--accent)}
   </details>
 </main>
 
+<div class="fm-hub" id="hub"></div>
+
 <footer>
   <p id="foot"></p>
   <p>Film data and posters from <a href="https://www.themoviedb.org/" target="_blank"
@@ -727,6 +729,11 @@ refresh();
     ul.appendChild(li);
   });
 })();
+</script>
+<script>
+/* The site's own navigation. The one copy of the destination list lives in lib.js,
+   so a page can never go missing from one menu while appearing in another. */
+FM.hub("hub", "picks.html");
 </script>
 </body>
 </html>

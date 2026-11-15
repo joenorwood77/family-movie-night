@@ -259,6 +259,8 @@ footer a{color:var(--accent)}
   </div>
 </section>
 
+<div class="fm-hub" id="hub"></div>
+
 <footer>
   <p>Dates are worked out, never stored, so one change moves everything after it and undo puts it
   back exactly. Birthday films stay on their own week.</p>
@@ -789,6 +791,11 @@ footer a{color:var(--accent)}
 
   init();
 })();
+</script>
+<script>
+/* The site's own navigation. The one copy of the destination list lives in lib.js,
+   so a page can never go missing from one menu while appearing in another. */
+FM.hub("hub", "schedule.html");
 </script>
 </body>
 </html>

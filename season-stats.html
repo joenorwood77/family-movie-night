@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Season Stats</title>
+<meta name="description" content="How every season of family movie night actually turned out: the group average, how each of us rated it, the best and the worst.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap">
+<link rel="stylesheet" href="theme.css">
+<style>
+:root{
+  color-scheme: light;
+  --bg:#fbf7f0; --card:#ffffff; --ink:#1b1512; --ink-soft:#574b43; --ink-faint:#7b6d63;
+  --line:#e2d7c9; --line-strong:#c9b9a6;
+  --accent:#a3321e; --accent-ink:#ffffff; --accent-soft:#fdeee9;
+  --ok:#1d6b45; --ok-soft:#e6f4ec;
+  --warn:#8a5200; --warn-soft:#fdf1dc;
+  --stop:#9d1c1c; --stop-soft:#fdeaea;
+  --shadow:0 1px 2px rgba(27,21,18,.07), 0 8px 24px rgba(27,21,18,.06);
+  --radius:14px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --bg:#15120f; --card:#211c18; --ink:#f7f1e8; --ink-soft:#ccbfb2; --ink-faint:#a2958a;
+    --line:#352c25; --line-strong:#4d4036;
+    --accent:#ff8f6b; --accent-ink:#2a0f06; --accent-soft:#38201a;
+    --ok:#6ddc9f; --ok-soft:#14301f;
+    --warn:#ffc266; --warn-soft:#33250c;
+    --stop:#ff8f8f; --stop-soft:#3a1616;
+    --shadow:0 1px 2px rgba(0,0,0,.5), 0 8px 24px rgba(0,0,0,.4);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --bg:#15120f; --card:#211c18; --ink:#f7f1e8; --ink-soft:#ccbfb2; --ink-faint:#a2958a;
+  --line:#352c25; --line-strong:#4d4036;
+  --accent:#ff8f6b; --accent-ink:#2a0f06; --accent-soft:#38201a;
+  --ok:#6ddc9f; --ok-soft:#14301f;
+  --warn:#ffc266; --warn-soft:#33250c;
+  --stop:#ff8f8f; --stop-soft:#3a1616;
+  --shadow:0 1px 2px rgba(0,0,0,.5), 0 8px 24px rgba(0,0,0,.4);
+}
+
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font:17px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  padding-block: 0 56px;
+  padding-left:max(18px,env(safe-area-inset-left,0px));
+  padding-right:max(18px,env(safe-area-inset-right,0px));
+}
+.wrap{max-width:46rem; margin:0 auto}
+h1,h2{font-family:Fraunces,Georgia,"Times New Roman",serif; font-weight:700;
+  text-wrap:balance; margin:0}
+h1{font-size:clamp(1.8rem,6.5vw,2.4rem); line-height:1.1; letter-spacing:-.01em}
+header{padding-block:30px 6px}
+.kicker{font-size:.76rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--accent); margin-bottom:9px}
+.lede{color:var(--ink-soft); margin:10px 0 0}
+
+.card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
+  box-shadow:var(--shadow); padding:18px; margin-top:16px}
+.card h2{font-size:1.15rem; margin-bottom:4px}
+.hint{color:var(--ink-faint); font-size:.9rem; margin:6px 0 0}
+.step{font-size:.72rem; font-weight:700; letter-spacing:.09em; text-transform:uppercase;
+  color:var(--accent); margin:0 0 7px}
+
+.banner{border-radius:12px; padding:14px 16px; margin-top:16px; border:2px solid}
+.banner.warn{background:var(--warn-soft); color:var(--warn); border-color:var(--warn)}
+.banner.stop{background:var(--stop-soft); color:var(--stop); border-color:var(--stop)}
+
+/* The headline figure for a season. The number itself is the group purple from theme.css
+   (.fm-avg-num), because it is the group's average and nothing else on the site uses that
+   colour for anything but a group average. */
+.headline{display:flex; flex-wrap:wrap; align-items:baseline; gap:8px 18px; margin:2px 0 0}
+.headline .unit{font-size:.84rem; color:var(--ink-soft); font-weight:600}
+.counts{display:flex; flex-wrap:wrap; gap:7px; margin:12px 0 0}
+.counts .pill{
+  border:1px solid var(--line-strong); border-radius:999px; padding:5px 12px;
+  font-size:.86rem; color:var(--ink-soft); white-space:nowrap;
+}
+.counts .pill b{color:var(--ink); font-weight:700; font-variant-numeric:tabular-nums}
+
+/* Best and worst of a season. Terracotta for the high, quiet for the low: the Razzie is a
+   running joke in this family, not an insult, so it is stated plainly and not in alarm red. */
+.extremes{display:grid; gap:10px; margin-top:14px;
+  grid-template-columns:repeat(auto-fit,minmax(215px,1fr))}
+.ex{border:1px solid var(--line); border-left:5px solid var(--line-strong);
+  border-radius:11px; padding:11px 13px; background:var(--bg)}
+.ex.hi{border-left-color:var(--accent)}
+.ex .lbl{font-size:.7rem; font-weight:700; letter-spacing:.09em; text-transform:uppercase;
+  color:var(--ink-faint); margin:0 0 4px}
+.ex .film{font-family:Fraunces,Georgia,serif; font-weight:700; font-size:1.02rem;
+  line-height:1.2; margin:0}
+.ex .film .yr{color:var(--ink-faint); font-weight:600; font-size:.86rem}
+.ex .sc{margin:4px 0 0; font-size:.88rem; color:var(--ink-soft);
+  font-variant-numeric:tabular-nums}
+.ex .sc b{color:var(--ink)}
+
+.cats{display:flex; flex-wrap:wrap; gap:6px; margin:10px 0 0}
+.cats .cat{border:1px solid var(--line); border-radius:999px; padding:4px 11px;
+  font-size:.82rem; color:var(--ink-soft); background:var(--bg)}
+.cats .cat b{color:var(--ink); font-weight:600}
+
+.sub{color:var(--ink-soft); font-size:.9rem; margin:7px 0 0}
+.empty{color:var(--ink-faint); font-size:.95rem; margin:6px 0 0; font-style:italic}
+
+footer{color:var(--ink-faint); font-size:.85rem; margin-top:30px; padding-top:16px;
+  border-top:1px solid var(--line)}
+footer a{color:var(--accent)}
+@media (max-width:420px){ .card{padding:16px} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="kicker">Family Movie Night</div>
+  <h1>Season stats</h1>
+  <p class="lede">How every season actually turned out. Everything here is worked out from our
+  own ratings, so nothing is an opinion and nothing is rounded in anyone's favour.</p>
+</header>
+
+<div id="datawarn" class="banner stop" hidden></div>
+
+<main>
+  <section class="card" id="overall">
+    <p class="step">Every season together</p>
+    <h2>All of it so far</h2>
+    <div id="overall-body"></div>
+  </section>
+
+  <div id="seasons"></div>
+</main>
+
+<div class="fm-hub" id="hub"></div>
+
+<footer>
+  <p>A blank rating is never counted as a zero. Where one of us did not rate a film, the
+  average is taken over the people who did, and the count says so.</p>
+</footer>
+
+</div>
+
+<script src="config.js"></script>
+<script src="themes.js"></script>
+<script src="movies.js"></script>
+<script src="aliases.js"></script>
+<script src="thousand.js"></script>
+<script src="lib.js"></script>
+<script>
+(function () {
+  "use strict";
+  var FM = window.FM, $ = FM.$, el = FM.el;
+
+  /* No film list means every number on this page would be a lie, so the page says so and
+     draws nothing rather than reporting zeroes as though they were facts. */
+  var DATA_OK = FM.requireData("datawarn");
+
+  function n2(v) { return v === null || v === undefined ? null : (Math.round(v * 100) / 100).toFixed(2); }
+
+  function filmLine(box, x) {
+    var p = el("p", "film");
+    p.appendChild(document.createTextNode(x.film.t));
+    if (x.film.y) p.appendChild(el("span", "yr", "  " + x.film.y));
+    box.appendChild(p);
+  }
+
+  /* ---------- one season ---------- */
+  function drawSeason(host, s) {
+    var d = FM.seasonStats(s);
+    var card = el("section", "card");
+    card.appendChild(el("p", "step", "Season " + d.season));
+
+    // 🛑 EVERY SEASON GETS A LINE, including one with nothing in it yet. Joe's rule, and the
+    //    reason is that a missing season reads as a mistake while an empty one reads as news.
+    if (!d.rated) {
+      card.appendChild(el("h2", null, "Season " + d.season));
+      card.appendChild(el("p", "empty", d.watched
+        ? "Watched, but none of it is rated yet."
+        : "Nothing watched yet."));
+      host.appendChild(card);
+      return;
+    }
+
+    card.appendChild(el("h2", null, "Season " + d.season));
+
+    var head = el("div", "headline");
+    head.appendChild(el("span", "fm-avg-num", n2(d.groupAvg)));
+    head.appendChild(el("span", "fm-avg-lbl", "Group average"));
+    card.appendChild(head);
+
+    var counts = el("div", "counts");
+    function pill(num, label) {
+      var p = el("span", "pill");
+      p.appendChild(el("b", null, String(num)));
+      p.appendChild(document.createTextNode(" " + label));
+      counts.appendChild(p);
+    }
+    pill(d.rated, d.rated === 1 ? "film rated" : "films rated");
+    if (d.unrated) pill(d.unrated, d.unrated === 1 ? "watched, not rated" : "watched, not rated");
+    pill(d.unanimous, d.unanimous === 1 ? "film all four gave a 5" : "films all four gave a 5");
+    if (d.k1001 && d.k1001.ok) pill(d.k1001.on, "on the 1001 list");
+    card.appendChild(counts);
+
+    /* Each of us, that season. Way C from the palette file: the NAME carries the colour and
+       the big number inherits it. No fill, no dot. */
+    var who = el("div");
+    who.style.marginTop = "16px";
+    d.people.forEach(function (p) {
+      var row = el("div", "fm-stat fm-p-" + p.person);
+      row.appendChild(el("span", "fm-stat-who", p.person));
+      if (p.avg === null) {
+        row.appendChild(el("span", "fm-stat-note", "did not rate anything this season"));
+      } else {
+        row.appendChild(el("span", "fm-stat-avg", n2(p.avg)));
+        // Never imply someone rated every film when they did not. The count is the honesty.
+        if (p.rated !== d.rated) {
+          row.appendChild(el("span", "fm-stat-delta", "over " + p.rated + " of " + d.rated));
+        }
+      }
+      who.appendChild(row);
+    });
+    card.appendChild(who);
+
+    // The best and the worst of the season. Ties are shown as ties, never resolved by picking
+    // whichever happened to sort first.
+    var ex = el("div", "extremes");
+
+    function extreme(cls, label, list) {
+      var box = el("div", "ex" + (cls ? " " + cls : ""));
+      box.appendChild(el("p", "lbl", list.length > 1 ? label + ", tied" : label));
+      list.forEach(function (x) { filmLine(box, x); });
+      var sc = el("p", "sc");
+      sc.appendChild(el("b", null, n2(list[0].avg)));
+      sc.appendChild(document.createTextNode(" group average"));
+      box.appendChild(sc);
+      return box;
+    }
+
+    ex.appendChild(extreme("hi", "Highest rated", d.top));
+    ex.appendChild(extreme("", "Lowest rated", d.low));
+
+    card.appendChild(ex);
+
+    if (d.categories.length) {
+      card.appendChild(el("p", "sub", d.categories.length + " categories that season"));
+      var cl = el("div", "cats");
+      d.categories.forEach(function (c) {
+        var t = el("span", "cat");
+        t.appendChild(el("b", null, c.t));
+        if (c.by) t.appendChild(document.createTextNode("  " + c.by));
+        cl.appendChild(t);
+      });
+      card.appendChild(cl);
+    }
+
+    host.appendChild(card);
+  }
+
+  /* ---------- everything together ---------- */
+  function drawOverall() {
+    var host = $("overall-body");
+    host.textContent = "";
+    var seasons = FM.seasonList();
+    var all = FM.MOVIES.filter(function (m) { return m.st === "Watched"; });
+    var rated = all.filter(function (m) { return m.r && FM.avgOf(m) !== null; });
+
+    var avgs = rated.map(function (m) { return FM.avgOf(m); });
+    var mean = avgs.length
+      ? avgs.reduce(function (a, b) { return a + b; }, 0) / avgs.length : null;
+
+    var head = el("div", "headline");
+    head.appendChild(el("span", "fm-avg-num", mean === null ? "--" : n2(mean)));
+    head.appendChild(el("span", "fm-avg-lbl", "Group average, all seasons"));
+    host.appendChild(head);
+
+    var counts = el("div", "counts");
+    [[seasons.length, seasons.length === 1 ? "season" : "seasons"],
+     [all.length, "films watched together"],
+     [rated.length, "of them rated"]].forEach(function (row) {
+      var p = el("span", "pill");
+      p.appendChild(el("b", null, String(row[0])));
+      p.appendChild(document.createTextNode(" " + row[1]));
+      counts.appendChild(p);
+    });
+    host.appendChild(counts);
+  }
+
+  if (DATA_OK) {
+    drawOverall();
+    var host = $("seasons");
+    FM.seasonList().forEach(function (s) { drawSeason(host, s); });
+  } else {
+    $("overall").hidden = true;
+  }
+
+  // The hub is drawn whether or not the film data loaded: if this page cannot answer, the
+  // other pages still need to be reachable from it.
+  FM.hub("hub", "season-stats.html");
+})();
+</script>
+</body>
+</html>
