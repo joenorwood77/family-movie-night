@@ -655,9 +655,16 @@ footer a{color:var(--accent)}
       } else {
         kinds.forEach(function (k) {
           var hit = mine.filter(function (a) { return a.a === k; })[0];
-          box.appendChild(el("p", "sub", k + ": " + (hit
-            ? hit.t + (hit.y ? " (" + hit.y + ")" : "") + ", " + hit.p
-            : "not recorded")));
+          // 🛑 SAY WHICH NAME IS WHICH. A bare name after the film read as the nominator
+          //    when it meant the picker, which is exactly the confusion Joe hit on 2026-11-14
+          //    over Mary Poppins. "n" only exists on a Sleeper, and only where it is known.
+          var line = k + ": not recorded";
+          if (hit) {
+            line = k + ": " + hit.t + (hit.y ? " (" + hit.y + ")" : "")
+                 + (hit.p ? ", picked by " + hit.p : "")
+                 + (hit.n ? ", nominated by " + hit.n : "");
+          }
+          box.appendChild(el("p", "sub", line));
         });
       }
       host.appendChild(box);
