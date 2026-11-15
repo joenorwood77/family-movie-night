@@ -183,9 +183,6 @@
 
 
 /* ---------------------------------------------------------------- quiet disclosures
-   Added 2026-11-15 for the rating scale on the search page and the seen-apart list on the picks page.
-   Joe asked for the scale to be SUBTLE, because the four of them each rate on their own
-   personal scale, so it is a closed disclosure rather than a panel on the page.
    Colours come from the existing tokens only. No hex values live here. */
 .fm-quiet{margin:20px 0 0; border-top:1px solid var(--line); padding-top:10px}
 .fm-quiet > summary{
