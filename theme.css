@@ -270,3 +270,66 @@
   .fm-hub-grid{grid-template-columns:1fr}
   .fm-hub-card{padding:13px 14px}
 }
+
+
+/* ============================================================================================
+   THE POLISH LAYER, 2026-11-15.
+   Shared refinements for all seven pages. Read the header of build_polish.py for why this is a
+   layer rather than a rewrite, and why `.wrap` appears in several selectors.
+
+   🛑 Every colour is a token. Every rule either adds a property no page sets, or outranks the
+      page's own rule honestly on specificity. No !important anywhere.
+   ============================================================================================ */
+
+/* ---- 1. the accent hairline across the top of every page --------------------------------
+   One deliberate mark, the same on every page. It costs 3 pixels and it is the first thing
+   that says somebody designed this rather than assembled it. Fixed, so it survives scrolling,
+   and it sits above the content without ever covering any of it. */
+body::before{
+  content:""; position:fixed; top:0; left:0; right:0; height:3px;
+  background:var(--accent); z-index:100; pointer-events:none;
+}
+
+/* ---- 2. display type ----------------------------------------------------------------------
+   Fraunces is a VARIABLE font and the pages load its optical-size axis (opsz 9..144) without
+   ever using it. Optical sizing is what makes a display face look drawn for its size rather
+   than scaled up to it: tighter spacing and higher stroke contrast on big text.
+   🛑 This ADDS properties the pages do not set, so it needs no specificity trick. */
+h1,h2,h3{font-optical-sizing:auto; font-kerning:normal; font-variant-ligatures:common-ligatures}
+.wrap h1{font-variation-settings:"opsz" 112}
+.wrap h2{font-variation-settings:"opsz" 48}
+
+/* ---- 3. a comfortable measure for the opening paragraph -----------------------------------
+   Running text is easiest to read at roughly 60 to 70 characters a line. The widest page is
+   46rem, which pushes a lede well past that. Capping the lede alone fixes it without touching
+   any layout that needs the full width. */
+.wrap .lede{max-width:36rem; text-wrap:pretty}
+
+/* ---- 4. breathing room at the top of a page -----------------------------------------------
+   `.wrap header` (0,1,1) honestly outranks each page's `header` (0,0,1). Generous space above
+   the title is most of what separates a designed page from a cramped one. */
+.wrap header{padding-block:42px 14px}
+@media (max-width:420px){ .wrap header{padding-block:30px 10px} }
+
+/* ---- 5. links and focus -------------------------------------------------------------------
+   An underline that clears the descenders reads as typeset rather than default. The focus ring
+   is for keyboard users and it matches the accent, so it never looks like a browser artefact.
+   Inputs and buttons keep the focus styles their own pages already define. */
+a{text-underline-offset:.16em; text-decoration-thickness:.07em}
+a:focus-visible,summary:focus-visible{outline:3px solid var(--accent); outline-offset:2px;
+  border-radius:4px}
+
+/* ---- 6. numbers that line up --------------------------------------------------------------
+   Any table of ratings or counts reads wrong when the digits are proportional. */
+table,.count,.pill,time{font-variant-numeric:tabular-nums}
+
+/* ---- 7. selection, and motion -------------------------------------------------------------
+   Selected text picks up the site's own accent instead of the browser's blue. */
+::selection{background:var(--accent-soft); color:var(--ink)}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion: reduce){ html{scroll-behavior:auto} }
+
+/* ---- 8. the footer sits apart ------------------------------------------------------------
+   `.wrap footer` (0,1,1) over each page's `footer` (0,0,1). Several pages give the footer no
+   separation at all, so it reads as another paragraph of the page above it. */
+.wrap footer{margin-top:34px; padding-top:18px; border-top:1px solid var(--line)}
