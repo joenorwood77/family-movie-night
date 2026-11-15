@@ -1251,6 +1251,178 @@ window.FM = (function () {
     };
   }
 
+
+  /* ==========================================================================================
+     THE SEASON RANDOMIZER
+     Joe's rules, settled 2026-11-15 from Season 4's own dated schedule (6/3/2025 to 9/15/2026).
+
+       1. Shuffle the four of them into ONE rotation, which may never be identical to the
+          previous season's. Season 4 was Juli, Kathy, Joe, Miriam.
+       2. That one rotation drives everything: who owns each of the eight category blocks, the
+          four weeks inside every block, and the Open Choice runs.
+       3. Each person's two themes are assigned AT RANDOM to their first-half and second-half
+          block. 🛑 Rank does NOT decide this. That was a guess written down as a fact and Joe
+          corrected it: "WE NEVER CHOSE WHICH FIRST AND WHICH SECOND. IT WAS RANDOM ONCE OUT
+          OUR ORDER WAS SET."
+       4. Category films never move: each person's film for a category stays in that category
+          and plays in rotation order.
+       5. Each person's eight Open Choice films are shuffled across the eight Open Choice runs.
+       6. Runs alternate, category then Open Choice, eight of each: 32 and 32, the fixed 64.
+
+     🛑 BIRTHDAYS ARE NOT THIS FUNCTION'S JOB. It returns the 64 ordered slots and nothing else.
+        buildSchedule() already reserves birthday nights against real dates and pushes the rest
+        of the season back a week, which is exactly rule 6 of the spec. Teaching two pieces of
+        code about birthdays is how they start to disagree.
+
+     🛑 IT REFUSES RATHER THAN GUESSES. A missing theme, a missing film or a short Open Choice
+        list stops the draw with a plain reason. A season order quietly built on incomplete
+        picks would be discovered weeks later, by which point people have watched films.
+
+     🛑 IT IS SEEDED, SO A DRAW IS REPRODUCIBLE. The same seed always yields the same season.
+        That is what makes it checkable afterwards and testable at all, and it is the same
+        reasoning as the Sleeper draw recording its ticket list.
+     ======================================================================================== */
+
+  /** mulberry32: a small, fast, well-behaved seeded generator. Not cryptography, and it does
+   *  not need to be: this shuffles a family's film order. */
+  function rngFrom(seed) {
+    var a = (seed >>> 0) || 1;
+    return function () {
+      a |= 0; a = (a + 0x6D2B79F5) | 0;
+      var t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  /** Fisher-Yates, unbiased, using the supplied generator. Returns a new array. */
+  function shuffled(list, rnd) {
+    var out = (list || []).slice();
+    for (var i = out.length - 1; i > 0; i--) {
+      var j = Math.floor(rnd() * (i + 1));
+      var t = out[i]; out[i] = out[j]; out[j] = t;
+    }
+    return out;
+  }
+
+  function sameOrder(a, b) {
+    if (!a || !b || a.length !== b.length) return false;
+    for (var i = 0; i < a.length; i++) { if (a[i] !== b[i]) return false; }
+    return true;
+  }
+
+  /**
+   * Draw a season order.
+   *
+   * opts.people        four names. Defaults to PEOPLE.
+   * opts.prevOrder     last season's rotation, which the new one may not match. Optional.
+   * opts.themes        { person: [themeA, themeB] }, two per person.
+   * opts.categoryFilms { theme: { person: {title, year} } }, one film per person per theme.
+   * opts.openFilms     { person: [ {title, year} x8 ] }.
+   * opts.seed          integer. Omit and one is taken from the clock.
+   *
+   * Returns { ok, error?, seed, rotation, blocks, slots, counts }.
+   */
+  function randomizeSeason(opts) {
+    opts = opts || {};
+    var people = opts.people || PEOPLE;
+    var themes = opts.themes || {};
+    var catFilms = opts.categoryFilms || {};
+    var openFilms = opts.openFilms || {};
+
+    function no(msg) { return { ok: false, error: msg }; }
+
+    if (!people || people.length !== 4) return no("The randomizer expects four people.");
+
+    // ---- refuse on anything incomplete, naming what is missing ----------------------------
+    var missing = [];
+    people.forEach(function (p) {
+      var t = themes[p] || [];
+      if (t.length !== 2) missing.push(p + " has " + t.length + " categories, not 2");
+      var o = openFilms[p] || [];
+      if (o.length !== 8) missing.push(p + " has " + o.length + " Open Choice films, not 8");
+    });
+    if (missing.length) return no("Not everyone is ready: " + missing.join("; ") + ".");
+
+    var allThemes = [];
+    people.forEach(function (p) { allThemes = allThemes.concat(themes[p]); });
+    if (allThemes.length !== 8) return no("There should be 8 categories, found " + allThemes.length + ".");
+
+    allThemes.forEach(function (th) {
+      var row = catFilms[th] || {};
+      people.forEach(function (p) {
+        var f = row[p];
+        if (!f || !f.title) missing.push(p + " has no film for " + th);
+      });
+    });
+    if (missing.length) return no("Category films are incomplete: " + missing.join("; ") + ".");
+
+    // ---- 1. the rotation, never identical to last season's --------------------------------
+    var seed = (opts.seed === undefined || opts.seed === null)
+      ? (Date.now() % 2147483647) : opts.seed;
+    var rnd = rngFrom(seed);
+    var rotation = shuffled(people, rnd);
+    // 24 possible orders and at most one is barred, so this ends quickly. The cap exists so a
+    // bad prevOrder can never spin forever.
+    var guard = 0;
+    while (sameOrder(rotation, opts.prevOrder) && guard < 200) {
+      rotation = shuffled(people, rnd);
+      guard++;
+    }
+    if (sameOrder(rotation, opts.prevOrder)) {
+      return no("Could not find an order different from last season's.");
+    }
+
+    // ---- 2 and 3. the eight blocks ---------------------------------------------------------
+    // Position in the rotation decides WHICH block a person owns in each half. Which of their
+    // two themes lands in which half is a coin flip, per Joe.
+    var blocks = [];
+    rotation.forEach(function (p, i) {
+      var pair = shuffled(themes[p], rnd);
+      blocks[i] = { owner: p, theme: pair[0], half: 1, index: i + 1 };
+      blocks[i + 4] = { owner: p, theme: pair[1], half: 2, index: i + 5 };
+    });
+
+    // ---- 5. each person's Open Choice films, shuffled across the eight runs ----------------
+    var openByPerson = {};
+    people.forEach(function (p) { openByPerson[p] = shuffled(openFilms[p], rnd); });
+
+    // ---- 4 and 6. lay out the 64 slots -----------------------------------------------------
+    var slots = [];
+    for (var b = 0; b < 8; b++) {
+      var blk = blocks[b];
+      rotation.forEach(function (p) {
+        var f = catFilms[blk.theme][p];
+        slots.push({
+          n: slots.length + 1, person: p, kind: "Dealer's Choice",
+          theme: blk.theme, owner: blk.owner, block: blk.index,
+          title: f.title, year: f.year
+        });
+      });
+      rotation.forEach(function (p) {
+        var f = openByPerson[p][b];
+        slots.push({
+          n: slots.length + 1, person: p, kind: "Open Choice",
+          theme: "", owner: "", run: b + 1,
+          title: f.title, year: f.year
+        });
+      });
+    }
+
+    return {
+      ok: true,
+      seed: seed,
+      rotation: rotation,
+      blocks: blocks,
+      slots: slots,
+      counts: {
+        total: slots.length,
+        dealer: slots.filter(function (s) { return s.kind === "Dealer's Choice"; }).length,
+        open: slots.filter(function (s) { return s.kind === "Open Choice"; }).length
+      }
+    };
+  }
+
   return {
     MOVIES: MOVIES, IMG: IMG, dataOk: dataOk, requireData: requireData,
     K1001: K, k1001Ok: kOk, on1001: on1001, badge1001: badge1001,
@@ -1261,6 +1433,7 @@ window.FM = (function () {
     eligibleBirthdays: eligibleBirthdays, placeholderSeason: placeholderSeason,
     applyLive: applyLive, syncLive: syncLive,
     razzie: razzie, bestPictureShortlist: bestPictureShortlist, borda: borda,
+    randomizeSeason: randomizeSeason, rngFrom: rngFrom, shuffled: shuffled,
     sleeperTickets: sleeperTickets, filmKey: filmKey, avgOf: avgOf, seasonFilms: seasonFilms,
     nearestNight: nearestNight, birthdayNights: birthdayNights,
     birthdaysFor: birthdaysFor, niceDate: niceDate,
