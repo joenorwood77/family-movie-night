@@ -379,7 +379,10 @@ function drawMovies(){
     meta.appendChild(document.createTextNode(seasonName(m.s) + " · picked by "));
     meta.appendChild(el("span", "fm-p-" + m.p, m.p));
     meta.appendChild(document.createTextNode(
-      (m.m === "TV Series" ? " · TV series" : "") + (m.th ? " · " + m.th : "")));
+      (m.m === "TV Series"
+        ? " · TV series" + (m.ep ? ", " + m.ep + (m.ep === "1" ? " episode" : " episodes")
+                                      + " watched" : "")
+        : "") + (m.th ? " · " + m.th : "")));
     box.appendChild(meta);
     if (m.st !== "Watched") box.appendChild(tag("picked", "Not watched yet"));
     // Renders nothing at all when the payload ships without ratings, which is the public
