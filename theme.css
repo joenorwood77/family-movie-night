@@ -180,3 +180,31 @@
    list "as we try to finish it", so the number is the point. Empty when the list did not load. */
 .k1001-prog{font-weight:700; color:var(--ink-soft)}
 .k1001-prog:empty{display:none}
+
+
+/* ---------------------------------------------------------------- quiet disclosures
+   Added 2026-11-15 for the rating scale on the search page and the wishlist on the picks page.
+   Joe asked for the scale to be SUBTLE, because the four of them each rate on their own
+   personal scale, so it is a closed disclosure rather than a panel on the page.
+   Colours come from the existing tokens only. No hex values live here. */
+.fm-quiet{margin:20px 0 0; border-top:1px solid var(--line); padding-top:10px}
+.fm-quiet > summary{
+  cursor:pointer; list-style:none; padding:7px 0; min-height:30px;
+  font-size:13px; color:var(--ink-soft);
+}
+.fm-quiet > summary::-webkit-details-marker{display:none}
+.fm-quiet > summary::before{content:"+"; font-weight:700; margin-right:7px}
+.fm-quiet[open] > summary::before{content:"\2013"}
+.fm-quiet > summary:hover,.fm-quiet > summary:focus-visible{color:var(--ink)}
+.fm-scale{margin:6px 0 0; padding:0; list-style:none; font-size:13px}
+.fm-scale li{display:flex; gap:10px; align-items:baseline; padding:4px 0;
+             border-bottom:1px solid var(--line)}
+.fm-scale li:last-child{border-bottom:0}
+.fm-scale b{min-width:2.4em; text-align:right; color:var(--ink);
+            font-variant-numeric:tabular-nums}
+.fm-scale i{font-style:normal; font-weight:700; color:var(--ink); min-width:8.5em}
+.fm-scale span{color:var(--ink-soft)}
+.fm-wish{margin:6px 0 0; padding:0 0 0 18px; font-size:14px; color:var(--ink);
+         columns:2; column-gap:24px}
+.fm-wish li{margin:0 0 5px; break-inside:avoid}
+@media (max-width:520px){ .fm-wish{columns:1} }

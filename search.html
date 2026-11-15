@@ -216,6 +216,14 @@ footer a{color:var(--accent)}
       <div class="used" id="c-list"></div>
     </div>
   </section>
+  <!-- JOE'S RATING SCALE. Subtle on purpose, at his request 2026-11-15: the four of them each
+       rate on their own personal scale, so this is HIS yardstick and the page says so. -->
+  <details class="fm-quiet" id="scale-box">
+    <summary>What Joe's numbers mean</summary>
+    <p class="hint">Joe's own scale, from his spreadsheet. The others rate however they like,
+      so read this as his yardstick rather than the group's.</p>
+    <ul class="fm-scale" id="scale-list"></ul>
+  </details>
 </main>
 
 <footer>
@@ -230,6 +238,7 @@ footer a{color:var(--accent)}
 <script src="movies.js"></script>
 <script src="aliases.js"></script>
 <script src="awards.js"></script>
+<script src="extras.js"></script>
 <!-- The 1001 Movies list. Generated from the sibling project, which owns it. -->
 <script src="thousand.js"></script>
 <script src="lib.js"></script>
@@ -568,6 +577,25 @@ FM.syncLive(function(res){
   if (cur === "movies") drawMovies();
   if (cur === "stats") drawStats();
 });
+})();
+</script>
+
+<script>
+/* Draw Joe's rating scale. 🛑 NUMBERS, NEVER STARS: his sheet writes this with star glyphs and
+   the site forbids them, because a partial-fill star still reads as five stars at phone size. */
+(function () {
+  var box = document.getElementById("scale-box");
+  var host = document.getElementById("scale-list");
+  var steps = (window.FM_EXTRAS || {}).scale || [];
+  if (!box || !host || !steps.length) { if (box) box.hidden = true; return; }
+  steps.forEach(function (s) {
+    var li = document.createElement("li");
+    var v = document.createElement("b"); v.textContent = s.v;
+    var n = document.createElement("i"); n.textContent = s.n;
+    var m = document.createElement("span"); m.textContent = s.m;
+    li.appendChild(v); li.appendChild(n); li.appendChild(m);
+    host.appendChild(li);
+  });
 })();
 </script>
 </body>
