@@ -256,6 +256,15 @@ footer{margin-top:30px; color:var(--ink-faint); font-size:.86rem; text-align:cen
 
 <script src="config.js"></script>
 <script src="themes.js"></script>
+<!-- 🛑 lib.js, added 2026-11-16, and the reason is worth keeping. This page does its own
+     category matching inline and so was the ONE page that never loaded lib.js. When the shared
+     menu went in on 11/15, both calls at the foot of this page ran against an undefined FM, the
+     first one threw, and the second never ran. So the hub was DEAD on the landing page, the one
+     page the family is guaranteed to open, and removing the old hand-written search link that
+     same day left it with NO navigation at all. check_hub.py now LOADS EACH PAGE'S OWN SCRIPTS
+     AND RUNS ITS MENU CALLS, because the old check only looked for the call in the source and a
+     call that throws is still a call that is present. -->
+<script src="lib.js"></script>
 <script>
 (function(){
 "use strict";
