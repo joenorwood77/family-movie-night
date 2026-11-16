@@ -64,13 +64,6 @@ header{padding-block:30px 6px}
   color:var(--accent); margin-bottom:9px}
 .lede{color:var(--ink-soft); margin:10px 0 0}
 
-nav.views{display:flex; flex-wrap:wrap; gap:8px; margin:18px 0 0}
-nav.views a{
-  flex:1 1 7rem; min-height:46px; padding:11px 14px; font-size:.97rem; font-weight:600;
-  border-radius:11px; background:var(--card); color:var(--ink); text-decoration:none;
-  border:2px solid var(--line-strong); display:grid; place-items:center; text-align:center;
-}
-nav.views a:hover{border-color:var(--accent)}
 
 .card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
   box-shadow:var(--shadow); padding:18px; margin-top:16px}
@@ -160,13 +153,7 @@ footer a{color:var(--accent)}
   <h1>Trivia to read out</h1>
   <p class="lede" id="lede">Paste the trivia for a film, tick the ones worth reading out, and they
     will be waiting for you next time.</p>
-  <nav class="views">
-    <a href="search.html">Have we watched it?</a>
-    <a href="index.html">Submit categories</a>
-    <a href="picks.html">Submit movie picks</a>
-    <a href="schedule.html">Schedule</a>
-    <a href="season-awards.html">Season awards</a>
-  </nav>
+  <nav class="fm-nav" id="topnav"></nav>
 </header>
 
 <div id="datawarn" class="banner stop" hidden></div>
@@ -594,6 +581,7 @@ paint();
 <script>
 /* The site's own navigation. The one copy of the destination list lives in lib.js,
    so a page can never go missing from one menu while appearing in another. */
+FM.topnav("topnav", "trivia.html");
 FM.hub("hub", "trivia.html");
 </script>
 </body>

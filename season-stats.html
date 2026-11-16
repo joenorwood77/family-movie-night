@@ -123,6 +123,7 @@ footer a{color:var(--accent)}
   <h1>Season stats</h1>
   <p class="lede">How every season actually turned out. Everything here is worked out from our
   own ratings, so nothing is an opinion and nothing is rounded in anyone's favour.</p>
+  <nav class="fm-nav" id="topnav"></nav>
 </header>
 
 <div id="datawarn" class="banner stop" hidden></div>
@@ -301,6 +302,7 @@ footer a{color:var(--accent)}
 
   // The hub is drawn whether or not the film data loaded: if this page cannot answer, the
   // other pages still need to be reachable from it.
+  FM.topnav("topnav", "season-stats.html");
   FM.hub("hub", "season-stats.html");
 })();
 </script>

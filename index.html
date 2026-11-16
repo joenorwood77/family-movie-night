@@ -187,13 +187,6 @@ details[open] .chev{transform:rotate(90deg)}
   border-top:1px solid var(--line); font-size:.95rem}
 .used li span:last-child{color:var(--ink-faint); flex:none; font-size:.88rem}
 
-a.other{
-  display:inline-block; margin-top:14px; padding:11px 16px; min-height:44px;
-  font-size:.97rem; font-weight:600; text-decoration:none;
-  color:var(--ink); background:var(--card); border:2px solid var(--line-strong);
-  border-radius:11px;
-}
-a.other:hover{border-color:var(--accent)}
 footer{margin-top:30px; color:var(--ink-faint); font-size:.86rem; text-align:center}
 .sr{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0)}
 @media (max-width:420px){ .card{padding:17px} }
@@ -210,7 +203,7 @@ footer{margin-top:30px; color:var(--ink-faint); font-size:.86rem; text-align:cen
     is checked against every category we have already used, so you find out right away if one
     is taken.
   </p>
-  <a class="other" href="search.html">Have we watched a movie? Search it &#8594;</a>
+  <nav class="fm-nav" id="topnav"></nav>
 </header>
 
 <div id="datawarn" class="banner stop" hidden></div>
@@ -384,6 +377,18 @@ if (CFG.due){
   if (!isNaN(d)){
     var due = d.toLocaleDateString(undefined, { weekday:"long", month:"long", day:"numeric" });
     $("h-lede").appendChild(el("strong", null, " Due " + due + "."));
+  }
+}
+
+/* WHAT HAPPENS NEXT. Before 2026-11-15 this page named the deadline and nothing else: it never
+   said when the season actually begins, nor that movie picks are the step AFTER categories. Both
+   are read from config.js, so neither can go stale on its own. */
+if (CFG.seasonStart){
+  var sd = new Date(CFG.seasonStart + "T12:00:00");
+  if (!isNaN(sd)){
+    var startTxt = sd.toLocaleDateString(undefined, { weekday:"long", month:"long", day:"numeric" });
+    $("h-lede").appendChild(document.createTextNode(" " + SEASON + " starts " + startTxt
+      + ", and movie picks come next."));
   }
 }
 $("foot").textContent = "Each person picks " + NFIELDS + " categories that have never been used before. "
@@ -764,6 +769,7 @@ loadAlready();
 <script>
 /* The site's own navigation. The one copy of the destination list lives in lib.js,
    so a page can never go missing from one menu while appearing in another. */
+FM.topnav("topnav", "index.html");
 FM.hub("hub", "index.html");
 </script>
 </body>

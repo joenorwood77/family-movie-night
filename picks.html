@@ -61,10 +61,6 @@ header{padding-block:30px 6px}
 .kicker{font-size:.76rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase;
   color:var(--accent); margin-bottom:9px}
 .lede{color:var(--ink-soft); margin:10px 0 0}
-a.other{display:inline-block; margin-top:14px; padding:11px 16px; min-height:44px;
-  font-size:.95rem; font-weight:600; text-decoration:none; color:var(--ink);
-  background:var(--card); border:2px solid var(--line-strong); border-radius:11px}
-a.other:hover{border-color:var(--accent)}
 
 .card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
   box-shadow:var(--shadow); padding:18px; margin-top:16px}
@@ -160,7 +156,7 @@ footer a{color:var(--accent)}
   <div class="kicker">Family Movie Night</div>
   <h1 id="h1">Your movie picks</h1>
   <p class="lede" id="lede"></p>
-  <a class="other" href="search.html">Just looking something up? Search instead &#8594;</a>
+  <nav class="fm-nav" id="topnav"></nav>
 </header>
 
 <div id="datawarn" class="banner stop" hidden></div>
@@ -733,6 +729,7 @@ refresh();
 <script>
 /* The site's own navigation. The one copy of the destination list lives in lib.js,
    so a page can never go missing from one menu while appearing in another. */
+FM.topnav("topnav", "picks.html");
 FM.hub("hub", "picks.html");
 </script>
 </body>

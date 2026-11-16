@@ -1496,6 +1496,26 @@ window.FM = (function () {
      🛑 A SEASON WITH NOTHING IN IT STILL GETS AN ANSWER, with zeroes and empty lists, so the
         page can give it a line that says so. Joe's rule: an empty group still needs a line.
      ======================================================================================== */
+  /* The page links across the TOP of every page, drawn from the SAME HUB list as the cards at
+     the bottom. 🛑 Before 2026-11-15 each page hand-wrote this row and FOUR OF THEM HAD ALREADY
+     GONE STALE: not one of them listed season-stats.html, and season-awards.html had also lost
+     index.html. Nothing failed and nothing warned, because a hand-written menu cannot notice a
+     page it was never told about. One list, two renderings, and a test proves both. */
+  function topnav(host, current) {
+    var box = (typeof host === "string") ? $(host) : host;
+    if (!box) return 0;
+    box.textContent = "";
+    var n = 0;
+    HUB.forEach(function (item) {
+      if (current && item.f === current) return;      // never link a page to itself
+      var a = el("a", null, item.t);
+      a.href = item.f;
+      box.appendChild(a);
+      n++;
+    });
+    return n;
+  }
+
   function seasonStats(season) {
     var all = MOVIES.filter(function (m) { return String(m.s) === String(season); });
     var watched = all.filter(function (m) { return m.st === "Watched"; });
@@ -1564,7 +1584,7 @@ window.FM = (function () {
     applyLive: applyLive, syncLive: syncLive,
     razzie: razzie, bestPictureShortlist: bestPictureShortlist, borda: borda,
     randomizeSeason: randomizeSeason, rngFrom: rngFrom, shuffled: shuffled,
-    hub: hub, HUB: HUB, seasonStats: seasonStats, seasonList: seasonList,
+    hub: hub, topnav: topnav, HUB: HUB, seasonStats: seasonStats, seasonList: seasonList,
     sleeperTickets: sleeperTickets, filmKey: filmKey, avgOf: avgOf, seasonFilms: seasonFilms,
     nearestNight: nearestNight, birthdayNights: birthdayNights,
     birthdaysFor: birthdaysFor, niceDate: niceDate,

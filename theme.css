@@ -333,3 +333,32 @@ html{scroll-behavior:smooth}
    `.wrap footer` (0,1,1) over each page's `footer` (0,0,1). Several pages give the footer no
    separation at all, so it reads as another paragraph of the page above it. */
 .wrap footer{margin-top:34px; padding-top:18px; border-top:1px solid var(--line)}
+
+
+/* ============================================================================================
+   THE TOP NAVIGATION, 2026-11-15.
+   The row of page links under every page's title. Drawn by FM.topnav() from the one HUB list in
+   lib.js, exactly like the cards at the foot of the page.
+
+   🛑 WHY IT LIVES HERE AND NOT IN SEVEN PAGES. Four pages used to hand-write both the markup and
+      this styling. The styling had drifted into byte-identical copies on three of them and the
+      MARKUP had drifted for real: none of the four listed the season stats page. One copy of the
+      list, one copy of the look.
+
+   🛑 No page defines .fm-nav, so nothing here fights the cascade and nothing needs !important.
+   🛑 Every colour is a token, same rule as the rest of this file.
+   ============================================================================================ */
+.fm-nav{display:flex; flex-wrap:wrap; gap:8px; margin:18px 0 0}
+.fm-nav a{
+  flex:1 1 7rem; min-height:46px; padding:11px 14px; font-size:.97rem; font-weight:600;
+  border-radius:11px; background:var(--card); color:var(--ink); text-decoration:none;
+  border:2px solid var(--line-strong); display:grid; place-items:center; text-align:center;
+  line-height:1.25;
+}
+.fm-nav a:hover{border-color:var(--accent)}
+/* The focus ring is repeated from the polish layer because these are links inside a nav and a
+   keyboard user tabbing through the menu is the single most likely way this page is navigated
+   without a mouse. */
+.fm-nav a:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
+/* On a phone two per row reads better than three squeezed ones. */
+@media (max-width:420px){ .fm-nav a{flex:1 1 9rem} }
