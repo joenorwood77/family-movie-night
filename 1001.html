@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>1001 Movies</title>
+<meta name="description" content="The 1001 Movies You Must See Before You Die list, how much of it the family has seen, and which editions each film appears in.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap">
+<link rel="stylesheet" href="theme.css">
+<style>
+:root{
+  color-scheme: light;
+  --bg:#fbf7f0; --card:#ffffff; --ink:#1b1512; --ink-soft:#574b43; --ink-faint:#7b6d63;
+  --line:#e2d7c9; --line-strong:#c9b9a6;
+  --accent:#a3321e; --accent-ink:#ffffff; --accent-soft:#fdeee9;
+  --ok:#1d6b45; --ok-soft:#e6f4ec;
+  --warn:#8a5200; --warn-soft:#fdf1dc;
+  --stop:#9d1c1c; --stop-soft:#fdeaea;
+  --shadow:0 1px 2px rgba(27,21,18,.07), 0 8px 24px rgba(27,21,18,.06);
+  --radius:14px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --bg:#15120f; --card:#211c18; --ink:#f7f1e8; --ink-soft:#ccbfb2; --ink-faint:#a2958a;
+    --line:#352c25; --line-strong:#4d4036;
+    --accent:#ff8f6b; --accent-ink:#2a0f06; --accent-soft:#38201a;
+    --ok:#6ddc9f; --ok-soft:#14301f;
+    --warn:#ffc266; --warn-soft:#33250c;
+    --stop:#ff8f8f; --stop-soft:#3a1616;
+    --shadow:0 1px 2px rgba(0,0,0,.5), 0 8px 24px rgba(0,0,0,.4);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --bg:#15120f; --card:#211c18; --ink:#f7f1e8; --ink-soft:#ccbfb2; --ink-faint:#a2958a;
+  --line:#352c25; --line-strong:#4d4036;
+  --accent:#ff8f6b; --accent-ink:#2a0f06; --accent-soft:#38201a;
+  --ok:#6ddc9f; --ok-soft:#14301f;
+  --warn:#ffc266; --warn-soft:#33250c;
+  --stop:#ff8f8f; --stop-soft:#3a1616;
+  --shadow:0 1px 2px rgba(0,0,0,.5), 0 8px 24px rgba(0,0,0,.4);
+}
+
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font:17px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  padding-block: 0 56px;
+  padding-left:max(18px,env(safe-area-inset-left,0px));
+  padding-right:max(18px,env(safe-area-inset-right,0px));
+}
+.wrap{max-width:46rem; margin:0 auto}
+h1,h2{font-family:Fraunces,Georgia,"Times New Roman",serif; font-weight:700;
+  text-wrap:balance; margin:0}
+h1{font-size:clamp(1.8rem,6.5vw,2.4rem); line-height:1.1; letter-spacing:-.01em}
+header{padding-block:30px 6px}
+.kicker{font-size:.76rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--accent); margin-bottom:9px}
+.lede{color:var(--ink-soft); margin:10px 0 0}
+
+.card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
+  box-shadow:var(--shadow); padding:18px; margin-top:16px}
+.card h2{font-size:1.15rem; margin-bottom:4px}
+.hint{color:var(--ink-faint); font-size:.9rem; margin:6px 0 0}
+.step{font-size:.72rem; font-weight:700; letter-spacing:.09em; text-transform:uppercase;
+  color:var(--accent); margin:0 0 7px}
+
+.banner{border-radius:12px; padding:14px 16px; margin-top:16px; border:2px solid}
+.banner.warn{background:var(--warn-soft); color:var(--warn); border-color:var(--warn)}
+.banner.stop{background:var(--stop-soft); color:var(--stop); border-color:var(--stop)}
+
+.big{font-family:Fraunces,Georgia,serif; font-weight:700;
+  font-size:clamp(1.9rem,8vw,2.6rem); line-height:1; margin:0}
+.big .of{font-size:.5em; color:var(--ink-soft); font-weight:600}
+.counts{display:flex; flex-wrap:wrap; gap:7px; margin:14px 0 0}
+.counts .pill{
+  border:1px solid var(--line-strong); border-radius:999px; padding:5px 12px;
+  font-size:.86rem; color:var(--ink-soft); white-space:nowrap;
+}
+.counts .pill b{color:var(--ink); font-weight:700; font-variant-numeric:tabular-nums}
+.soon{margin:10px 0 0; padding-left:1.1rem; color:var(--ink-soft); font-size:.95rem}
+.soon li{margin:6px 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="kicker">Family Movie Night</div>
+  <h1>1001 Movies You Must See Before You Die</h1>
+  <p class="lede" id="lede">The book's list, and how much of it we have got through together.</p>
+  <nav class="fm-nav" id="topnav"></nav>
+</header>
+
+<main>
+  <!-- Joe asked for "something like under construction for now", 2026-11-16. This page does not
+       pretend to do more than it does. It says what is here, and what is still being sorted. -->
+  <div class="banner warn" id="wip">
+    <strong>Still being built.</strong>
+    Joe is sorting out the editions list. What is below is real; the per-film view is next.
+  </div>
+
+  <section class="card">
+    <p class="step">Where we stand</p>
+    <h2>Films from the list we have watched</h2>
+    <p class="big" id="fig"></p>
+    <div class="counts" id="pills"></div>
+    <p class="hint" id="note"></p>
+  </section>
+
+  <section class="card">
+    <p class="step">The editions</p>
+    <h2>Which books the list comes from</h2>
+    <p class="hint">The list is not one list. Every printing drops films and adds others, and the
+      foreign-language editions differ again. These are the printings we have catalogued.</p>
+    <div class="counts" id="eds"></div>
+  </section>
+
+  <section class="card">
+    <p class="step">Coming here</p>
+    <h2>What this page will show</h2>
+    <ul class="soon">
+      <li>Every film on the list, searchable, with whether we have seen it.</li>
+      <li>Which editions each film appears in, US printings and other countries alike.</li>
+      <li>Which films survived every printing, and which were dropped.</li>
+    </ul>
+  </section>
+</main>
+
+<div class="fm-hub" id="hub"></div>
+
+<footer>
+  <p id="foot"></p>
+</footer>
+</div>
+
+<script src="config.js"></script>
+<script src="themes.js"></script>
+<script src="movies.js"></script>
+<script src="thousand.js"></script>
+<!-- 🛑 lib.js LAST, and it is not optional. index.html shipped without it on 2026-11-15 and the
+     whole menu was dead on the landing page for a day. check_hub.py section 4c now loads each
+     page's own scripts and RUNS its menu calls, so a page that forgets this fails the suite. -->
+<script src="lib.js"></script>
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var el = function (t, c, x) {
+    var n = document.createElement(t);
+    if (c) n.className = c;
+    if (x !== undefined && x !== null) n.textContent = x;
+    return n;
+  };
+
+  // The same data gate as every other page: with no film list and no 1001 list, every number
+  // here would be invented, so the page says so instead of showing a zero.
+  var ok = window.FM && FM.dataOk && FM.k1001Ok;
+  if (!ok) {
+    $("wip").textContent = "";
+    $("wip").appendChild(el("strong", null, "Not loaded. "));
+    $("wip").appendChild(document.createTextNode(
+      "The film list did not load, so none of these numbers can be shown. Reloading usually "
+      + "fixes it."));
+    $("fig").textContent = "";
+  } else {
+    var p = FM.k1001Progress();
+    $("fig").appendChild(document.createTextNode(String(p.on)));
+    $("fig").appendChild(el("span", "of", "  of " + p.total));
+
+    var pills = $("pills");
+    [[p.total, "films in the numbered editions"],
+     [p.never, "of ours were in every printing"],
+     [p.neverTotal, "films never once dropped"]].forEach(function (row) {
+      var s = el("span", "pill");
+      s.appendChild(el("b", null, String(row[0])));
+      s.appendChild(document.createTextNode(" " + row[1]));
+      pills.appendChild(s);
+    });
+
+    $("note").textContent = "Counted against the numbered English editions. A film we have seen "
+      + "that was only ever in a foreign printing is not in that total.";
+
+    // Straight out of the shipped catalogue. Nothing here is typed in, so it cannot go stale
+    // when the editions list upstream changes.
+    var meta = (FM.K1001 && FM.K1001.meta) || {};
+    var eds = meta.editions || [];
+    var by = {};
+    eds.forEach(function (e) { by[e.t] = (by[e.t] || 0) + 1; });
+    var LABEL = { us_official: "US official printings",
+                  en_update: "English updates",
+                  foreign: "other countries" };
+    var box = $("eds");
+    var total = el("span", "pill");
+    total.appendChild(el("b", null, String(eds.length)));
+    total.appendChild(document.createTextNode(" editions catalogued"));
+    box.appendChild(total);
+    Object.keys(LABEL).forEach(function (k) {
+      if (!by[k]) return;
+      var s = el("span", "pill");
+      s.appendChild(el("b", null, String(by[k])));
+      s.appendChild(document.createTextNode(" " + LABEL[k]));
+      box.appendChild(s);
+    });
+  }
+
+  if (window.FM && FM.foot) FM.foot("foot");
+
+  // Drawn whether or not the data loaded: if this page cannot answer, the rest of the site
+  // still has to be reachable from it.
+  FM.topnav("topnav", "1001.html");
+  FM.hub("hub", "1001.html");
+})();
+</script>
+</body>
+</html>

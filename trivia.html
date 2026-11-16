@@ -94,8 +94,11 @@ button:disabled{opacity:.5; cursor:not-allowed}
 ul.pick{list-style:none; margin:10px 0 0; padding:0; display:grid; gap:7px; max-height:17rem;
   overflow-y:auto}
 ul.pick button{width:100%; text-align:left; min-height:44px; padding:10px 13px;
-  font-weight:600; font-size:.96rem}
-.chosen{display:flex; flex-wrap:wrap; gap:9px; align-items:baseline;
+  font-weight:600; font-size:.96rem;
+  display:flex; align-items:center; gap:10px}
+/* The poster is inside the button, so it must never swallow the tap that belongs to it. */
+ul.pick button .poster,ul.pick button .noposter{pointer-events:none; flex:0 0 auto}
+.chosen{display:flex; flex-wrap:wrap; gap:9px; align-items:center;
   padding:12px 14px; border-radius:11px; background:var(--accent-soft);
   border:1px solid var(--line); margin-top:12px}
 .chosen b{font-family:Fraunces,Georgia,serif; font-size:1.1rem}
@@ -215,6 +218,10 @@ footer a{color:var(--accent)}
   <p id="foot"></p>
   <p><b>Why you have to paste it:</b> IMDb's trivia is licensed, so no website is allowed to fetch
     it for you. What this page does is the part IMDb will not: let you keep the ones you liked.</p>
+  <!-- Required by TMDB's terms wherever their artwork appears. This page carried no
+       attribution before 2026-11-16, because until then it showed no posters. -->
+  <p>Film data and posters from <a href="https://www.themoviedb.org/" target="_blank"
+     rel="noopener">TMDB</a>. This site uses the TMDB API but is not endorsed or certified by TMDB.</p>
 </footer>
 </div>
 
@@ -269,7 +276,9 @@ function drawHits(){
   }).slice(0, 25);
   hits.forEach(function(m){
     var li = el("li");
-    var b = el("button", null, m.t + (m.y ? "  (" + m.y + ")" : ""));
+    var b = el("button", null);
+    b.appendChild(FM.poster(m, "sm"));
+    b.appendChild(document.createTextNode(m.t + (m.y ? "  (" + m.y + ")" : "")));
     b.type = "button";
     b.addEventListener("click", function(){ choose(m); });
     li.appendChild(b);
@@ -288,6 +297,7 @@ function choose(m){
   var box = $("chosen");
   box.textContent = "";
   box.hidden = false;
+  box.appendChild(FM.poster(m, "sm"));
   box.appendChild(el("b", null, m.t + (m.y ? " (" + m.y + ")" : "")));
   box.appendChild(el("span", null, FM.seasonName(m.s) + ", picked by " + m.p));
   var ch = el("button", null, "Change");

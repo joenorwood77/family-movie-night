@@ -362,3 +362,38 @@ html{scroll-behavior:smooth}
 .fm-nav a:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
 /* On a phone two per row reads better than three squeezed ones. */
 @media (max-width:420px){ .fm-nav a{flex:1 1 9rem} }
+/* One entry needs the whole row: the 1001 book's real title is 39 characters, far past
+   the 18 that fit in a shared cell. It spans instead of wrapping, and because it is
+   the last entry in the list it sits on its own line under the others. */
+.fm-nav a.wide{flex:1 1 100%; font-size:.93rem}
+@media (max-width:420px){ .fm-nav a.wide{flex:1 1 100%} }
+
+/* ============================================================================================
+   FILM POSTERS - THE ONE COPY
+
+   🛑 Before 2026-11-16 these four rules lived in search.html AND in picks.html, the same values
+   typed out twice. No test compared them. That is the identical fault as the four hand-written
+   menus found the day before, and the three copies of `nav.views a`: duplication with nothing
+   watching it. Both page copies were deleted when this arrived.
+
+   Six more pages gained posters at the same time, which is exactly why this had to become one
+   component first. Eight private copies would have been certain to drift.
+
+   Sizes: default 62px for a result row, `sm` 44px where a poster sits inside a dense list,
+   `lg` 92px for a single film being celebrated. The aspect ratio is fixed at 2/3 so a row never
+   changes height when artwork is missing, and `object-fit:cover` so an odd poster is cropped
+   rather than stretched.
+   ============================================================================================ */
+.poster,.noposter{
+  width:62px; aspect-ratio:2/3; border-radius:7px;
+  background:var(--accent-soft); border:1px solid var(--line);
+}
+.poster{object-fit:cover; display:block}
+/* The placeholder has to be the SAME box as the image, or a list with some artwork missing
+   jumps about as it loads. */
+.noposter{display:grid; place-items:center; color:var(--accent); font-size:1.3rem}
+.poster.sm,.noposter.sm{width:44px; border-radius:6px}
+.noposter.sm{font-size:1rem}
+.poster.lg,.noposter.lg{width:92px; border-radius:9px}
+.noposter.lg{font-size:1.8rem}
+

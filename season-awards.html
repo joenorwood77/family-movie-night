@@ -97,6 +97,9 @@ button:disabled{opacity:.5; cursor:default}
 
 .trophy{border-left:5px solid var(--accent); background:var(--accent-soft);
   border-radius:11px; padding:14px 16px; margin-top:12px}
+/* A MODIFIER, not a change to the rule above: a trophy card with no artwork keeps the plain
+   block layout it has always had, so nothing shifts for a film whose poster is missing. */
+.trophy.withposter{display:grid; grid-template-columns:auto 1fr; gap:14px; align-items:center}
 .trophy .big{font-family:Fraunces,Georgia,serif; font-weight:700; font-size:1.3rem;
   line-height:1.15; margin:0}
 .trophy .sub{color:var(--ink-soft); font-size:.9rem; margin:5px 0 0}
@@ -211,6 +214,10 @@ footer a{color:var(--accent)}
   <p>The Razzie is worked out from the ratings, so nobody votes on it. Best Picture and the
   Sleeper are hidden until all four of us are in, so nobody can see how it is going before
   deciding.</p>
+  <!-- Required by TMDB's terms wherever their artwork appears. This page carried no
+       attribution before 2026-11-16, because until then it showed no posters. -->
+  <p>Film data and posters from <a href="https://www.themoviedb.org/" target="_blank"
+     rel="noopener">TMDB</a>. This site uses the TMDB API but is not endorsed or certified by TMDB.</p>
 </footer>
 
 </div>
@@ -284,10 +291,13 @@ footer a{color:var(--accent)}
       return;
     }
     rz.films.forEach(function (m) {
-      var box = el("div", "trophy");
-      box.appendChild(el("p", "big", m.t + (m.y ? " (" + m.y + ")" : "")));
-      box.appendChild(el("p", "sub", "Picked by " + m.p + ". Group average "
+      var box = el("div", "trophy withposter");
+      box.appendChild(FM.poster(m, "lg"));
+      var txt = el("div");
+      txt.appendChild(el("p", "big", m.t + (m.y ? " (" + m.y + ")" : "")));
+      txt.appendChild(el("p", "sub", "Picked by " + m.p + ". Group average "
         + rz.avg.toFixed(2) + "."));
+      box.appendChild(txt);
       host.appendChild(box);
     });
     if (rz.films.length > 1) {
@@ -351,6 +361,7 @@ footer a{color:var(--accent)}
       var at = state.ranking.indexOf(key);
       var li = el("li", at > -1 ? "chosen" : null);
       li.appendChild(el("span", "rank", at > -1 ? String(at + 1) : "-"));
+      li.appendChild(FM.poster(m, "sm"));
       var t = el("div", "t");
       t.appendChild(el("b", null, m.t + (m.y ? " (" + m.y + ")" : "")));
       t.appendChild(el("span", null, "picked by " + m.p));
@@ -421,9 +432,12 @@ footer a{color:var(--accent)}
     }
 
     res.winners.forEach(function (m) {
-      var box = el("div", "trophy");
-      box.appendChild(el("p", "big", m.t + (m.y ? " (" + m.y + ")" : "")));
-      box.appendChild(el("p", "sub", "Picked by " + m.p));
+      var box = el("div", "trophy withposter");
+      box.appendChild(FM.poster(m, "lg"));
+      var txt = el("div");
+      txt.appendChild(el("p", "big", m.t + (m.y ? " (" + m.y + ")" : "")));
+      txt.appendChild(el("p", "sub", "Picked by " + m.p));
+      box.appendChild(txt);
       host.appendChild(box);
     });
     if (res.winners.length > 1) {

@@ -97,11 +97,6 @@ ul.hits > li{
   padding-top:12px; border-top:1px solid var(--line);
 }
 ul.hits > li:first-child{border-top:0; padding-top:0}
-.poster{width:62px; aspect-ratio:2/3; border-radius:7px; object-fit:cover;
-  background:var(--accent-soft); border:1px solid var(--line)}
-.noposter{width:62px; aspect-ratio:2/3; border-radius:7px; background:var(--accent-soft);
-  border:1px solid var(--line); display:grid; place-items:center;
-  color:var(--accent); font-size:1.3rem}
 .ttl{font-weight:700; font-family:Fraunces,Georgia,serif; font-size:1.08rem; line-height:1.25}
 .yr{color:var(--ink-faint); font-weight:400; font-size:.95rem}
 .orig{color:var(--ink-faint); font-size:.88rem; font-style:italic; margin-top:1px}
@@ -368,7 +363,11 @@ function drawMovies(){
   ul.textContent = "";
   rows.slice(0, 400).forEach(function(m){
     var li = el("li");
-    li.appendChild(el("div", "noposter", m.m === "TV Series" ? "▣" : "☰"));
+    // Was a hard-coded placeholder until 2026-11-16, because movies.js carried no poster
+    // for the family's own films. scripts/fetch_posters.py now resolves them at build
+    // time, so this is real artwork for 355 of the 356 and the placeholder for the one
+    // whose identity is not settled. The TV glyph moved into FM.poster with it.
+    li.appendChild(poster(m));
     var box = el("div");
     var h = el("p", "ttl", m.t);
     if (m.y) h.appendChild(el("span", "yr", "  " + m.y));

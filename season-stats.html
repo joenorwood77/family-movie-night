@@ -94,6 +94,10 @@ header{padding-block:30px 6px}
 .ex.hi{border-left-color:var(--accent)}
 .ex .lbl{font-size:.7rem; font-weight:700; letter-spacing:.09em; text-transform:uppercase;
   color:var(--ink-faint); margin:0 0 4px}
+/* The poster and the title sit on one line. min-width:0 on the text so a long title wraps
+   inside the box instead of pushing the card wider, which is the usual flex trap. */
+.ex .filmrow{display:flex; gap:10px; align-items:center}
+.ex .filmrow > div{min-width:0}
 .ex .film{font-family:Fraunces,Georgia,serif; font-weight:700; font-size:1.02rem;
   line-height:1.2; margin:0}
 .ex .film .yr{color:var(--ink-faint); font-weight:600; font-size:.86rem}
@@ -143,6 +147,10 @@ footer a{color:var(--accent)}
 <footer>
   <p>A blank rating is never counted as a zero. Where one of us did not rate a film, the
   average is taken over the people who did, and the count says so.</p>
+  <!-- Required by TMDB's terms wherever their artwork appears. This page carried no
+       attribution before 2026-11-16, because until then it showed no posters. -->
+  <p>Film data and posters from <a href="https://www.themoviedb.org/" target="_blank"
+     rel="noopener">TMDB</a>. This site uses the TMDB API but is not endorsed or certified by TMDB.</p>
 </footer>
 
 </div>
@@ -168,7 +176,13 @@ footer a{color:var(--accent)}
     var p = el("p", "film");
     p.appendChild(document.createTextNode(x.film.t));
     if (x.film.y) p.appendChild(el("span", "yr", "  " + x.film.y));
-    box.appendChild(p);
+    // x.film is a real record out of movies.js, so it carries its own poster path.
+    var row = el("div", "filmrow");
+    row.appendChild(FM.poster(x.film, "sm"));
+    var txt = el("div");
+    txt.appendChild(p);
+    row.appendChild(txt);
+    box.appendChild(row);
   }
 
   /* ---------- one season ---------- */

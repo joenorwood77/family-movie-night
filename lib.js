@@ -117,15 +117,37 @@ window.FM = (function () {
     return a;
   }
 
-  function poster(r) {
+  /* Takes a film record and gives back either its artwork or a placeholder the same shape.
+     `size` is "sm" or "lg" or nothing, so a row and a winner's card can share one component
+     instead of each page sizing its own image.
+
+     🛑 ALT IS DELIBERATELY EMPTY. The title is always printed next to the poster in real text,
+     so alt text here would make every screen reader say the name twice. The image is
+     decoration beside the name, not the name itself.
+
+     🛑 A MISSING POSTER IS A REAL STATE, NOT A FAILURE. TMDB does not hold artwork for
+     everything, and this project refuses to guess which film a title means, so "Seven" (1995)
+     has no poster on purpose. The placeholder follows the MEDIUM, because a TV series marked
+     with a film glyph reads as a film we could not find. */
+  function poster(r, size) {
+    var cls = size ? " " + size : "";
     if (r && r.poster) {
-      var img = el("img", "poster");
+      var img = el("img", "poster" + cls);
       img.src = IMG + r.poster;
       img.alt = "";
       img.loading = "lazy";
       return img;
     }
-    return el("div", "noposter", "☰");
+    return el("div", "noposter" + cls, (r && r.m === "TV Series") ? "▣" : "☰");
+  }
+
+  /* For the pages that hold only a title and a year: the schedule builds its own week objects
+     and the claimed list reads rows back from the sheet. Going through lookup() means the
+     poster beside a film is the poster of the film the matcher would have matched, and a title
+     it cannot place gets the placeholder rather than a near-miss. */
+  function posterFor(title, year, size) {
+    var hit = lookup(title, year);
+    return poster(hit && hit.exact ? hit.exact : null, size);
   }
 
   /** Appends the verdict for a title+year: watched, already picked, or free. */
@@ -1457,7 +1479,13 @@ window.FM = (function () {
     { f: "season-awards.html", t: "Season awards",
       d: "Best Picture, the Razzie and the Sleeper" },
     { f: "trivia.html",        t: "Trivia",
-      d: "Questions to read out on movie night" }
+      d: "Questions to read out on movie night" },
+    /* 🛑 THE ONE WIDE ENTRY. Joe asked for the book's real title on the button, 2026-11-16, and
+       asked for the button to be long enough to hold it. 39 characters cannot share a row with
+       anything, so `w` makes this one span the whole row and the 18-character cap skips it.
+       Every other label stays capped, because that cap was measured on his actual phone. */
+    { f: "1001.html",          t: "1001 Movies You Must See Before You Die", w: 1,
+      d: "The book's list, and how much of it we have seen" }
   ];
 
   /**
@@ -1512,7 +1540,7 @@ window.FM = (function () {
     var n = 0;
     HUB.forEach(function (item) {
       if (current && item.f === current) return;      // never link a page to itself
-      var a = el("a", null, item.t);
+      var a = el("a", item.w ? "wide" : null, item.t);
       a.href = item.f;
       box.appendChild(a);
       n++;
@@ -1595,7 +1623,8 @@ window.FM = (function () {
     $: $, el: el,
     norm: norm, compact: compact, noart: noart,
     lookup: lookup, seasonName: seasonName,
-    tag: tag, letterboxd: letterboxd, poster: poster, verdict: verdict,
+    tag: tag, letterboxd: letterboxd, poster: poster, posterFor: posterFor,
+    verdict: verdict,
     PEOPLE: PEOPLE, ratings: ratings, careerStats: careerStats,
     tmdb: tmdb, liveSearch: liveSearch
   };

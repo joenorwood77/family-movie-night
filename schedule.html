@@ -130,6 +130,14 @@ ol.weeks li.past{opacity:.62}
 .slot{color:var(--ink-faint); font-size:.78rem; font-weight:700; letter-spacing:.05em;
   text-transform:uppercase}
 .rowact{grid-column:2; grid-row:1 / span 3; align-self:center}
+/* 🛑 A MODIFIER on the row, not a change to `ol.weeks li`. Only a week that actually HAS a film
+   gains the poster column, so a cancelled week, a holiday row and an unpicked slot keep the
+   two-column grid they have now and nothing moves. The action button follows to column 3 only
+   on the rows that gained a column. */
+ol.weeks li.withposter{grid-template-columns:auto 1fr auto}
+ol.weeks li.withposter .rowact{grid-column:3}
+.nextfilm{display:flex; gap:12px; align-items:center; margin-top:4px}
+.nextfilm > div{min-width:0}
 .badges{display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; grid-column:1 / -1}
 .badge{font-size:.74rem; font-weight:700; letter-spacing:.05em; text-transform:uppercase;
   border-radius:999px; padding:3px 9px; border:1.5px solid}
@@ -252,6 +260,10 @@ footer a{color:var(--accent)}
   <p>Dates are worked out, never stored, so one change moves everything after it and undo puts it
   back exactly. Birthday films stay on their own week.</p>
   <p id="stale"></p>
+  <!-- Required by TMDB's terms wherever their artwork appears. This page carried no
+       attribution before 2026-11-16, because until then it showed no posters. -->
+  <p>Film data and posters from <a href="https://www.themoviedb.org/" target="_blank"
+     rel="noopener">TMDB</a>. This site uses the TMDB API but is not endorsed or certified by TMDB.</p>
 </footer>
 
 </div>
@@ -449,6 +461,11 @@ footer a{color:var(--accent)}
     } else {
       var f = w.film;
       if (f && f.title) {
+        // The schedule builds its own week objects, so there is no record to hand over: this
+        // goes through FM.posterFor, which asks the SAME lookup() the rest of the site uses.
+        // A title it cannot place gets the placeholder, never a near-miss.
+        li.appendChild(FM.posterFor(f.title, f.year, "sm"));
+        li.className = (li.className + " withposter").trim();
         main.appendChild(el("p", "title", f.title + (f.year ? " (" + f.year + ")" : "")));
         main.appendChild(el("p", "sub",
           (f.person ? f.person + "'s pick" : "") +
@@ -499,9 +516,14 @@ footer a{color:var(--accent)}
     if (w.kind === "skip") {
       box.appendChild(el("p", "title", "No movie that week: " + w.reason));
     } else if (w.film && w.film.title) {
-      box.appendChild(el("p", "title", w.film.title
+      var row = el("div", "nextfilm");
+      row.appendChild(FM.posterFor(w.film.title, w.film.year));
+      var txt = el("div");
+      txt.appendChild(el("p", "title", w.film.title
         + (w.film.year ? " (" + w.film.year + ")" : "")));
-      box.appendChild(el("p", "sub", w.film.person ? w.film.person + "'s pick" : ""));
+      txt.appendChild(el("p", "sub", w.film.person ? w.film.person + "'s pick" : ""));
+      row.appendChild(txt);
+      box.appendChild(row);
     } else {
       box.appendChild(el("p", "title blank", "Nobody has picked this one yet"));
     }
