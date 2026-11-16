@@ -1444,7 +1444,11 @@ window.FM = (function () {
       d: "Name the categories you want for next season" },
     { f: "picks.html",         t: "Submit movie picks",
       d: "Choose your films once the categories are set" },
-    { f: "search.html",        t: "Have we watched it?",
+    /* 🛑 "Have we watched it?" was 19 characters and WRAPPED to a second line on Joe's phone,
+       2026-11-16, while "Submit movie picks" at 18 sat on one. The page's own <h1> keeps the
+       full question; only the MENU label is shortened. check_hub.py now caps every label at 18,
+       because a label nobody measures is a label that wraps on the next one somebody adds. */
+    { f: "search.html",        t: "Search movies",
       d: "Look up any film and see all four of our ratings" },
     { f: "schedule.html",      t: "Schedule",
       d: "Who picks which week, birthdays included" },
