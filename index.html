@@ -387,8 +387,12 @@ if (CFG.seasonStart){
   var sd = new Date(CFG.seasonStart + "T12:00:00");
   if (!isNaN(sd)){
     var startTxt = sd.toLocaleDateString(undefined, { weekday:"long", month:"long", day:"numeric" });
-    $("h-lede").appendChild(document.createTextNode(" " + SEASON + " starts " + startTxt
-      + ", and movie picks come next."));
+    /* 🛑 ORDER MATTERS HERE, and the first attempt got it wrong. It read "Season 5 starts
+       Tuesday, December 8, and movie picks come next", which Joe read as picks happening AFTER
+       the 8th. Naming the next step FIRST, right after the deadline it follows, removes the
+       ambiguity: "that" can only mean the due date it sits beside. */
+    $("h-lede").appendChild(document.createTextNode(" Movie picks come after that. " + SEASON
+      + " starts " + startTxt + "."));
   }
 }
 $("foot").textContent = "Each person picks " + NFIELDS + " categories that have never been used before. "
