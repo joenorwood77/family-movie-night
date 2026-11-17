@@ -1,4 +1,82 @@
 /* ============================================================================================
+   THE BASE LAYER - THE ONE COPY, consolidated 2026-11-17 (CONFIRMED.md item 156).
+
+   Until this date every page carried its own copy of the site palette and the base layout.
+   Comparing them found all 18 tokens byte-identical on all nine pages, with the base rules
+   split eight-to-one: index.html is deliberately larger as the landing page.
+
+   🛑 THIS FILE IS LINKED BEFORE EACH PAGE'S OWN <style>, so at equal specificity the PAGE
+      WINS. Every selector here is a bare element or a single class, so a page that wants
+      something different simply declares it. There is no !important anywhere and there must
+      never be.
+
+   WHAT IS DELIBERATELY NOT HERE, because the pages genuinely differ and merging them would
+   change how a page looks rather than removing a duplicate:
+     * `.wrap` max-width, which is 38rem on index, 40rem on picks, 44rem on the search-like
+       pages and 46rem on the table-like ones. A form wants a narrower measure than a table.
+     * `footer`, which has four different versions.
+     * The grouped `h1,h2,h3` font-family, which only four pages carry. Putting it here would
+       give h2 and h3 a serif face on five pages that do not have one today.
+   ============================================================================================ */
+
+:root{
+  color-scheme: light;
+  --bg:#fbf7f0; --card:#ffffff; --ink:#1b1512; --ink-soft:#574b43; --ink-faint:#7b6d63;
+  --line:#e2d7c9; --line-strong:#c9b9a6;
+  --accent:#a3321e; --accent-ink:#ffffff; --accent-soft:#fdeee9;
+  --ok:#1d6b45; --ok-soft:#e6f4ec;
+  --warn:#8a5200; --warn-soft:#fdf1dc;
+  --stop:#9d1c1c; --stop-soft:#fdeaea;
+  --shadow:0 1px 2px rgba(27,21,18,.07), 0 8px 24px rgba(27,21,18,.06);
+  --radius:14px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --bg:#15120f; --card:#211c18; --ink:#f7f1e8; --ink-soft:#ccbfb2; --ink-faint:#a2958a;
+    --line:#352c25; --line-strong:#4d4036;
+    --accent:#ff8f6b; --accent-ink:#2a0f06; --accent-soft:#38201a;
+    --ok:#6ddc9f; --ok-soft:#14301f;
+    --warn:#ffc266; --warn-soft:#33250c;
+    --stop:#ff8f8f; --stop-soft:#3a1616;
+    --shadow:0 1px 2px rgba(0,0,0,.5), 0 8px 24px rgba(0,0,0,.4);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --bg:#15120f; --card:#211c18; --ink:#f7f1e8; --ink-soft:#ccbfb2; --ink-faint:#a2958a;
+  --line:#352c25; --line-strong:#4d4036;
+  --accent:#ff8f6b; --accent-ink:#2a0f06; --accent-soft:#38201a;
+  --ok:#6ddc9f; --ok-soft:#14301f;
+  --warn:#ffc266; --warn-soft:#33250c;
+  --stop:#ff8f8f; --stop-soft:#3a1616;
+  --shadow:0 1px 2px rgba(0,0,0,.5), 0 8px 24px rgba(0,0,0,.4);
+}
+
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font:17px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  padding-block: 0 56px;
+  padding-left:max(18px,env(safe-area-inset-left,0px));
+  padding-right:max(18px,env(safe-area-inset-right,0px));
+}
+
+/* The eight-page consensus. index.html overrides every one of these in its own <style>, and
+   picks.html overrides h1, because neither change was made blind. */
+h1{font-size:clamp(1.8rem,6.5vw,2.4rem); line-height:1.1; letter-spacing:-.01em}
+header{padding-block:30px 6px}
+.kicker{font-size:.76rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--accent); margin-bottom:9px}
+.lede{color:var(--ink-soft); margin:10px 0 0}
+.card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
+  box-shadow:var(--shadow); padding:18px; margin-top:16px}
+.hint{color:var(--ink-faint); font-size:.9rem; margin:6px 0 0}
+
+
+/* ============================================================================================
    THE FAMILY COLOUR PALETTE - THE ONE COPY.
    Loaded by index.html, search.html and picks.html. Each page keeps its own layout CSS; only
    the colours and the rating components live here.

@@ -12,63 +12,13 @@
 <style>
 /* Same tokens as the rest of the site, so the pages read as one thing. Every token gets its
    light value on bare :root first; both dark blocks only redefine. */
-:root{
-  color-scheme: light;
-  --bg:#fbf7f0; --card:#ffffff; --ink:#1b1512; --ink-soft:#574b43; --ink-faint:#7b6d63;
-  --line:#e2d7c9; --line-strong:#c9b9a6;
-  --accent:#a3321e; --accent-ink:#ffffff; --accent-soft:#fdeee9;
-  --ok:#1d6b45; --ok-soft:#e6f4ec;
-  --warn:#8a5200; --warn-soft:#fdf1dc;
-  --stop:#9d1c1c; --stop-soft:#fdeaea;
-  --shadow:0 1px 2px rgba(27,21,18,.07), 0 8px 24px rgba(27,21,18,.06);
-  --radius:14px;
-}
-@media (prefers-color-scheme: dark){
-  :root:not([data-theme="light"]){
-    color-scheme: dark;
-    --bg:#15120f; --card:#211c18; --ink:#f7f1e8; --ink-soft:#ccbfb2; --ink-faint:#a2958a;
-    --line:#352c25; --line-strong:#4d4036;
-    --accent:#ff8f6b; --accent-ink:#2a0f06; --accent-soft:#38201a;
-    --ok:#6ddc9f; --ok-soft:#14301f;
-    --warn:#ffc266; --warn-soft:#33250c;
-    --stop:#ff8f8f; --stop-soft:#3a1616;
-    --shadow:0 1px 2px rgba(0,0,0,.5), 0 8px 24px rgba(0,0,0,.4);
-  }
-}
-:root[data-theme="dark"]{
-  color-scheme: dark;
-  --bg:#15120f; --card:#211c18; --ink:#f7f1e8; --ink-soft:#ccbfb2; --ink-faint:#a2958a;
-  --line:#352c25; --line-strong:#4d4036;
-  --accent:#ff8f6b; --accent-ink:#2a0f06; --accent-soft:#38201a;
-  --ok:#6ddc9f; --ok-soft:#14301f;
-  --warn:#ffc266; --warn-soft:#33250c;
-  --stop:#ff8f8f; --stop-soft:#3a1616;
-  --shadow:0 1px 2px rgba(0,0,0,.5), 0 8px 24px rgba(0,0,0,.4);
-}
 
-*{box-sizing:border-box}
-html{-webkit-text-size-adjust:100%}
-body{
-  margin:0; background:var(--bg); color:var(--ink);
-  font:17px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-  padding-block: 0 56px;
-  padding-left:max(18px,env(safe-area-inset-left,0px));
-  padding-right:max(18px,env(safe-area-inset-right,0px));
-}
 .wrap{max-width:46rem; margin:0 auto}
 h1,h2{font-family:Fraunces,Georgia,"Times New Roman",serif; font-weight:700;
   text-wrap:balance; margin:0}
-h1{font-size:clamp(1.8rem,6.5vw,2.4rem); line-height:1.1; letter-spacing:-.01em}
-header{padding-block:30px 6px}
-.kicker{font-size:.76rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase;
-  color:var(--accent); margin-bottom:9px}
-.lede{color:var(--ink-soft); margin:10px 0 0}
 
 
-.card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
-  box-shadow:var(--shadow); padding:18px; margin-top:16px}
 .card h2{font-size:1.1rem; margin-bottom:4px}
-.hint{color:var(--ink-faint); font-size:.9rem; margin:6px 0 0}
 .step{font-size:.72rem; font-weight:700; letter-spacing:.09em; text-transform:uppercase;
   color:var(--accent); margin:0 0 7px}
 
