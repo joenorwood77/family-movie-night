@@ -363,6 +363,69 @@ window.FM = (function () {
     return out;
   }
 
+  /* ---------- the locked order, and the trades on top of it --------------------------------
+     The season order is stored as ONE seed plus one row per trade, not as 64 rows of schedule.
+     randomizeSeason() is deterministic, so the seed rebuilds the whole order; these two
+     functions turn what is on file back into a season.
+  ------------------------------------------------------------------------------------------ */
+
+  /** Pull the live shuffle and the live trades out of what the `order` tab returned.
+   *  Undone rows are skipped. Trades keep the order they were made in, because two trades
+   *  touching the same slot do not commute. */
+  function orderState(rows) {
+    var live = (rows || []).filter(function (r) {
+      return String(r.undone || "").toLowerCase() !== "yes";
+    });
+    var shuffles = live.filter(function (r) { return String(r.kind) === "shuffle"; });
+    var trades = live.filter(function (r) { return String(r.kind) === "trade"; });
+    trades.sort(function (a, b) {
+      return String(a.timestamp || "").localeCompare(String(b.timestamp || ""));
+    });
+    return {
+      locked: shuffles.length > 0,
+      // The sheet should hold at most one live shuffle, because the server refuses a second.
+      // If somehow there are two, the LAST is used and `extra` says so rather than hiding it.
+      shuffle: shuffles.length ? shuffles[shuffles.length - 1] : null,
+      extraShuffles: Math.max(0, shuffles.length - 1),
+      trades: trades
+    };
+  }
+
+  /** Apply trades to a shuffled season.
+   *
+   *  A trade swaps the PERSON and the FILM between two slots. The slot's own number, kind and
+   *  category stay where they are, because a slot is a date and a trade changes who is up that
+   *  night, not when the night is. Taken from Joe's Season 4: he took Miriam's slot in Open
+   *  Choice 6 so his two Kill Bill films could run back to back.
+   *
+   *  Returns a NEW array; nothing is mutated. A trade naming a slot that does not exist is
+   *  reported in `skipped` rather than ignored, because a trade nobody can see applied is a
+   *  trade somebody thinks happened.
+   */
+  function applyTrades(slots, trades) {
+    var out = (slots || []).map(function (s) {
+      var c = {};
+      Object.keys(s).forEach(function (k) { c[k] = s[k]; });
+      return c;
+    });
+    var byN = {};
+    out.forEach(function (s) { byN[String(s.n)] = s; });
+
+    var applied = [], skipped = [];
+    (trades || []).forEach(function (tr) {
+      var a = byN[String(tr.slot_a)], b = byN[String(tr.slot_b)];
+      if (!a || !b || a === b) {
+        skipped.push(tr);
+        return;
+      }
+      var ap = a.person, at = a.title, ay = a.year;
+      a.person = b.person; a.title = b.title; a.year = b.year;
+      b.person = ap; b.title = at; b.year = ay;
+      applied.push(tr);
+    });
+    return { slots: out, applied: applied, skipped: skipped };
+  }
+
   function discover(params, onState) { askAction("discover", params, onState); }
 
   /** Films TMDB reckons are like this one.
@@ -1645,6 +1708,8 @@ window.FM = (function () {
       d: "Questions to read out on movie night" },
     { f: "find.html",          t: "Find a movie",
       d: "Find films by genre, year or length to suggest" },
+    { f: "randomize.html",     t: "Shuffle season",
+      d: "Deal out the season once everyone has submitted" },
     /* 🛑 THE ONE WIDE ENTRY. Joe asked for the book's real title on the button, 2026-11-16, and
        asked for the button to be long enough to hold it. 39 characters cannot share a row with
        anything, so `w` makes this one span the whole row and the 18-character cap skips it.
@@ -1794,6 +1859,6 @@ window.FM = (function () {
     tmdb: tmdb, liveSearch: liveSearch,
     GENRES: GENRES, genreName: genreName, discover: discover,
     askAction: askAction, similar: similar, person: person, credits: credits,
-    filterFilms: filterFilms
+    filterFilms: filterFilms, orderState: orderState, applyTrades: applyTrades
   };
 })();

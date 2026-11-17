@@ -1,0 +1,624 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Shuffle the Season</title>
+<meta name="description" content="Shuffle everyone's picks into a season order, lock it, and trade weeks.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap">
+<link rel="stylesheet" href="theme.css">
+<style>
+/* The palette and the base layout live in theme.css, which is linked above. This page only adds
+   what is its own. See the header of theme.css for why, and CONFIRMED.md item 156. */
+.wrap{max-width:46rem; margin:0 auto}
+
+.step{font-size:.72rem; font-weight:700; letter-spacing:.09em; text-transform:uppercase;
+  color:var(--accent); margin:0 0 4px}
+h2{font-size:1.15rem; margin:0 0 4px}
+
+select,input[type=number]{
+  width:100%; font:inherit; font-size:17px; color:var(--ink); background:var(--bg);
+  border:2px solid var(--line-strong); border-radius:11px; padding:13px 14px;
+}
+select:focus,input:focus{outline:3px solid var(--accent-soft); outline-offset:1px;
+  border-color:var(--accent)}
+.sr{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0)}
+
+.row{display:flex; gap:10px; flex-wrap:wrap; margin-top:14px}
+button{
+  flex:1 1 11rem; min-height:50px; font:inherit; font-size:1rem; font-weight:600;
+  cursor:pointer; border-radius:12px; padding:13px 16px;
+  background:var(--card); color:var(--ink); border:2px solid var(--line-strong);
+}
+button.primary{background:var(--accent); color:var(--accent-ink); border-color:var(--accent);
+  font-weight:700}
+button:hover{border-color:var(--accent)}
+button[disabled]{opacity:.5; cursor:default}
+button[disabled]:hover{border-color:var(--line-strong)}
+
+.banner{padding:13px 15px; border-radius:11px; font-size:.95rem; margin-top:14px;
+  border:1px solid currentColor}
+.banner.ok{background:var(--ok-soft); color:var(--ok)}
+.banner.warn{background:var(--warn-soft); color:var(--warn)}
+.banner.stop{background:var(--stop-soft); color:var(--stop)}
+.banner strong{display:block; margin-bottom:3px}
+
+/* Who is ready. Every person gets a line, even an empty one. */
+ul.ready{list-style:none; margin:12px 0 0; padding:0}
+ul.ready li{display:flex; gap:10px; align-items:baseline; padding:8px 0;
+  border-top:1px solid var(--line); font-size:.95rem}
+ul.ready li:first-child{border-top:0}
+ul.ready .who{flex:0 0 5.5rem; font-weight:700}
+ul.ready .what{flex:1 1 auto; color:var(--ink-soft)}
+ul.ready .yes{color:var(--ok); font-weight:700}
+ul.ready .no{color:var(--warn); font-weight:700}
+
+/* The season, one row per slot. */
+table{width:100%; border-collapse:collapse; margin-top:14px; font-size:.92rem}
+th,td{text-align:left; padding:7px 6px; border-bottom:1px solid var(--line);
+  vertical-align:top}
+th{font-size:.72rem; letter-spacing:.07em; text-transform:uppercase; color:var(--ink-faint);
+  font-weight:700}
+td.n{color:var(--ink-faint); width:2.6rem; font-variant-numeric:tabular-nums}
+td.film{font-weight:600}
+td.cat{color:var(--ink-soft); font-size:.86rem}
+tr.traded td{background:var(--accent-soft)}
+.scroll{overflow-x:auto}
+
+.seedline{font-size:.84rem; color:var(--ink-faint); margin-top:12px;
+  font-variant-numeric:tabular-nums}
+.rot{font-weight:700; color:var(--ink)}
+
+footer{margin-top:28px; color:var(--ink-faint); font-size:.82rem; text-align:center}
+footer a{color:var(--accent)}
+@media (max-width:420px){ .card{padding:15px} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="kicker">Family Movie Night</div>
+  <h1>Shuffle the season</h1>
+  <p class="lede">Once everyone has submitted, this shuffles the four of you into a fresh
+    rotation and deals out every film. Then it gets locked, and after that you can trade
+    weeks.</p>
+  <nav class="fm-nav" id="topnav"></nav>
+</header>
+
+<div id="top"></div>
+
+<main>
+
+  <div class="card">
+    <p class="step">Step 1</p>
+    <h2>Who is this?</h2>
+    <label class="sr" for="person">Your name</label>
+    <select id="person"></select>
+    <p class="hint">So the record says who shuffled or traded. It remembers you next time.</p>
+  </div>
+
+  <div class="card">
+    <p class="step">Step 2</p>
+    <h2>Is everyone ready?</h2>
+    <p class="hint" id="readyhint">Checking what has been submitted...</p>
+    <ul class="ready" id="ready"></ul>
+  </div>
+
+  <div class="card" id="c-shuffle">
+    <p class="step">Step 3</p>
+    <h2>Shuffle</h2>
+    <p class="hint">The new rotation is never the same as last season's. Each person's two
+      categories are dealt at random between the first and second half, and everyone's eight
+      free picks are spread across the eight free rounds.</p>
+    <div class="row">
+      <button type="button" class="primary" id="shuffle">Shuffle</button>
+      <button type="button" id="reshuffle" hidden>Shuffle again</button>
+    </div>
+    <div id="shufnote"></div>
+  </div>
+
+  <div class="card" id="c-lock" hidden>
+    <p class="step">Step 4</p>
+    <h2>Lock it in</h2>
+    <p class="hint">Locking saves this order for everyone. Only the shuffle number is stored,
+      which is enough to rebuild the whole season exactly. Shuffling again before you lock
+      costs nothing.</p>
+    <div class="row">
+      <button type="button" class="primary" id="lock">Lock this order in</button>
+    </div>
+    <div id="locknote"></div>
+  </div>
+
+  <div class="card" id="c-trade" hidden>
+    <p class="step">Step 5</p>
+    <h2>Trade weeks</h2>
+    <p class="hint">Swap who is up on two nights. Joe did this in Season 4 so his two Kill Bill
+      films could run back to back. The person and the film move; the dates do not.</p>
+    <div class="row">
+      <div style="flex:1 1 9rem">
+        <label class="sr" for="t-a">First week</label>
+        <select id="t-a"></select>
+      </div>
+      <div style="flex:1 1 9rem">
+        <label class="sr" for="t-b">Second week</label>
+        <select id="t-b"></select>
+      </div>
+    </div>
+    <div class="row">
+      <button type="button" class="primary" id="trade">Swap these two</button>
+    </div>
+    <div id="tradenote"></div>
+  </div>
+
+  <div class="card" id="c-season" hidden>
+    <h2 id="season-h">The season</h2>
+    <p class="seedline" id="seedline"></p>
+    <div class="scroll">
+      <table id="season">
+        <thead><tr><th>#</th><th>Who</th><th>Film</th><th>Round</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card" id="c-log" hidden>
+    <h2>What has been changed</h2>
+    <ul class="ready" id="log"></ul>
+  </div>
+
+</main>
+
+<div class="fm-hub" id="hub"></div>
+
+<footer>
+  <p id="foot"></p>
+  <p>Film data and posters from <a href="https://www.themoviedb.org/" target="_blank"
+     rel="noopener">TMDB</a>. This site uses the TMDB API but is not endorsed or certified by TMDB.</p>
+</footer>
+
+</div>
+
+<script src="config.js"></script>
+<script src="themes.js"></script>
+<script src="movies.js"></script>
+<script src="aliases.js"></script>
+<script src="awards.js"></script>
+<script src="extras.js"></script>
+<script src="thousand.js"></script>
+<script src="lib.js"></script>
+<script>
+/* =================================================================================================
+   SHUFFLE THE SEASON
+
+   The spec is CONFIRMED.md item 147, taken from Joe's own Season 4 schedule, and item 149 for
+   trades. The ENGINE is FM.randomizeSeason in lib.js and is not reimplemented here; this page
+   only gathers what it needs, shows what it produced, and saves the one number that rebuilds it.
+
+   🛑 WHAT IS SAVED IS THE SEED, NOT 64 ROWS. FM.randomizeSeason is deterministic, so one number
+      plus the picks reproduces the whole order, and it can be checked later. The honest limit is
+      that it reproduces the order only while the PICKS are unchanged, which is exactly why the
+      server allows one lock per season and makes a second one a deliberate undo.
+
+   🛑 NO ACCOUNTS, SO NO LOCKS ON PEOPLE. Anyone can shuffle before the season is locked, and the
+      server records who did it. That is the same trade the whole site makes: four family members
+      and no sign-in. What the server DOES refuse is a second lock over a live one.
+================================================================================================= */
+(function () {
+"use strict";
+
+var $ = FM.$, el = FM.el;
+var CFG = window.FM_CONFIG || {};
+var SEASON = CFG.season || "Season 5";
+var LS = "fm-randomize-v1";
+
+var state = {
+  person: "",
+  themes: null,        // person -> [two categories]
+  catFilms: null,      // category -> person -> {title, year}
+  openFilms: null,     // person -> [eight films]
+  orderRows: [],       // what the sheet holds
+  shuffle: null,       // the result on screen, locked or not
+  prevOrder: null,     // last season's rotation. 🛑 randomizeSeason() does NOT return this,
+                       //    so it is kept here; reading it off the result would store blank.
+  busy: false
+};
+
+function banner(kind, strong, rest) {
+  var b = el("div", "banner " + kind);
+  if (strong) b.appendChild(el("strong", null, strong));
+  if (rest) b.appendChild(document.createTextNode(rest));
+  return b;
+}
+
+function say(where, kind, strong, rest) {
+  var box = $(where);
+  box.textContent = "";
+  box.appendChild(banner(kind, strong, rest));
+}
+
+/* ---------- who you are ---------------------------------------------------------------------- */
+
+(function people() {
+  var sel = $("person");
+  sel.appendChild(el("option", null, "Choose your name"));
+  FM.PEOPLE.forEach(function (p) {
+    var o = el("option", null, p);
+    o.value = p;
+    sel.appendChild(o);
+  });
+  try {
+    var saved = localStorage.getItem(LS);
+    if (saved && FM.PEOPLE.indexOf(saved) > -1) { sel.value = saved; state.person = saved; }
+  } catch (e) {}
+  sel.addEventListener("change", function () {
+    state.person = this.value;
+    try { localStorage.setItem(LS, state.person); } catch (e) {}
+    paint();
+  });
+})();
+
+/* ---------- reading what has been submitted ------------------------------------------------- */
+
+/** Turn the picks and themes rows into the shape FM.randomizeSeason wants.
+ *  🛑 It builds nothing it cannot see. A missing film stays missing, and the engine refuses and
+ *     names it, rather than this page inventing a placeholder. */
+function assemble(themeRows, pickRows, categories) {
+  var themes = {}, catFilms = {}, openFilms = {};
+  FM.PEOPLE.forEach(function (p) { themes[p] = []; openFilms[p] = []; });
+
+  (themeRows || []).forEach(function (r) {
+    if (String(r.kind) === "backup") return;          // backups are not dealt
+    var p = String(r.person || "");
+    if (themes[p] && r.theme) themes[p].push(String(r.theme));
+  });
+
+  (categories || []).forEach(function (c) { catFilms[c] = {}; });
+
+  (pickRows || []).forEach(function (r) {
+    var p = String(r.person || "");
+    var kind = String(r.pick_type || "");
+    var film = { title: String(r.title || ""), year: String(r.year || "") };
+    if (!film.title) return;
+    if (kind === "Dealer's Choice") {
+      var th = String(r.theme || "");
+      if (!catFilms[th]) catFilms[th] = {};
+      catFilms[th][p] = film;
+    } else if (kind === "Open Choice") {
+      if (openFilms[p]) openFilms[p].push(film);
+    }
+    // Birthday picks are deliberately ignored: item 147 says birthday weeks are reserved
+    // separately and are not part of the 64 dealt slots.
+  });
+
+  return { themes: themes, catFilms: catFilms, openFilms: openFilms };
+}
+
+function drawReady() {
+  var ul = $("ready");
+  ul.textContent = "";
+  if (!state.themes) {
+    $("readyhint").textContent = "Could not read what has been submitted.";
+    return;
+  }
+  $("readyhint").textContent = "Everyone needs two categories and eight free picks. "
+    + "Birthday films are separate and are not dealt here.";
+
+  // Every person gets a line, even an empty one. That is a standing rule on this site.
+  FM.PEOPLE.forEach(function (p) {
+    var t = (state.themes[p] || []).length;
+    var o = (state.openFilms[p] || []).length;
+    var done = (t === 2 && o === 8);
+    var li = el("li");
+    li.appendChild(el("span", "who fm-p-" + p, p));
+    li.appendChild(el("span", "what",
+      t + " of 2 categories, " + o + " of 8 free picks"));
+    li.appendChild(el("span", done ? "yes" : "no", done ? "ready" : "waiting"));
+    ul.appendChild(li);
+  });
+}
+
+/* ---------- the season table ----------------------------------------------------------------- */
+
+function drawSeason(result, tradedSlots) {
+  $("c-season").hidden = false;
+  var body = $("season").getElementsByTagName("tbody")[0];
+  body.textContent = "";
+
+  result.slots.forEach(function (s) {
+    var tr = el("tr");
+    if (tradedSlots[String(s.n)]) tr.className = "traded";
+    tr.appendChild(el("td", "n", String(s.n)));
+    tr.appendChild(el("td", "fm-p-" + s.person, s.person));
+    var f = el("td", "film", s.title + (s.year ? " (" + s.year + ")" : ""));
+    tr.appendChild(f);
+    tr.appendChild(el("td", "cat",
+      s.kind === "Open Choice" ? "Free pick " + s.run
+                               : s.theme + "  (" + s.owner + "'s)"));
+    body.appendChild(tr);
+  });
+
+  var line = $("seedline");
+  line.textContent = "";
+  line.appendChild(el("span", "rot", result.rotation.join("  →  ")));
+  line.appendChild(document.createTextNode(
+    "   ·   " + result.counts.total + " films   ·   shuffle number "
+    + result.seed));
+}
+
+function fillTradePickers(result) {
+  [["t-a", "First week"], ["t-b", "Second week"]].forEach(function (pair) {
+    var sel = $(pair[0]);
+    sel.textContent = "";
+    var head = el("option", null, pair[1]);
+    head.value = "";
+    sel.appendChild(head);
+    result.slots.forEach(function (s) {
+      var o = el("option", null, "#" + s.n + "  " + s.person + "  ·  " + s.title);
+      o.value = String(s.n);
+      sel.appendChild(o);
+    });
+  });
+}
+
+function drawLog() {
+  var st = FM.orderState(state.orderRows);
+  var all = (state.orderRows || []);
+  if (!all.length) { $("c-log").hidden = true; return; }
+  $("c-log").hidden = false;
+  var ul = $("log");
+  ul.textContent = "";
+  all.slice().sort(function (a, b) {
+    return String(b.timestamp || "").localeCompare(String(a.timestamp || ""));
+  }).forEach(function (r) {
+    var li = el("li");
+    var undone = String(r.undone || "").toLowerCase() === "yes";
+    li.appendChild(el("span", "who", String(r.person || "")));
+    var what = String(r.kind) === "shuffle"
+      ? "shuffled the season (number " + r.seed + ")"
+      : "swapped week " + r.slot_a + " with week " + r.slot_b;
+    li.appendChild(el("span", "what", what
+      + (r.timestamp ? "  ·  " + new Date(r.timestamp).toLocaleString() : "")));
+    li.appendChild(el("span", undone ? "no" : "yes", undone ? "undone" : "in force"));
+    ul.appendChild(li);
+  });
+  if (st.extraShuffles) {
+    ul.appendChild(el("li", "what",
+      "Note: there are " + (st.extraShuffles + 1) + " live shuffles on file, which should not "
+      + "happen. The most recent one is being used."));
+  }
+}
+
+/* ---------- putting it together -------------------------------------------------------------- */
+
+function rebuildFromSheet() {
+  var st = FM.orderState(state.orderRows);
+  if (!st.locked) {
+    $("c-lock").hidden = !state.shuffle;
+    $("c-trade").hidden = true;
+    return false;
+  }
+  // The season is locked: rebuild it from the stored seed and replay the trades.
+  var parts = assembleOrRefuse();
+  if (!parts) return true;
+  var res = FM.randomizeSeason({
+    people: FM.PEOPLE, themes: parts.themes, categoryFilms: parts.catFilms,
+    openFilms: parts.openFilms, seed: Number(st.shuffle.seed),
+    prevOrder: st.shuffle.prev_order ? st.shuffle.prev_order.split(",") : null
+  });
+  if (!res.ok) {
+    say("top", "warn", "This season is locked, but it cannot be rebuilt.",
+      " " + res.error + " The order on file is still there; the picks behind it have changed "
+      + "since it was locked.");
+    return true;
+  }
+  var applied = FM.applyTrades(res.slots, st.trades);
+  var tradedSlots = {};
+  applied.applied.forEach(function (tr) {
+    tradedSlots[String(tr.slot_a)] = 1;
+    tradedSlots[String(tr.slot_b)] = 1;
+  });
+  state.shuffle = res;
+  drawSeason({ slots: applied.slots, rotation: res.rotation, counts: res.counts,
+               seed: res.seed }, tradedSlots);
+  fillTradePickers({ slots: applied.slots });
+  $("season-h").textContent = "The season, locked in";
+  $("c-shuffle").hidden = true;
+  $("c-lock").hidden = true;
+  $("c-trade").hidden = false;
+  say("top", "ok", "This season is locked.",
+    " Everyone sees this same order. You can still trade weeks below, and every change is "
+    + "recorded.");
+  if (applied.skipped.length) {
+    $("tradenote").appendChild(banner("warn", "Some trades could not be applied.",
+      " " + applied.skipped.length + " of them name a week this season does not have, which "
+      + "happens if the picks changed after the order was locked."));
+  }
+  return true;
+}
+
+function assembleOrRefuse() {
+  if (!state.themes) return null;
+  return { themes: state.themes, catFilms: state.catFilms, openFilms: state.openFilms };
+}
+
+function paint() {
+  drawReady();
+  var ready = state.themes && FM.PEOPLE.every(function (p) {
+    return (state.themes[p] || []).length === 2 && (state.openFilms[p] || []).length === 8;
+  });
+  $("shuffle").disabled = !ready || !state.person || state.busy;
+  $("lock").disabled = !state.shuffle || !state.person || state.busy;
+  $("trade").disabled = !state.person || state.busy;
+  if (!state.person) {
+    $("shufnote").textContent = "";
+    $("shufnote").appendChild(el("p", "hint", "Choose your name first."));
+  }
+  drawLog();
+}
+
+/* ---------- the server ----------------------------------------------------------------------- */
+
+function load() {
+  if (!CFG.endpoint) {
+    say("top", "warn", "This page is not switched on yet.",
+      " It needs Joe's service, which is not connected.");
+    return;
+  }
+  var q = "&season=" + encodeURIComponent(SEASON);
+  Promise.all([
+    fetch(CFG.endpoint + "?action=themes" + q).then(function (r) { return r.json(); }),
+    fetch(CFG.endpoint + "?action=picks" + q).then(function (r) { return r.json(); }),
+    fetch(CFG.endpoint + "?action=order" + q).then(function (r) { return r.json(); })
+  ]).then(function (res) {
+    var th = res[0], pk = res[1], od = res[2];
+
+    if (od && !od.ok && String(od.error || "").indexOf("Unknown action") > -1) {
+      say("top", "warn", "Saving an order is not switched on yet.",
+        " Joe has one setup step left. You can still shuffle and look at the result; it just "
+        + "cannot be locked in for everyone.");
+    } else if (od && od.ok) {
+      state.orderRows = od.rows || [];
+    }
+
+    // 🛑 Categories stay hidden until all four have submitted, by design. Until then this page
+    //    cannot know who owns which, and says so rather than guessing.
+    if (th && th.ok && !th.revealed) {
+      say("top", "warn", "Not everyone has submitted their categories yet.",
+        " They stay hidden until all four are in, so nobody is influenced. Come back once the "
+        + "last person has submitted.");
+    }
+
+    var parts = assemble(th && th.rows, pk && pk.rows, pk && pk.categories);
+    state.themes = parts.themes;
+    state.catFilms = parts.catFilms;
+    state.openFilms = parts.openFilms;
+
+    if (!rebuildFromSheet()) paint(); else paint();
+  }).catch(function () {
+    say("top", "stop", "Could not read what has been submitted.",
+      " Please check your signal and reload.");
+  });
+}
+
+function send(payload, okText, noteBox) {
+  state.busy = true;
+  paint();
+  fetch(CFG.endpoint, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify(payload),
+    redirect: "follow"
+  })
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      state.busy = false;
+      if (!d || !d.ok) {
+        var err = String((d && d.error) || "");
+        if (err.indexOf("Unknown kind") > -1) {
+          say(noteBox, "warn", "This is not switched on yet.",
+            " Joe has one setup step left. Nothing was saved, and trying again will not help.");
+        } else {
+          // A refusal the server made on purpose is not a breakage. Show its own words.
+          say(noteBox, "warn", "That was not accepted.",
+            " " + (err || "Nothing was saved."));
+        }
+        paint();
+        return;
+      }
+      state.orderRows = d.rows || state.orderRows;
+      say(noteBox, "ok", "Done.", " " + okText);
+      rebuildFromSheet();
+      paint();
+    })
+    .catch(function () {
+      state.busy = false;
+      say(noteBox, "stop", "That did not send.",
+        " Please check your signal and try again. Nothing was saved.");
+      paint();
+    });
+}
+
+/* ---------- the buttons ---------------------------------------------------------------------- */
+
+function doShuffle() {
+  var parts = assembleOrRefuse();
+  if (!parts) return;
+  // The previous season's rotation, so the new one is never identical. Read off the films we
+  // already hold for the season before this one.
+  var prev = null;
+  var prevSeason = String(parseInt(SEASON.replace(/[^0-9]/g, ""), 10) - 1);
+  var seen = [];
+  FM.MOVIES.forEach(function (m) {
+    if (String(m.s) !== prevSeason || !m.p) return;
+    if (seen.indexOf(m.p) === -1 && seen.length < 4) seen.push(m.p);
+  });
+  if (seen.length === 4) prev = seen;
+  state.prevOrder = prev;
+
+  var res = FM.randomizeSeason({
+    people: FM.PEOPLE, themes: parts.themes, categoryFilms: parts.catFilms,
+    openFilms: parts.openFilms, prevOrder: prev
+  });
+  if (!res.ok) {
+    // The engine names exactly what is missing. Its words, not ours.
+    say("shufnote", "warn", "Not ready to shuffle.", " " + res.error);
+    return;
+  }
+  state.shuffle = res;
+  drawSeason(res, {});
+  fillTradePickers(res);
+  $("season-h").textContent = "The season, not locked in yet";
+  $("reshuffle").hidden = false;
+  $("c-lock").hidden = false;
+  say("shufnote", "ok", "Shuffled.",
+    prev ? " The rotation is different from last season's, which was " + prev.join(", ") + "."
+         : " Last season's rotation could not be read, so this one was not checked against it.");
+  paint();
+}
+
+$("shuffle").addEventListener("click", doShuffle);
+$("reshuffle").addEventListener("click", doShuffle);
+
+$("lock").addEventListener("click", function () {
+  if (!state.shuffle || !state.person) return;
+  send({
+    kind: "order", act: "shuffle", season: SEASON, person: state.person,
+    seed: String(state.shuffle.seed),
+    prev_order: (state.prevOrder || []).join(",")
+  }, "This order is now locked in for everyone.", "locknote");
+});
+
+$("trade").addEventListener("click", function () {
+  var a = $("t-a").value, b = $("t-b").value;
+  if (!a || !b) {
+    say("tradenote", "warn", "Pick two weeks.", " Choose a week in each list.");
+    return;
+  }
+  if (a === b) {
+    say("tradenote", "warn", "Those are the same week.", " Pick two different ones.");
+    return;
+  }
+  send({ kind: "order", act: "trade", season: SEASON, person: state.person,
+         slot_a: a, slot_b: b },
+    "Week " + a + " and week " + b + " have been swapped.", "tradenote");
+});
+
+$("foot").textContent = "Only the shuffle number is saved, which is enough to rebuild this "
+  + "whole order. Every change is recorded with who made it, and nothing is ever deleted.";
+
+paint();
+load();
+
+})();
+</script>
+<script>
+/* The site's own navigation. The one copy of the destination list lives in lib.js,
+   so a page can never go missing from one menu while appearing in another. */
+FM.topnav("topnav", "randomize.html");
+FM.hub("hub", "randomize.html");
+</script>
+</body>
+</html>
