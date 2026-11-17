@@ -302,6 +302,67 @@ window.FM = (function () {
       .catch(function () { onState("error", {}); });
   }
 
+  /** Narrow and order a list of films in the browser.
+   *
+   *  Used when the films did NOT come from a filtered query: a person's whole filmography
+   *  arrives in one call, so the genre, year and quality filters have to be applied here.
+   *
+   *  opts: { genres: [ids], mode: "and"|"or", y1, y2, minvotes, sort }
+   *  Every one is optional. Nothing is mutated; a new array comes back.
+   *
+   *  🛑 A FILM WITH NO FOUR-DIGIT YEAR IS DROPPED FIRST, ALWAYS. TMDB lists announced projects
+   *     in a filmography with no release date at all: 9 of Scorsese's 65 directed credits on
+   *     2026-11-17 were things like "Untitled Grateful Dead Film". Offering the family a film
+   *     that does not exist is worse than a shorter list.
+   *
+   *  ⚠ There is deliberately NO runtime filter here. A filmography credit carries no running
+   *    time, so one could only ever be faked. The page says so instead.
+   */
+  function filterFilms(rows, opts) {
+    opts = opts || {};
+    var out = (rows || []).filter(function (r) {
+      return String(r && r.y || "").length === 4;
+    });
+
+    var want = opts.genres || [];
+    if (want.length) {
+      var anyOf = opts.mode === "or";
+      out = out.filter(function (r) {
+        var has = r.genres || [];
+        if (anyOf) {
+          return want.some(function (g) { return has.indexOf(g) > -1; });
+        }
+        return want.every(function (g) { return has.indexOf(g) > -1; });
+      });
+    }
+
+    if (opts.y1) {
+      out = out.filter(function (r) { return parseInt(r.y, 10) >= Number(opts.y1); });
+    }
+    if (opts.y2) {
+      out = out.filter(function (r) { return parseInt(r.y, 10) <= Number(opts.y2); });
+    }
+
+    var floor = Number(opts.minvotes || 0);
+    if (floor > 0) {
+      out = out.filter(function (r) { return (r.votes || 0) >= floor; });
+    }
+
+    var sort = opts.sort || "popularity.desc";
+    out.sort(function (a, b) {
+      if (sort === "vote_average.desc") return (b.score || 0) - (a.score || 0);
+      if (sort === "vote_count.desc") return (b.votes || 0) - (a.votes || 0);
+      if (sort === "primary_release_date.desc") return String(b.y).localeCompare(String(a.y));
+      if (sort === "primary_release_date.asc") return String(a.y).localeCompare(String(b.y));
+      if (sort === "title.asc") return String(a.t || "").localeCompare(String(b.t || ""));
+      if (sort === "title.desc") return String(b.t || "").localeCompare(String(a.t || ""));
+      // popularity and revenue are not on a filmography credit, so the only honest fallback
+      // is how many people have rated it.
+      return (b.votes || 0) - (a.votes || 0);
+    });
+    return out;
+  }
+
   function discover(params, onState) { askAction("discover", params, onState); }
 
   /** Films TMDB reckons are like this one.
@@ -1732,6 +1793,7 @@ window.FM = (function () {
     PEOPLE: PEOPLE, ratings: ratings, careerStats: careerStats,
     tmdb: tmdb, liveSearch: liveSearch,
     GENRES: GENRES, genreName: genreName, discover: discover,
-    askAction: askAction, similar: similar, person: person, credits: credits
+    askAction: askAction, similar: similar, person: person, credits: credits,
+    filterFilms: filterFilms
   };
 })();

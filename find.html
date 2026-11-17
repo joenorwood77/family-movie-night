@@ -182,6 +182,27 @@ ul.pick-hits button:focus-visible{outline:3px solid var(--accent); outline-offse
 ul.pick-hits .pt{font-weight:700; font-family:Fraunces,Georgia,serif}
 ul.pick-hits .py{color:var(--ink-faint); font-weight:400; font-size:.92rem}
 
+/* The person somebody chose, with the one real choice about them: acted, or directed. */
+.whochip{margin-top:14px; padding:13px; border-radius:12px; background:var(--accent-soft);
+  border:2px solid var(--accent)}
+.whochip .top{display:flex; gap:11px; align-items:center}
+.whochip .nm{flex:1 1 auto; min-width:0}
+.whochip .nm b{display:block; font-family:Fraunces,Georgia,serif; font-size:1.05rem;
+  color:var(--ink)}
+.whochip .nm span{color:var(--ink-soft); font-size:.85rem}
+.whochip .role{display:flex; gap:8px; margin-top:11px}
+.whochip .role button{
+  flex:1 1 8rem; min-height:44px; font:inherit; font-size:.94rem; font-weight:600;
+  cursor:pointer; border-radius:10px; padding:10px;
+  background:var(--card); color:var(--ink); border:2px solid var(--line-strong);
+}
+.whochip .role button[aria-pressed="true"]{background:var(--accent); color:var(--accent-ink);
+  border-color:var(--accent)}
+.whochip .drop{flex:0 0 auto; min-height:44px; padding:9px 13px; font:inherit;
+  font-weight:600; cursor:pointer; border-radius:10px; background:var(--card);
+  color:var(--ink); border:2px solid var(--line-strong)}
+.whochip .warn{color:var(--ink-soft); font-size:.84rem; margin:10px 0 0}
+
 .more{margin-top:16px}
 .more button{width:100%; min-height:50px; font:inherit; font-size:1rem; font-weight:600;
   cursor:pointer; border-radius:12px; padding:13px;
@@ -229,6 +250,14 @@ footer a{color:var(--accent)}
           <button type="button" id="c-or" aria-pressed="false">Any one of them</button>
         </div>
       </div>
+    </div>
+
+    <div style="margin-top:16px; padding-top:14px; border-top:1px solid var(--line)">
+      <label for="pq">Actor or director</label>
+      <input type="search" id="pq" placeholder="Type a name" autocomplete="off">
+      <div id="p-note"></div>
+      <ul class="pick-hits" id="phits"></ul>
+      <div id="pchosen"></div>
     </div>
 
     <div class="filters">
@@ -366,6 +395,10 @@ var KNOWN_DEFAULT = "50";
 var state = {
   view: "filter",       // "filter" = by genre and year, "like" = films like one I love
   likeFilm: null,       // the film chosen in the like-this mode: { id, t, y }
+  person: null,         // { id, name, dept } chosen in the filter mode
+  role: "directed",     // "directed" or "acted". TMDB's own job label decides which list.
+  credits: null,        // their whole filmography, fetched once and filtered here
+  localRows: [],         // the filtered, sorted list the local pager walks
   genres: [],           // ids, in the order they were chosen
   mode: "and",          // "and" -> comma, "or" -> pipe. TMDB's own behaviour.
   page: 1,
@@ -820,6 +853,243 @@ function likeSearch(append) {
   });
 }
 
+
+/* ---------- actors and directors ------------------------------------------------------------
+   🛑 A PERSON IS NOT ANOTHER DISCOVER PARAMETER. TMDB's crew filter is "any crew role" and
+      cannot be narrowed to the director, so using it would show films somebody produced or
+      wrote as films they DIRECTED. Instead we ask for their filmography, which labels every
+      credit with its real job, and filter it here.
+-------------------------------------------------------------------------------------------- */
+
+function drawPersonHits(st, d) {
+  var box = $("phits"), note = $("p-note");
+  box.textContent = "";
+  note.textContent = "";
+
+  if (st === "off") {
+    note.appendChild(banner("warn", "Looking people up is not switched on yet.",
+      " Joe has one setup step left."));
+    return;
+  }
+  if (st === "refused") {
+    note.appendChild(banner("warn", "That name was not accepted.",
+      " " + (d.error || "No reason was given.")));
+    return;
+  }
+  if (st === "error") {
+    note.appendChild(banner("stop", "That lookup did not go through.",
+      " Please check your signal and try again."));
+    return;
+  }
+  if (st === "searching") { note.appendChild(el("p", "hint", "Looking...")); return; }
+
+  var people = (d && d.results) || [];
+  if (!people.length) {
+    note.appendChild(el("p", "hint", "Nobody found by that name."));
+    return;
+  }
+
+  people.slice(0, 6).forEach(function (p) {
+    var li = el("li");
+    var b = el("button");
+    b.type = "button";
+    // The one shared poster component also draws a person, given a path.
+    b.appendChild(FM.poster({ poster: p.photo }, "sm"));
+    var who = el("span");
+    who.appendChild(el("span", "pt", p.name));
+    // 🛑 The known titles are the whole point: "Chris Evans" is two different actors, and only
+    //    the films tell them apart at a glance.
+    var sub = (p.known || []).join(", ");
+    who.appendChild(el("span", "py", "  " + (p.dept || "") + (sub ? "  \u00b7  " + sub : "")));
+    b.appendChild(who);
+    b.addEventListener("click", function () { choosePerson(p); });
+    li.appendChild(b);
+    box.appendChild(li);
+  });
+}
+
+function choosePerson(p) {
+  state.person = { id: p.id, name: p.name, dept: p.dept || "" };
+  // Someone known for directing probably wants their directed films; an actor, their acting.
+  state.role = (p.dept === "Directing") ? "directed" : "acted";
+  state.credits = null;
+  $("phits").textContent = "";
+  $("p-note").textContent = "";
+  $("pq").value = "";
+  drawPersonChip();
+  clearResults();
+}
+
+function setRole(r) {
+  state.role = r;
+  drawPersonChip();
+}
+
+function drawPersonChip() {
+  var box = $("pchosen");
+  box.textContent = "";
+  if (!state.person) return;
+
+  var wrap = el("div", "whochip");
+  var top = el("div", "top");
+  var nm = el("div", "nm");
+  nm.appendChild(el("b", null, state.person.name));
+  nm.appendChild(el("span", null, state.person.dept
+    ? "Known for " + state.person.dept.toLowerCase() : "Chosen"));
+  top.appendChild(nm);
+  var drop = el("button", "drop", "Remove");
+  drop.type = "button";
+  drop.addEventListener("click", function () {
+    state.person = null; state.credits = null;
+    box.textContent = "";
+    clearResults();
+  });
+  top.appendChild(drop);
+  wrap.appendChild(top);
+
+  var role = el("div", "role");
+  [["directed", "Films they directed"], ["acted", "Films they acted in"]].forEach(function (pair) {
+    var b = el("button", null, pair[1]);
+    b.type = "button";
+    b.setAttribute("aria-pressed", state.role === pair[0] ? "true" : "false");
+    b.addEventListener("click", function () { setRole(pair[0]); });
+    role.appendChild(b);
+  });
+  wrap.appendChild(role);
+
+  // 🛑 Said out loud, because a filter that silently does nothing is a wrong answer. A
+  //    filmography credit carries no runtime, so the length limit cannot apply here.
+  wrap.appendChild(el("p", "warn",
+    "With a person chosen, the genre, years, how-well-known and order all still apply. "
+    + "The length limit does not, because TMDB does not give a running time on a person's "
+    + "filmography. Films with no release date are left out, since they are not made yet."));
+
+  box.appendChild(wrap);
+}
+
+/** The panel's other filters, applied to a filmography.
+ *  🛑 The logic itself lives in lib.js as FM.filterFilms, so it can be run by a test. This is
+ *     only the translation from this page's controls into its arguments. */
+function filterCredits(rows, q) {
+  return FM.filterFilms(rows, {
+    genres: state.genres,
+    mode: state.mode,
+    y1: q.y1,
+    y2: q.y2,
+    minvotes: q.minvotes,
+    sort: q.sort
+  });
+}
+
+var LOCAL_PAGE = 20;
+
+function paintLocal(append) {
+  if (!append) { $("hits").textContent = ""; state.shown = 0; }
+  var slice = state.localRows.slice(state.shown, state.shown + LOCAL_PAGE);
+  var frag = document.createDocumentFragment();
+  slice.forEach(function (r) { frag.appendChild(row(r)); });
+  $("hits").appendChild(frag);
+  state.shown += slice.length;
+  state.total = state.localRows.length;
+  $("count").textContent = "Showing " + state.shown + " of " + state.total
+    + (state.role === "directed" ? " films they directed." : " films they acted in.");
+  $("more").hidden = state.shown >= state.total;
+}
+
+function personSearch(append) {
+  if (state.busy || !state.person) return;
+
+  var read = readForm();
+  if (read.bad) {
+    $("note").textContent = "";
+    $("note").appendChild(banner("warn", "Check that again.", " " + read.bad));
+    return;
+  }
+  var q = read.q;
+
+  // Already have their filmography? Then nothing needs fetching; only the filters changed.
+  if (state.credits) {
+    if (!append) {
+      state.localRows = filterCredits(state.credits[state.role] || [], q);
+      $("note").textContent = "";
+      $("resultcard").hidden = false;
+      if (!state.localRows.length) { nothingForPerson(q); return; }
+      noteLocal(q);
+    }
+    paintLocal(append);
+    return;
+  }
+
+  state.busy = true;
+  $("go").disabled = true;
+  $("go").textContent = "Looking...";
+  $("resultcard").hidden = false;
+  $("note").textContent = "";
+  $("note").appendChild(el("p", "hint", "Fetching their films..."));
+
+  FM.credits(state.person.id, function (st, d) {
+    if (st === "searching") return;
+    state.busy = false;
+    $("go").disabled = false;
+    $("go").textContent = "Find films";
+    $("note").textContent = "";
+
+    if (st === "off") {
+      $("note").appendChild(banner("warn", "Looking people up is not switched on yet.",
+        " Joe has one setup step left."));
+      return;
+    }
+    if (st === "refused") {
+      $("note").appendChild(banner("warn", "That was not accepted.",
+        " " + (d.error || "No reason was given.")));
+      return;
+    }
+    if (st === "error") {
+      $("note").appendChild(banner("stop", "That did not go through.",
+        " Please check your signal and try again."));
+      return;
+    }
+
+    state.credits = { acted: d.acted || [], directed: d.directed || [] };
+    state.localRows = filterCredits(state.credits[state.role] || [], q);
+    if (!state.localRows.length) { nothingForPerson(q); return; }
+    noteLocal(q);
+    paintLocal(false);
+  });
+}
+
+/** Say what was filtered where. The family asked the server for some of this and got the rest
+ *  done in the page, and the honest thing is to not pretend it was one query. */
+function noteLocal(q) {
+  var bits = [];
+  if (state.genres.length) bits.push("genre");
+  if (q.y1 || q.y2) bits.push("years");
+  if (q.minvotes && Number(q.minvotes) > 0) bits.push("how well known");
+  var msg = "These are the films TMDB credits "
+    + (state.role === "directed" ? "to " : "")
+    + state.person.name + (state.role === "directed" ? " as director" : " as a cast member")
+    + ".";
+  if (bits.length) msg += " Narrowed here by " + bits.join(", ") + ".";
+  if (q.maxrt) {
+    msg += " The length limit was NOT applied, because TMDB gives no running time on a "
+         + "filmography.";
+  }
+  $("note").appendChild(banner("ok", "", msg));
+}
+
+function nothingForPerson(q) {
+  var tried = [];
+  if (state.genres.length) tried.push("the genre");
+  if (q.y1 || q.y2) tried.push("the years");
+  if (q.minvotes === "1000") tried.push("limiting it to famous films");
+  var msg = "TMDB credits no films to " + state.person.name
+    + (state.role === "directed" ? " as director" : " as a cast member")
+    + (tried.length ? " that also match " + tried.join(" and ") + "." : ".");
+  if (tried.length) msg += " Try removing one of those, or switch between directed and acted.";
+  $("note").textContent = "";
+  $("note").appendChild(banner("warn", "Nothing found.", " " + msg));
+}
+
 /* ---------- wiring --------------------------------------------------------------------------- */
 
 fillSelect("f-rt", RUNTIMES);
@@ -840,11 +1110,17 @@ $("f-genre").addEventListener("change", function () {
 $("c-and").addEventListener("click", function () { setMode("and"); });
 $("c-or").addEventListener("click", function () { setMode("or"); });
 
-$("go").addEventListener("click", function () { search(false); });
+// A person chosen in the filter panel changes WHICH query answers it, because a filmography
+// and a discover search are two different things. See the note above personSearch().
+$("go").addEventListener("click", function () {
+  if (state.person) personSearch(false); else search(false);
+});
 
 // Show more belongs to whichever question is on screen.
 $("moreBtn").addEventListener("click", function () {
-  if (state.view === "like") likeSearch(true); else search(true);
+  if (state.view === "like") { likeSearch(true); return; }
+  if (state.person) { paintLocal(true); return; }
+  search(true);
 });
 
 Array.prototype.forEach.call($("views").getElementsByTagName("button"), function (b) {
@@ -854,7 +1130,28 @@ Array.prototype.forEach.call($("views").getElementsByTagName("button"), function
 // The film picker reuses the debounced title search that has run the picks page for weeks.
 FM.liveSearch($("lq"), 2, drawPickHits);
 
+/* The person box has its own debounce, because it asks a different action. Same 400ms and the
+   same discard-stale-answers rule as FM.liveSearch, which only knows the film search. */
+(function () {
+  var timer = null, last = "";
+  $("pq").addEventListener("input", function () {
+    var q = this.value.trim();
+    last = q;
+    clearTimeout(timer);
+    if (q.length < 2) { drawPersonHits("idle", {}); return; }
+    timer = setTimeout(function () {
+      FM.person(q, function (st, d) {
+        if ($("pq").value.trim() !== last) return;      // stale: they kept typing
+        drawPersonHits(st, d);
+      });
+    }, 400);
+  });
+})();
+
 $("clear").addEventListener("click", function () {
+  state.person = null; state.credits = null; state.localRows = [];
+  $("pchosen").textContent = ""; $("phits").textContent = ""; $("p-note").textContent = "";
+  $("pq").value = "";
   state.genres = [];
   setMode("and");
   $("f-y1").value = ""; $("f-y2").value = "";
