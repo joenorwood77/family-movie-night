@@ -396,7 +396,9 @@ function readForm() {
   }
   if (y1) q.y1 = y1;
   if (y2) q.y2 = y2;
-  if ($("f-rt").value) q.rt = $("f-rt").value;
+  // 🛑 `maxrt`, never `rt`: Google reserves `rt` and answers 400 before the script runs.
+  //    Found live 2026-11-17. The name is load bearing.
+  if ($("f-rt").value) q.maxrt = $("f-rt").value;
   return { q: q };
 }
 
@@ -409,7 +411,7 @@ function describe(q) {
   if (q.y1 && q.y2) bits.push(q.y1 + " to " + q.y2);
   else if (q.y1) bits.push(q.y1 + " onwards");
   else if (q.y2) bits.push("up to " + q.y2);
-  if (q.rt) bits.push("under " + q.rt + " minutes");
+  if (q.maxrt) bits.push("under " + q.maxrt + " minutes");
   return bits.length ? bits.join(", ") : "every film";
 }
 
@@ -485,7 +487,7 @@ function banner(kind, strong, rest) {
  *  likely culprit rather than going blank and looking broken. */
 function nothingFound(q) {
   var narrow = [];
-  if (q.rt) narrow.push("the length limit");
+  if (q.maxrt) narrow.push("the length limit");
   if (q.g && q.g.indexOf(",") > -1) narrow.push("asking for all those genres at once");
   if (q.y1 && q.y2 && (Number(q.y2) - Number(q.y1)) <= 5) narrow.push("the narrow year range");
   if (q.vc === "1000") narrow.push("limiting it to famous films");
@@ -569,6 +571,22 @@ function search(append) {
     // If the server raised the vote floor on us, say so. It is showing something slightly
     // different from what was asked, and the family should know that rather than wonder.
     var ap = d.applied || {};
+
+    /* 🛑 DID THE SERVER ACTUALLY USE WHAT WE ASKED FOR? A filter it ignored returns a list that
+       looks perfectly normal and is simply wrong. The one real case: an older deployment that
+       does not know a parameter name yet. Say so rather than show unfiltered results under a
+       filtered heading. */
+    var ignored = [];
+    if (q.g && !ap.g) ignored.push("the genre");
+    if (q.y1 && !ap.y1) ignored.push("the earliest year");
+    if (q.y2 && !ap.y2) ignored.push("the latest year");
+    if (q.maxrt && !ap.maxrt) ignored.push("the length limit");
+    if (ignored.length) {
+      $("note").appendChild(banner("warn", "These results are not filtered the way you asked.",
+        " The lookup service ignored " + ignored.join(" and ") + ", which means Joe has a setup "
+        + "step left. Everything below is real, but treat it as unfiltered on that point."));
+    }
+
     if (ap.votesRaisedForRatingSort) {
       $("note").appendChild(banner("ok", "A note on the order.",
         " Sorting by rating only means something when enough people have voted, so this is "
