@@ -267,11 +267,17 @@ window.FM = (function () {
    *                not a breakage and must not read like one
    *    "error"     the call did not complete
    */
-  function discover(params, onState) {
+  /** The ONE way this site asks the endpoint a read-only question and reports what came back.
+   *  discover, similar, person and credits all go through it, so the five states and the
+   *  "Unknown action means OFF" branch exist once rather than four times.
+   *
+   *  🛑 Empty values are DROPPED rather than sent blank, because a blank parameter can read as
+   *     a filter set to nothing rather than a filter nobody asked for. */
+  function askAction(action, params, onState) {
     if (!CFG.endpoint) { onState("off", {}); return; }
     onState("searching", {});
 
-    var qs = ["action=discover"];
+    var qs = ["action=" + encodeURIComponent(action)];
     Object.keys(params || {}).forEach(function (k) {
       var v = params[k];
       if (v === null || v === undefined || v === "") return;
@@ -284,8 +290,9 @@ window.FM = (function () {
         if (!d) { onState("error", {}); return; }
         if (!d.ok) {
           var err = String(d.error || "");
-          // An older deployment answers "Unknown action", which is not a refusal of the
-          // filters: it means this feature is not switched on yet.
+          // An older deployment answers "Unknown action", which is not a refusal of what was
+          // asked: it means this feature is not switched on yet. The page words those two
+          // completely differently, so the difference has to survive.
           if (err.indexOf("Unknown action") > -1) { onState("off", {}); return; }
           onState("refused", { error: err });
           return;
@@ -294,6 +301,21 @@ window.FM = (function () {
       })
       .catch(function () { onState("error", {}); });
   }
+
+  function discover(params, onState) { askAction("discover", params, onState); }
+
+  /** Films TMDB reckons are like this one.
+   *  🛑 It is TMDB's judgement, not ours. Any page showing these must say so: we do not compute
+   *     similarity and must never look as though we did. */
+  function similar(tmdbId, page, onState) {
+    askAction("similar", { id: tmdbId, page: page || 1 }, onState);
+  }
+
+  /** The people a typed name could mean. The page asks which one; it never picks for them. */
+  function person(q, onState) { askAction("person", { q: q }, onState); }
+
+  /** One person's films, with `acted` and `directed` kept apart by TMDB's own job label. */
+  function credits(personId, onState) { askAction("credits", { id: personId }, onState); }
 
   /* ---------- birthday movie nights ---------------------------------------------------------
      The rule Joe chose on 2026-10-22, from three options shown with their real dates: a birthday
@@ -1709,6 +1731,7 @@ window.FM = (function () {
     verdict: verdict,
     PEOPLE: PEOPLE, ratings: ratings, careerStats: careerStats,
     tmdb: tmdb, liveSearch: liveSearch,
-    GENRES: GENRES, genreName: genreName, discover: discover
+    GENRES: GENRES, genreName: genreName, discover: discover,
+    askAction: askAction, similar: similar, person: person, credits: credits
   };
 })();

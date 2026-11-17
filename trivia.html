@@ -142,6 +142,17 @@ li.marked .tick{background:var(--ok); border-color:var(--ok); color:var(--card)}
 .banner.ok{background:var(--ok-soft); color:var(--ok)}
 .banner b{font-weight:700}
 
+/* The way out to IMDb. A control, not a sentence: she uses it every single time, and until
+   2026-11-17 she had to go and find the film on IMDb by hand after picking it here. */
+.imdbgo{display:inline-flex; align-items:center; gap:9px; min-height:48px;
+  padding:12px 16px; border-radius:12px; font-weight:700; font-size:1rem;
+  text-decoration:none; background:var(--accent); color:var(--accent-ink);
+  border:2px solid var(--accent); margin-bottom:4px}
+.imdbgo:hover{filter:brightness(1.08)}
+.imdbgo:focus-visible{outline:3px solid var(--accent); outline-offset:3px}
+.imdbgo .arrow{font-weight:400}
+.imdbnote{color:var(--ink-faint); font-size:.86rem; margin:7px 0 0}
+
 footer{margin-top:28px; color:var(--ink-faint); font-size:.82rem; text-align:center}
 footer a{color:var(--accent)}
 @media (max-width:420px){ .card{padding:15px} }
@@ -183,6 +194,7 @@ footer a{color:var(--accent)}
   <div class="card" id="c-paste" hidden>
     <p class="step">Step 3</p>
     <h2>Paste the trivia</h2>
+    <div id="imdbgo"></div>
     <p class="hint">Copy the whole trivia page from IMDb and paste it here. It gets split into
       separate items automatically, and the "123 of 456 found this interesting" lines are thrown
       away. Pasting again adds only what is new.</p>
@@ -288,8 +300,49 @@ function drawHits(){
 }
 $("q").addEventListener("input", drawHits);
 
+/** The way out to IMDb for the film she has just chosen.
+ *
+ *  🛑 IMDb'S TRIVIA IS LICENSED AND WE MAY NOT FETCH IT. That is why she pastes it, and the
+ *     footer says so. What we CAN remove is the part that was pure friction: having picked the
+ *     film here, she then had to go and find the same film on IMDb by hand, every time.
+ *
+ *  🛑 THE LINK IS BUILT FROM A CONFIRMED IMDb ID OR NOT AT ALL. The ids come from TMDB's
+ *     external_ids endpoint keyed on an already-confirmed TMDB id, so no title guessing is
+ *     involved. A film without one gets a plain instruction instead, because a button that
+ *     opened the WRONG film's trivia would be worse than no button: she would paste it in
+ *     good faith and nothing would look amiss.
+ */
+function drawImdbGo(){
+  var box = $("imdbgo");
+  if (!box) return;
+  box.textContent = "";
+  if (!state.film) return;
+
+  if (state.filmTT){
+    var a = el("a", "imdbgo");
+    a.href = "https://www.imdb.com/title/" + state.filmTT + "/trivia/";
+    a.target = "_blank";            // a new tab, so nothing typed on this page is lost
+    a.rel = "noopener";
+    a.appendChild(el("span", null, "Open the IMDb trivia for " + state.film.t));
+    a.appendChild(el("span", "arrow", "↗"));
+    box.appendChild(a);
+    box.appendChild(el("p", "imdbnote",
+      "Opens in a new tab. Select the whole trivia list there, copy it, and paste it below. "
+      + "Anything you have already typed here is kept."));
+  } else {
+    box.appendChild(el("p", "imdbnote",
+      "We do not have a confirmed IMDb page for this one, so there is no button for it. "
+      + "Search IMDb for " + state.film.t
+      + (state.film.y ? " (" + state.film.y + ")" : "") + " and open its Trivia tab."));
+  }
+}
+
 function choose(m){
   state.film = { t: m.t, y: m.y };
+  // Kept separate from state.film on purpose: state.film is POSTED to the server, and this is
+  // only needed for a link on this page. Changing the saved payload's shape to carry it would
+  // be a change to stored data for the sake of a button.
+  state.filmTT = m.tt || "";
   state.items = [];
   state.loaded = false;
   $("q").value = "";
@@ -392,6 +445,7 @@ function move(i, d){
 }
 
 function paint(){
+  drawImdbGo();
   $("c-paste").hidden = !(state.person && state.film);
   $("c-items").hidden = !(state.person && state.film);
   if (!state.film) { $("items").textContent = ""; $("count").textContent = ""; return; }

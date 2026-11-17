@@ -152,6 +152,36 @@ ul.hits > li:first-child{border-top:0; padding-top:0}
 .banner strong{display:block; margin-bottom:3px}
 .count{font-size:.86rem; color:var(--ink-faint); margin-top:12px}
 
+/* The two ways of asking. Same shape as the switcher on the search page. */
+nav.views{display:flex; flex-wrap:wrap; gap:8px; margin:18px 0 0}
+nav.views button{
+  flex:1 1 11rem; min-height:46px; padding:11px 14px; font:inherit; font-size:.97rem;
+  font-weight:600; cursor:pointer; border-radius:11px;
+  background:var(--card); color:var(--ink); border:2px solid var(--line-strong);
+}
+nav.views button[aria-selected="true"]{background:var(--accent); color:var(--accent-ink);
+  border-color:var(--accent)}
+nav.views button:hover{border-color:var(--accent)}
+
+/* The film somebody picked to be "like". */
+.picked{display:flex; gap:12px; align-items:center; margin-top:14px; padding-top:14px;
+  border-top:1px solid var(--line)}
+.picked .who{flex:1 1 auto; min-width:0}
+.picked .who b{display:block; font-family:Fraunces,Georgia,serif; font-size:1.05rem}
+.picked .who span{color:var(--ink-faint); font-size:.88rem}
+ul.pick-hits{list-style:none; margin:12px 0 0; padding:0; display:grid; gap:8px}
+ul.pick-hits > li{margin:0}
+ul.pick-hits button{
+  width:100%; text-align:left; font:inherit; cursor:pointer; display:grid;
+  grid-template-columns:44px 1fr; gap:11px; align-items:center;
+  padding:9px; border-radius:11px; background:var(--card);
+  border:2px solid var(--line-strong); color:var(--ink);
+}
+ul.pick-hits button:hover{border-color:var(--accent)}
+ul.pick-hits button:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
+ul.pick-hits .pt{font-weight:700; font-family:Fraunces,Georgia,serif}
+ul.pick-hits .py{color:var(--ink-faint); font-weight:400; font-size:.92rem}
+
 .more{margin-top:16px}
 .more button{width:100%; min-height:50px; font:inherit; font-size:1rem; font-weight:600;
   cursor:pointer; border-radius:12px; padding:13px;
@@ -172,6 +202,10 @@ footer a{color:var(--accent)}
   <h1>Find a movie</h1>
   <p class="lede">Looking for something to suggest? Search every film there is by genre, by
     year, and by how long it runs. Nothing here is a commitment, and nothing is submitted.</p>
+  <nav class="views" id="views" role="tablist">
+    <button type="button" data-view="filter" role="tab" aria-selected="true">By genre and year</button>
+    <button type="button" data-view="like" role="tab" aria-selected="false">Like a film I love</button>
+  </nav>
   <nav class="fm-nav" id="topnav"></nav>
 </header>
 
@@ -179,6 +213,7 @@ footer a{color:var(--accent)}
 
 <main>
 
+  <section id="v-filter">
   <div class="card">
 
     <div>
@@ -227,11 +262,28 @@ footer a{color:var(--accent)}
       <button type="button" class="plain" id="clear">Start over</button>
     </div>
 
+  </div>
+  </section>
+
+  <section id="v-like" hidden>
+  <div class="card">
+    <label for="lq">Name a film you love</label>
+    <input type="search" id="lq" placeholder="Type part of the title" autocomplete="off"
+           enterkeyhint="search">
+    <p class="hint">Then pick the right one from the list, and TMDB will suggest films that
+      people who liked it also liked. These are <strong>TMDB's suggestions, not ours</strong>.
+      A well known film gives a much better list than an obscure one.</p>
+    <div id="l-note"></div>
+    <ul class="pick-hits" id="lhits"></ul>
+    <div id="picked"></div>
+  </div>
+  </section>
+
+  <div class="card" id="resultcard" hidden>
     <div id="note"></div>
     <p class="count" id="count"></p>
     <ul class="hits" id="hits"></ul>
     <div class="more" id="more" hidden><button type="button" id="moreBtn">Show more</button></div>
-
   </div>
 
 </main>
@@ -312,6 +364,8 @@ var KNOWN = [
 var KNOWN_DEFAULT = "50";
 
 var state = {
+  view: "filter",       // "filter" = by genre and year, "like" = films like one I love
+  likeFilm: null,       // the film chosen in the like-this mode: { id, t, y }
   genres: [],           // ids, in the order they were chosen
   mode: "and",          // "and" -> comma, "or" -> pipe. TMDB's own behaviour.
   page: 1,
@@ -525,6 +579,7 @@ function search(append) {
     $("count").textContent = "";
     $("more").hidden = true;
   }
+  $("resultcard").hidden = false;
   q.page = String(state.page);
 
   state.busy = true;
@@ -607,6 +662,164 @@ function search(append) {
   });
 }
 
+
+/* ---------- the two ways of asking ----------------------------------------------------------- */
+
+function showView(which) {
+  state.view = which;
+  $("v-filter").hidden = which !== "filter";
+  $("v-like").hidden = which !== "like";
+  Array.prototype.forEach.call($("views").getElementsByTagName("button"), function (b) {
+    b.setAttribute("aria-selected", b.getAttribute("data-view") === which ? "true" : "false");
+  });
+  // Results belong to the question that produced them, so switching clears them rather than
+  // leaving an old answer sitting under a new question.
+  clearResults();
+}
+
+function clearResults() {
+  $("hits").textContent = "";
+  $("note").textContent = "";
+  $("count").textContent = "";
+  $("more").hidden = true;
+  $("resultcard").hidden = true;
+  state.page = 1; state.shown = 0; state.total = 0; state.pages = 0;
+}
+
+/* ---------- films like one I love ------------------------------------------------------------- */
+
+/** Draw the title-search results as a list of things to pick. The family chooses; the page
+ *  never decides which "Heat" was meant. */
+function drawPickHits(st, results) {
+  var box = $("lhits"), note = $("l-note");
+  box.textContent = "";
+  note.textContent = "";
+
+  if (st === "off") {
+    note.appendChild(banner("warn", "Looking films up is not switched on yet.",
+      " Joe has one setup step left."));
+    return;
+  }
+  if (st === "error") {
+    note.appendChild(banner("stop", "That lookup did not go through.",
+      " Please check your signal and try again."));
+    return;
+  }
+  if (st === "searching") { note.appendChild(el("p", "hint", "Looking...")); return; }
+  if (st === "idle") return;
+  if (!results.length) {
+    note.appendChild(el("p", "hint", "Nothing found by that name."));
+    return;
+  }
+
+  results.slice(0, 8).forEach(function (r) {
+    var li = el("li");
+    var b = el("button");
+    b.type = "button";
+    b.appendChild(FM.poster(r, "sm"));
+    var who = el("span");
+    who.appendChild(el("span", "pt", r.t));
+    if (r.y) who.appendChild(el("span", "py", "  " + r.y));
+    b.appendChild(who);
+    b.addEventListener("click", function () { chooseLikeFilm(r); });
+    li.appendChild(b);
+    box.appendChild(li);
+  });
+}
+
+function chooseLikeFilm(r) {
+  state.likeFilm = { id: r.id, t: r.t, y: r.y };
+  $("lhits").textContent = "";
+  $("l-note").textContent = "";
+  $("lq").value = "";
+
+  var box = $("picked");
+  box.textContent = "";
+  var row2 = el("div", "picked");
+  row2.appendChild(FM.poster(r, "sm"));
+  var who = el("div", "who");
+  who.appendChild(el("b", null, r.t + (r.y ? " (" + r.y + ")" : "")));
+  who.appendChild(el("span", null, "Finding films like this one"));
+  row2.appendChild(who);
+  var again = el("button", "plain", "Pick another");
+  again.type = "button";
+  again.style.flex = "0 0 auto";
+  again.addEventListener("click", function () {
+    state.likeFilm = null;
+    box.textContent = "";
+    clearResults();
+    $("lq").focus();
+  });
+  row2.appendChild(again);
+  box.appendChild(row2);
+
+  likeSearch(false);
+}
+
+function likeSearch(append) {
+  if (state.busy || !state.likeFilm) return;
+  if (!append) { clearResults(); }
+
+  state.busy = true;
+  $("moreBtn").disabled = true;
+  $("resultcard").hidden = false;
+  if (!append) {
+    $("note").appendChild(el("p", "hint", "Looking..."));
+  }
+
+  FM.similar(state.likeFilm.id, state.page, function (st, d) {
+    if (st === "searching") return;
+    state.busy = false;
+    $("moreBtn").disabled = false;
+    if (!append) $("note").textContent = "";
+
+    if (st === "off") {
+      $("note").appendChild(banner("warn", "Suggestions are not switched on yet.",
+        " Joe has one setup step left. Nothing is wrong with the film you picked."));
+      return;
+    }
+    if (st === "refused") {
+      $("note").appendChild(banner("warn", "That could not be looked up.",
+        " " + (d.error || "No reason was given.")));
+      return;
+    }
+    if (st === "error") {
+      $("note").appendChild(banner("stop", "That did not go through.",
+        " Please check your signal and try again."));
+      return;
+    }
+
+    var rows = d.results || [];
+    state.total = d.total || 0;
+    state.pages = d.pages || 0;
+
+    if (!append && !rows.length) {
+      // An empty list is a real answer here, not a failure, and it has a real cause.
+      $("note").appendChild(banner("warn", "TMDB has no suggestions for that film.",
+        " That usually means it is too obscure or too new for anyone to have built up a "
+        + "pattern around it. Try a better known film."));
+      return;
+    }
+
+    // 🛑 Said every single time, because we did not work these out.
+    if (!append) {
+      $("note").appendChild(banner("ok", "These are TMDB's suggestions.",
+        " They come from what people who liked " + state.likeFilm.t + " also liked. We did not "
+        + "work them out, so treat them as a starting point rather than a verdict."));
+    }
+
+    var frag = document.createDocumentFragment();
+    rows.forEach(function (r) { frag.appendChild(row(r)); });
+    $("hits").appendChild(frag);
+    state.shown += rows.length;
+    $("count").textContent = "Showing " + state.shown + " of "
+      + Number(state.total).toLocaleString() + " suggestions.";
+
+    $("more").hidden = !(state.page < state.pages && state.shown < state.total);
+    state.page += 1;
+  });
+}
+
 /* ---------- wiring --------------------------------------------------------------------------- */
 
 fillSelect("f-rt", RUNTIMES);
@@ -628,7 +841,18 @@ $("c-and").addEventListener("click", function () { setMode("and"); });
 $("c-or").addEventListener("click", function () { setMode("or"); });
 
 $("go").addEventListener("click", function () { search(false); });
-$("moreBtn").addEventListener("click", function () { search(true); });
+
+// Show more belongs to whichever question is on screen.
+$("moreBtn").addEventListener("click", function () {
+  if (state.view === "like") likeSearch(true); else search(true);
+});
+
+Array.prototype.forEach.call($("views").getElementsByTagName("button"), function (b) {
+  b.addEventListener("click", function () { showView(b.getAttribute("data-view")); });
+});
+
+// The film picker reuses the debounced title search that has run the picks page for weeks.
+FM.liveSearch($("lq"), 2, drawPickHits);
 
 $("clear").addEventListener("click", function () {
   state.genres = [];
