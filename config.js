@@ -14,7 +14,9 @@ window.FM_CONFIG = {
   season: "Season 5",
   // Moved back one week on 2026-11-15. Joe: "we pushed everything back 1 week due to mom
   // being sick". Sunday either way.
-  due: "2026-11-22",
+  // Moved back ANOTHER week on 2026-11-16. Joe: "pushed back one more week in our
+  // schedule". Sunday either way, so the deadline still lands on a Sunday.
+  due: "2026-11-29",
   themesPerPerson: 2,
 
   /* Birthday movie nights are worked out from these.
@@ -29,7 +31,9 @@ window.FM_CONFIG = {
   // Moved back one week with the deadline above, same reason, 2026-11-15. This SETTLES
   // what the records had carried as "most likely" since Joe's note of 11/10. Tuesday
   // either way, so the movie night does not change.
-  seasonStart: "2026-12-08",
+  // Moved back another week with the deadline above, same reason, 2026-11-16.
+  // Tuesday either way, so the movie night still does not change.
+  seasonStart: "2026-12-15",
   movieNight: 2,
   weeks: 70,
   birthdays: { Joe: [10, 16], Juli: [10, 13], Miriam: [2, 3], Kathy: [3, 29] }
