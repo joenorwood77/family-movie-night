@@ -389,7 +389,9 @@ function readForm() {
 
   var q = {
     sort: $("f-sort").value,
-    vc: $("f-vc").value
+    // `minvotes`, never `vc`: Google rejects `vc` above small values, before the script runs.
+    // Found live 2026-11-17, the second reserved name of the day after `rt`/`maxrt`.
+    minvotes: $("f-vc").value
   };
   if (state.genres.length) {
     q.g = state.genres.join(state.mode === "or" ? "|" : ",");
@@ -490,7 +492,7 @@ function nothingFound(q) {
   if (q.maxrt) narrow.push("the length limit");
   if (q.g && q.g.indexOf(",") > -1) narrow.push("asking for all those genres at once");
   if (q.y1 && q.y2 && (Number(q.y2) - Number(q.y1)) <= 5) narrow.push("the narrow year range");
-  if (q.vc === "1000") narrow.push("limiting it to famous films");
+  if (q.minvotes === "1000") narrow.push("limiting it to famous films");
 
   var msg = "No films match " + describe(q) + ".";
   if (narrow.length) {
