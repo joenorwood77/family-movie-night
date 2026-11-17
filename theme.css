@@ -77,6 +77,107 @@ header{padding-block:30px 6px}
 
 
 /* ============================================================================================
+   THE COLOURS A PERSON MAY CHOOSE, added 2026-11-17.
+
+   Joe asked for the rainbow plus deep and light versions, mustard, brown, pink, lime and aqua.
+   All 23 are here and EVERY ONE was checked at 4.5:1 as text on the card AND the page, in BOTH
+   themes. The worst in the set is 5.27:1 against a floor of 4.5.
+
+   🔑 HOW CHOOSING WORKS WITHOUT TOUCHING ANY EXISTING RULE. Pages colour a person through
+      `--fm-joe`, `--fm-juli`, `--fm-kathy`, `--fm-miriam`. Those stay exactly as they are and
+      keep their current defaults. Picking a colour REPOINTS one of them at one `--fm-c-*`
+      token below, at run time, in site/lib.js. Nothing moves until somebody picks.
+
+   ⚠ WIDE SEPARATION ACROSS THE WHOLE SET WAS DELIBERATELY GIVEN UP, by Joe, so that he could
+     have this many colours. 70 of the 300 pairs sit closer than his blue and teal do. With
+     four people choosing, that is handled by REFUSING A CLASH when somebody picks, not by
+     having fewer colours. The clash list lives in site/lib.js and is generated from
+     measurement, never by eye.
+
+   🛑 MEASURED IN OKLab, NOT HSL. The old 25-degree HSL hue rule was miscalibrated: it called
+      two greens 49 degrees apart "comfortable" when they were perceptually closer than any
+      pair shipping. scripts/check_palette.py now measures perceptual distance instead.
+   ============================================================================================ */
+
+:root{
+  --fm-c-blue:        #14508a;
+  --fm-c-magenta:     #8d2473;
+  --fm-c-teal:        #0f6350;
+  --fm-c-gold:        #6e5006;
+  --fm-c-reddark:     #6b0000;
+  --fm-c-redlight:    #ac3227;
+  --fm-c-orangedark:  #542800;
+  --fm-c-orangelight: #8f521b;
+  --fm-c-limedark:    #303a11;
+  --fm-c-limelight:   #596d14;
+  --fm-c-greendark:   #00420b;
+  --fm-c-greenlight:  #107823;
+  --fm-c-aquadark:    #033d43;
+  --fm-c-aqualight:   #02717a;
+  --fm-c-blue2dark:   #093566;
+  --fm-c-blue2light:  #2063b0;
+  --fm-c-indigodark:  #25267b;
+  --fm-c-indigolight: #4e59b1;
+  --fm-c-violetdark:  #540763;
+  --fm-c-violetlight: #874197;
+  --fm-c-pinkdark:    #600e38;
+  --fm-c-pinklight:   #964267;
+  --fm-c-brown:       #4a2e16;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --fm-c-blue:        #8cc3f5;
+    --fm-c-magenta:     #f09ad8;
+    --fm-c-teal:        #58d7b5;
+    --fm-c-gold:        #e8c468;
+    --fm-c-reddark:     #f87868;
+    --fm-c-redlight:    #ffc8c0;
+    --fm-c-orangedark:  #e98a35;
+    --fm-c-orangelight: #ffcba2;
+    --fm-c-limedark:    #94b32a;
+    --fm-c-limelight:   #c6e867;
+    --fm-c-greendark:   #61bd67;
+    --fm-c-greenlight:  #95f198;
+    --fm-c-aquadark:    #48b7c2;
+    --fm-c-aqualight:   #80ebf7;
+    --fm-c-blue2dark:   #65a7fa;
+    --fm-c-blue2light:  #bfdafd;
+    --fm-c-indigodark:  #8c9cfb;
+    --fm-c-indigolight: #ccd5fd;
+    --fm-c-violetdark:  #ce83de;
+    --fm-c-violetlight: #f7c1ff;
+    --fm-c-pinkdark:    #df84a8;
+    --fm-c-pinklight:   #ffc1da;
+    --fm-c-brown:       #bf9d82;
+  }
+}
+:root[data-theme="dark"]{
+  --fm-c-blue:        #8cc3f5;
+  --fm-c-magenta:     #f09ad8;
+  --fm-c-teal:        #58d7b5;
+  --fm-c-gold:        #e8c468;
+  --fm-c-reddark:     #f87868;
+  --fm-c-redlight:    #ffc8c0;
+  --fm-c-orangedark:  #e98a35;
+  --fm-c-orangelight: #ffcba2;
+  --fm-c-limedark:    #94b32a;
+  --fm-c-limelight:   #c6e867;
+  --fm-c-greendark:   #61bd67;
+  --fm-c-greenlight:  #95f198;
+  --fm-c-aquadark:    #48b7c2;
+  --fm-c-aqualight:   #80ebf7;
+  --fm-c-blue2dark:   #65a7fa;
+  --fm-c-blue2light:  #bfdafd;
+  --fm-c-indigodark:  #8c9cfb;
+  --fm-c-indigolight: #ccd5fd;
+  --fm-c-violetdark:  #ce83de;
+  --fm-c-violetlight: #f7c1ff;
+  --fm-c-pinkdark:    #df84a8;
+  --fm-c-pinklight:   #ffc1da;
+  --fm-c-brown:       #bf9d82;
+}
+
+/* ============================================================================================
    THE FAMILY COLOUR PALETTE - THE ONE COPY.
    Loaded by index.html, search.html and picks.html. Each page keeps its own layout CSS; only
    the colours and the rating components live here.

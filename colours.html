@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Pick Your Colour</title>
+<meta name="description" content="Choose the colour your ratings appear in across the whole site.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap">
+<link rel="stylesheet" href="theme.css">
+<style>
+/* The palette and base layout live in theme.css. This page adds only what is its own. */
+.wrap{max-width:44rem; margin:0 auto}
+
+select{width:100%; font:inherit; font-size:17px; color:var(--ink); background:var(--bg);
+  border:2px solid var(--line-strong); border-radius:11px; padding:13px 14px}
+select:focus{outline:3px solid var(--accent-soft); outline-offset:1px; border-color:var(--accent)}
+.sr{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0)}
+
+.banner{padding:13px 15px; border-radius:11px; font-size:.95rem; margin-top:14px;
+  border:1px solid currentColor}
+.banner.ok{background:var(--ok-soft); color:var(--ok)}
+.banner.warn{background:var(--warn-soft); color:var(--warn)}
+.banner.stop{background:var(--stop-soft); color:var(--stop)}
+.banner strong{display:block; margin-bottom:3px}
+
+/* Who has what. Every person gets a line, even one who has not chosen. */
+ul.who{list-style:none; margin:12px 0 0; padding:0}
+ul.who li{display:flex; gap:11px; align-items:baseline; padding:9px 0;
+  border-top:1px solid var(--line); font-size:.97rem}
+ul.who li:first-child{border-top:0}
+ul.who .nm{flex:0 0 5.5rem; font-weight:700}
+ul.who .val{flex:1 1 auto; color:var(--ink-soft); font-size:.9rem}
+ul.who .samp{font-weight:700}
+
+/* The swatches. Each one is the real colour, shown as TEXT, because that is how it is used.
+   A block of colour would prove nothing about whether a name is readable in it. */
+.grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(8.5rem,1fr)); gap:10px;
+  margin-top:14px}
+.grid button{
+  font:inherit; font-size:1.02rem; font-weight:700; cursor:pointer; text-align:left;
+  min-height:58px; padding:11px 13px; border-radius:12px;
+  background:var(--card); border:2px solid var(--line-strong);
+}
+.grid button small{display:block; font-weight:400; font-size:.76rem; color:var(--ink-faint);
+  margin-top:3px}
+.grid button:hover{border-color:var(--accent)}
+.grid button:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
+.grid button[aria-pressed="true"]{border-color:var(--accent); background:var(--accent-soft)}
+.grid button[disabled]{opacity:.55; cursor:default}
+.grid button[disabled]:hover{border-color:var(--line-strong)}
+
+footer{margin-top:28px; color:var(--ink-faint); font-size:.82rem; text-align:center}
+footer a{color:var(--accent)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="kicker">Family Movie Night</div>
+  <h1>Pick your colour</h1>
+  <p class="lede">Your ratings are shown in your own colour everywhere on the site. Choose the
+    one you want. Everybody sees the same colours, so no two people can have the same one.</p>
+  <nav class="fm-nav" id="topnav"></nav>
+</header>
+
+<div id="top"></div>
+
+<main>
+
+  <div class="card">
+    <h2 style="font-size:1.15rem; margin:0 0 4px">Who are you?</h2>
+    <label class="sr" for="person">Your name</label>
+    <select id="person"></select>
+    <p class="hint">It remembers you next time.</p>
+  </div>
+
+  <div class="card">
+    <h2 style="font-size:1.15rem; margin:0 0 4px">Who has what right now</h2>
+    <ul class="who" id="who"></ul>
+  </div>
+
+  <div class="card" id="c-pick">
+    <h2 style="font-size:1.15rem; margin:0 0 4px">Choose</h2>
+    <p class="hint">Each name below is shown in its real colour, because that is how it gets
+      used. Greyed-out ones are too close to a colour somebody already has, or to the colours
+      the site itself uses for buttons and for the group average.</p>
+    <div id="picknote"></div>
+    <div class="grid" id="grid"></div>
+  </div>
+
+</main>
+
+<div class="fm-hub" id="hub"></div>
+
+<footer>
+  <p id="foot"></p>
+</footer>
+
+</div>
+
+<script src="config.js"></script>
+<script src="themes.js"></script>
+<script src="movies.js"></script>
+<script src="aliases.js"></script>
+<script src="awards.js"></script>
+<script src="extras.js"></script>
+<script src="thousand.js"></script>
+<script src="lib.js"></script>
+<script>
+/* =================================================================================================
+   PICK YOUR COLOUR
+
+   Joe, 2026-11-17: "each of us four can choose which color our stats are in instead of each
+   preassigned", then the rainbow, deep and light versions, mustard, brown, pink, lime and aqua.
+
+   🛑 EVERY ONE OF THE 23 IS READABLE. All 46 values were checked at 4.5:1 as text on the card
+      AND the page, in BOTH themes, and the worst in the set is 5.27:1. scripts/check_palette.py
+      re-proves it on every deploy and also recomputes the clash list from the hex values, so
+      that list can never drift from the colours it describes.
+
+   🛑 WHAT JOE CHOSE TO GIVE UP, so nobody later reads it as an oversight: wide separation across
+      the whole set. 70 of the 300 pairs sit closer together than his blue and teal do. He chose
+      23 colours over wider spacing, knowing that. The guarantee is therefore NOT that no two
+      colours look similar; it is that TWO PEOPLE CANNOT HOLD A SIMILAR PAIR, which this page
+      enforces by refusing and saying who it clashes with.
+
+   🛑 THE SITE'S OWN TWO COLOURS ALWAYS COUNT. The terracotta accent is on every button and the
+      purple is the group average, and both are always on screen, so a colour too close to
+      either is refused for everybody rather than only when somebody holds it.
+================================================================================================= */
+(function () {
+"use strict";
+
+var $ = FM.$, el = FM.el;
+var CFG = window.FM_CONFIG || {};
+var LS = "fm-colours-who";
+
+var state = { person: "", prefs: {}, busy: false };
+
+function banner(kind, strong, rest) {
+  var b = el("div", "banner " + kind);
+  if (strong) b.appendChild(el("strong", null, strong));
+  if (rest) b.appendChild(document.createTextNode(rest));
+  return b;
+}
+
+function say(where, kind, strong, rest) {
+  var box = $(where);
+  box.textContent = "";
+  box.appendChild(banner(kind, strong, rest));
+}
+
+/* ---------- who you are ---------------------------------------------------------------------- */
+
+(function people() {
+  var sel = $("person");
+  var head = el("option", null, "Choose your name");
+  head.value = "";
+  sel.appendChild(head);
+  FM.PEOPLE.forEach(function (p) {
+    var o = el("option", null, p);
+    o.value = p;
+    sel.appendChild(o);
+  });
+  try {
+    var saved = localStorage.getItem(LS);
+    if (saved && FM.PEOPLE.indexOf(saved) > -1) { sel.value = saved; state.person = saved; }
+  } catch (e) {}
+  sel.addEventListener("change", function () {
+    state.person = this.value;
+    try { localStorage.setItem(LS, state.person); } catch (e) {}
+    draw();
+  });
+})();
+
+/* ---------- who has what --------------------------------------------------------------------- */
+
+function drawWho() {
+  var ul = $("who");
+  ul.textContent = "";
+  // Every person gets a line, even one who has never chosen. Standing rule on this site.
+  FM.PEOPLE.forEach(function (p) {
+    var id = state.prefs[p] || "";
+    var li = el("li");
+    li.appendChild(el("span", "nm fm-p-" + p, p));
+    if (id) {
+      var s = el("span", "samp fm-p-" + p, FM.colourLabel(id) || id);
+      li.appendChild(s);
+      li.appendChild(el("span", "val", "chosen"));
+    } else {
+      li.appendChild(el("span", "samp fm-p-" + p, "their original colour"));
+      li.appendChild(el("span", "val", "has not chosen yet"));
+    }
+    ul.appendChild(li);
+  });
+}
+
+/* ---------- the swatches --------------------------------------------------------------------- */
+
+function drawGrid() {
+  var box = $("grid");
+  box.textContent = "";
+
+  if (!state.person) {
+    box.appendChild(el("p", "hint", "Choose your name above first."));
+    return;
+  }
+
+  FM.COLOURS.forEach(function (c) {
+    var b = el("button");
+    b.type = "button";
+    // 🛑 The swatch is the colour as TEXT, because that is the only way it is ever used. A
+    //    block of colour would say nothing about whether a name is readable in it.
+    b.style.color = "var(--fm-c-" + c.id + ")";
+    b.appendChild(document.createTextNode(c.label));
+
+    var mine = state.prefs[state.person] === c.id;
+    b.setAttribute("aria-pressed", mine ? "true" : "false");
+
+    var taken = "";
+    FM.PEOPLE.forEach(function (p) {
+      if (p !== state.person && state.prefs[p] === c.id) taken = p;
+    });
+    var clash = FM.clashWith(c.id, state.prefs, state.person);
+
+    if (taken) {
+      b.disabled = true;
+      b.appendChild(el("small", null, taken + " has this one"));
+    } else if (clash) {
+      b.disabled = true;
+      // Say WHAT it clashes with. "Unavailable" with no reason is just a dead button.
+      var why = (clash === "accent")
+        ? "too close to the site's buttons"
+        : (clash === "group")
+          ? "too close to the group average"
+          : "too close to " + (FM.colourLabel(clash) || clash);
+      b.appendChild(el("small", null, why));
+    } else if (mine) {
+      b.appendChild(el("small", null, "yours now"));
+    } else {
+      b.appendChild(el("small", null, "available"));
+      b.addEventListener("click", function () { choose(c); });
+    }
+    box.appendChild(b);
+  });
+}
+
+function draw() {
+  drawWho();
+  drawGrid();
+}
+
+/* ---------- the server ----------------------------------------------------------------------- */
+
+function load() {
+  if (!CFG.endpoint) {
+    say("top", "warn", "Choosing is not switched on yet.",
+      " This page needs Joe's service, which is not connected. Everyone keeps the colour they "
+      + "have.");
+    draw();
+    return;
+  }
+  fetch(CFG.endpoint + "?action=prefs")
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      if (!d || !d.ok) {
+        var err = String((d && d.error) || "");
+        if (err.indexOf("Unknown action") > -1) {
+          say("top", "warn", "Choosing is not switched on yet.",
+            " Joe has one setup step left. Everyone keeps the colour they have, and trying "
+            + "again will not help.");
+        } else {
+          say("top", "warn", "Could not read the colours.", " " + err);
+        }
+        draw();
+        return;
+      }
+      state.prefs = d.prefs || {};
+      FM.applyColours(state.prefs);
+      draw();
+    })
+    .catch(function () {
+      say("top", "stop", "Could not read the colours.",
+        " Please check your signal and reload. Nothing was changed.");
+      draw();
+    });
+}
+
+function choose(c) {
+  if (state.busy || !state.person) return;
+  state.busy = true;
+  say("picknote", "ok", "Saving...", " Setting your colour to " + c.label + ".");
+
+  fetch(CFG.endpoint, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify({ kind: "prefs", what: "colour", person: state.person, value: c.id }),
+    redirect: "follow"
+  })
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      state.busy = false;
+      if (!d || !d.ok) {
+        var err = String((d && d.error) || "");
+        if (err.indexOf("Unknown kind") > -1) {
+          say("picknote", "warn", "Choosing is not switched on yet.",
+            " Joe has one setup step left. Nothing was changed.");
+        } else {
+          // A refusal the server made on purpose is not a breakage. Its own words.
+          say("picknote", "warn", "That was not accepted.", " " + (err || "Nothing was changed."));
+        }
+        return;
+      }
+      state.prefs = d.prefs || state.prefs;
+      FM.applyColours(state.prefs);
+      try { localStorage.setItem("fm-colours", JSON.stringify(state.prefs)); } catch (e) {}
+      say("picknote", "ok", "Done.",
+        " You are " + c.label + " everywhere on the site now, for everybody.");
+      draw();
+    })
+    .catch(function () {
+      state.busy = false;
+      say("picknote", "stop", "That did not send.",
+        " Please check your signal and try again. Nothing was changed.");
+    });
+}
+
+$("foot").textContent = "Every colour here was checked for readability on both the light and "
+  + "the dark version of the site. The worst one is still well above the minimum.";
+
+draw();
+load();
+
+})();
+</script>
+<script>
+/* The site's own navigation. The one copy of the destination list lives in lib.js,
+   so a page can never go missing from one menu while appearing in another. */
+FM.topnav("topnav", "colours.html");
+FM.hub("hub", "colours.html");
+</script>
+</body>
+</html>

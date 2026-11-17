@@ -426,6 +426,222 @@ window.FM = (function () {
     return { slots: out, applied: applied, skipped: skipped };
   }
 
+  /* ---------- the colour each person chose -------------------------------------------------
+     Joe, 2026-11-17: "each of us four can choose which color our stats are in instead of each
+     preassigned", then the rainbow, deep and light versions, and his extras.
+
+     🔑 Choosing REPOINTS a person variable at a colour token. `--fm-joe` and friends keep
+        their defaults in theme.css, so nothing changes until somebody picks, and not one
+        existing CSS rule had to move.
+
+     ⚠ 70 of the 300 pairs are closer than blue and teal are. Joe chose that, to have this
+       many colours. CLASHES is measured, never judged by eye, and `clashWith` is what stops
+       two people ending up indistinguishable.
+  ---------------------------------------------------------------------------------------- */
+
+  var COLOURS = [
+    { id: "blue", label: "Blue" },
+    { id: "magenta", label: "Magenta" },
+    { id: "teal", label: "Teal" },
+    { id: "gold", label: "Mustard" },
+    { id: "reddark", label: "Red (deep)" },
+    { id: "redlight", label: "Red (light)" },
+    { id: "orangedark", label: "Orange (deep)" },
+    { id: "orangelight", label: "Orange (light)" },
+    { id: "limedark", label: "Lime (deep)" },
+    { id: "limelight", label: "Lime (light)" },
+    { id: "greendark", label: "Green (deep)" },
+    { id: "greenlight", label: "Green (light)" },
+    { id: "aquadark", label: "Aqua (deep)" },
+    { id: "aqualight", label: "Aqua (light)" },
+    { id: "blue2dark", label: "Royal blue (deep)" },
+    { id: "blue2light", label: "Royal blue (light)" },
+    { id: "indigodark", label: "Indigo (deep)" },
+    { id: "indigolight", label: "Indigo (light)" },
+    { id: "violetdark", label: "Violet (deep)" },
+    { id: "violetlight", label: "Violet (light)" },
+    { id: "pinkdark", label: "Pink (deep)" },
+    { id: "pinklight", label: "Pink (light)" },
+    { id: "brown", label: "Brown" }
+  ];
+
+  /* Pairs measured closer than Joe's own tightest shipping pair, so two people may not hold
+     both at once. Generated from OKLab distance; see scripts/check_palette.py. */
+  var CLASHES = [
+    ["blue2light", "indigolight", 0.020],
+    ["redlight", "accent", 0.021],
+    ["orangedark", "brown", 0.027],
+    ["redlight", "orangelight", 0.042],
+    ["redlight", "pinklight", 0.045],
+    ["blue2dark", "indigodark", 0.049],
+    ["limedark", "greendark", 0.052],
+    ["violetlight", "pinklight", 0.053],
+    ["reddark", "accent", 0.054],
+    ["limedark", "brown", 0.061],
+    ["limelight", "greenlight", 0.062],
+    ["gold", "orangelight", 0.066],
+    ["orangedark", "accent", 0.066],
+    ["teal", "aqualight", 0.070],
+    ["magenta", "violetlight", 0.071],
+    ["magenta", "pinklight", 0.072],
+    ["reddark", "orangedark", 0.073],
+    ["aquadark", "blue2dark", 0.074],
+    ["indigolight", "violetlight", 0.075],
+    ["orangelight", "accent", 0.075],
+    ["reddark", "pinkdark", 0.076],
+    ["aqualight", "blue2light", 0.077],
+    ["blue", "blue2light", 0.079],
+    ["limedark", "aquadark", 0.080],
+    ["orangedark", "limedark", 0.080],
+    ["magenta", "pinkdark", 0.081],
+    ["magenta", "group", 0.082],
+    ["indigolight", "pinklight", 0.085],
+    ["magenta", "violetdark", 0.086],
+    ["violetdark", "pinkdark", 0.086],
+    ["gold", "limelight", 0.087],
+    ["orangelight", "pinklight", 0.087],
+    ["blue", "group", 0.089],
+    ["indigodark", "group", 0.090],
+    ["greendark", "aquadark", 0.091],
+    ["blue", "blue2dark", 0.092],
+    ["indigolight", "group", 0.092],
+    ["blue", "indigolight", 0.093],
+    ["reddark", "brown", 0.093],
+    ["pinklight", "accent", 0.094],
+    ["violetdark", "group", 0.094],
+    ["blue2light", "violetlight", 0.095],
+    ["redlight", "violetlight", 0.095],
+    ["aqualight", "indigolight", 0.097],
+    ["violetlight", "group", 0.099],
+    ["redlight", "indigolight", 0.100],
+    ["teal", "greenlight", 0.101],
+    ["blue2light", "pinklight", 0.102],
+    ["teal", "aquadark", 0.102],
+    ["teal", "limelight", 0.103],
+    ["blue", "aquadark", 0.104],
+    ["aquadark", "brown", 0.105],
+    ["brown", "accent", 0.105],
+    ["teal", "greendark", 0.105],
+    ["blue", "indigodark", 0.106],
+    ["orangedark", "pinkdark", 0.107],
+    ["blue", "aqualight", 0.108],
+    ["pinkdark", "brown", 0.108],
+    ["pinkdark", "accent", 0.109],
+    ["indigodark", "violetdark", 0.111],
+    ["redlight", "blue2light", 0.111],
+    ["gold", "redlight", 0.113],
+    ["greendark", "brown", 0.114],
+    ["orangelight", "limelight", 0.116],
+    ["blue2dark", "group", 0.118],
+    ["blue2light", "group", 0.120],
+    ["gold", "accent", 0.122],
+    ["teal", "gold", 0.122],
+    ["pinklight", "group", 0.123],
+    ["gold", "orangedark", 0.128]
+  ];
+
+  function colourLabel(id) {
+    for (var i = 0; i < COLOURS.length; i++) {
+      if (COLOURS[i].id === id) return COLOURS[i].label;
+    }
+    return "";                 // an id we do not know gets a blank, never a guess
+  }
+
+  /** Does this colour clash with one already taken, or with the site's own two colours?
+   *  Returns the id it clashes with, or "". `taken` is a map of person -> colour id. */
+  function clashWith(id, taken, forPerson) {
+    if (!id) return "";
+    var held = [];
+    Object.keys(taken || {}).forEach(function (p) {
+      if (p !== forPerson && taken[p]) held.push(taken[p]);
+    });
+    // The accent and the group purple are ALWAYS on screen, so they always count.
+    held.push("accent");
+    held.push("group");
+    for (var i = 0; i < CLASHES.length; i++) {
+      var a = CLASHES[i][0], b = CLASHES[i][1];
+      if (a === id && held.indexOf(b) > -1) return b;
+      if (b === id && held.indexOf(a) > -1) return a;
+    }
+    return "";
+  }
+
+  /** Point each person's variable at the colour they chose.
+   *  🛑 An unknown id is IGNORED rather than applied, so a bad value leaves the person on
+   *     their default instead of making them invisible. */
+  function applyColours(prefs) {
+    if (!prefs) return 0;
+    var root = document.documentElement;
+    if (!root || !root.style) return 0;
+    var n = 0;
+    PEOPLE.forEach(function (p) {
+      var id = prefs[p];
+      if (!id || !colourLabel(id)) return;
+      root.style.setProperty("--fm-" + p.toLowerCase(), "var(--fm-c-" + id + ")");
+      n++;
+    });
+    return n;
+  }
+
+  /** Load the chosen colours and apply them, on EVERY page, from the one place that is loaded
+   *  by every page. Nine pages colour people; this is one copy rather than nine.
+   *
+   *  🔑 Two steps on purpose. The cached value is applied FIRST so the colours are right in the
+   *     first paint instead of flickering a frame later, then the server's answer refreshes it.
+   *     Browser storage is the right tool for exactly this: a per-device cache of a shared
+   *     value, never the source of truth.
+   *
+   *  🛑 EVERY FAILURE IS SILENT, DELIBERATELY. If the lookup is off, unreachable, or this is an
+   *     older deployment that does not know the action, every person keeps the colour they have
+   *     always had. A page must never lose its labels because a preference could not be read.
+   */
+  function bootColours() {
+    try {
+      var cached = JSON.parse(localStorage.getItem("fm-colours") || "null");
+      if (cached) applyColours(cached);
+    } catch (e) {}
+
+    if (!CFG.endpoint || typeof fetch !== "function") return;
+    fetch(CFG.endpoint + "?action=prefs")
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (!d || !d.ok || !d.prefs) return;
+        applyColours(d.prefs);
+        try { localStorage.setItem("fm-colours", JSON.stringify(d.prefs)); } catch (e) {}
+      })
+      .catch(function () {});
+  }
+
+  /* ---------- what is trending, popular, in cinemas and coming soon -------------------------
+     Joe, 2026-11-17: "overall just want to see which ones are trending and which are most
+     popular / viewed / rated... also perhaps show what new releases are coming up."
+
+     🛑 THERE IS NO STREAMING RELEASE DATE IN THIS DATA, and no code can invent one. A film's
+        provider record holds ads, buy, rent, flatrate and a link, with no date of any kind.
+        So "new on streaming" is not a thing we can answer; "popular on streaming now" is.
+        Cinema dates ARE real, which is why `soon` exists and a streaming equivalent does not.
+
+     🛑 THE STREAMING LIST CARRIES A LEGAL REQUIREMENT. It is derived from watch-provider data,
+        and TMDB's own reference says: "In order to use this data you must attribute the source
+        of the data as JustWatch. If we find any usage not complying with these terms we will
+        revoke access to the API." Losing the key would break picks, search, find and trivia,
+        so the answer sets `needsJustWatch` and any page showing it MUST print the credit.
+  ---------------------------------------------------------------------------------------- */
+
+  var LISTS = [
+    { id: "trending",  label: "Trending this week" },
+    { id: "today",     label: "Trending today" },
+    { id: "popular",   label: "Popular right now" },
+    { id: "theatres",  label: "In cinemas now" },
+    { id: "soon",      label: "Coming to cinemas" },
+    { id: "toprated",  label: "Best rated ever" },
+    { id: "streaming", label: "Popular on streaming" }
+  ];
+
+  function lists(which, page, onState) {
+    askAction("lists", { list: which, page: page || 1 }, onState);
+  }
+
   function discover(params, onState) { askAction("discover", params, onState); }
 
   /** Films TMDB reckons are like this one.
@@ -1708,6 +1924,10 @@ window.FM = (function () {
       d: "Questions to read out on movie night" },
     { f: "find.html",          t: "Find a movie",
       d: "Find films by genre, year or length to suggest" },
+    { f: "trending.html",      t: "What's hot now",
+      d: "Trending, popular, in cinemas and coming soon" },
+    { f: "colours.html",       t: "Pick your colour",
+      d: "Choose the colour your ratings show in" },
     { f: "randomize.html",     t: "Shuffle season",
       d: "Deal out the season once everyone has submitted" },
     /* 🛑 THE ONE WIDE ENTRY. Joe asked for the book's real title on the button, 2026-11-16, and
@@ -1835,6 +2055,9 @@ window.FM = (function () {
     return out;
   }
 
+  // 🛑 Run as this file finishes, so no page has to remember to. See bootColours.
+  try { bootColours(); } catch (e) {}
+
   return {
     MOVIES: MOVIES, IMG: IMG, dataOk: dataOk, requireData: requireData,
     K1001: K, k1001Ok: kOk, on1001: on1001, badge1001: badge1001,
@@ -1859,6 +2082,9 @@ window.FM = (function () {
     tmdb: tmdb, liveSearch: liveSearch,
     GENRES: GENRES, genreName: genreName, discover: discover,
     askAction: askAction, similar: similar, person: person, credits: credits,
-    filterFilms: filterFilms, orderState: orderState, applyTrades: applyTrades
+    filterFilms: filterFilms, orderState: orderState, applyTrades: applyTrades,
+    COLOURS: COLOURS, CLASHES: CLASHES, colourLabel: colourLabel,
+    clashWith: clashWith, applyColours: applyColours, bootColours: bootColours,
+    LISTS: LISTS, lists: lists
   };
 })();
