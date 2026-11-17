@@ -215,6 +215,86 @@ window.FM = (function () {
     });
   }
 
+
+  /* ---------- finding a film to suggest ------------------------------------------------------
+     TMDB's own movie genre list, read from /genre/movie/list on 2026-11-16 and not typed from
+     memory. All 19 are kept, TV Movie included: this project never quietly drops a list item.
+
+     This is the one copy the dropdown is built from. Code.gs carries the IDS a second time so
+     it can refuse an id nobody could have picked, and check_find.py compares the two, because
+     two copies of anything drift and the pair that drifts silently is the dangerous one.
+  ------------------------------------------------------------------------------------------- */
+  var GENRES = [
+    { id: 28,    n: "Action" },
+    { id: 12,    n: "Adventure" },
+    { id: 16,    n: "Animation" },
+    { id: 35,    n: "Comedy" },
+    { id: 80,    n: "Crime" },
+    { id: 99,    n: "Documentary" },
+    { id: 18,    n: "Drama" },
+    { id: 10751, n: "Family" },
+    { id: 14,    n: "Fantasy" },
+    { id: 36,    n: "History" },
+    { id: 27,    n: "Horror" },
+    { id: 10402, n: "Music" },
+    { id: 9648,  n: "Mystery" },
+    { id: 10749, n: "Romance" },
+    { id: 878,   n: "Science Fiction" },
+    { id: 10770, n: "TV Movie" },
+    { id: 53,    n: "Thriller" },
+    { id: 10752, n: "War" },
+    { id: 37,    n: "Western" }
+  ];
+
+  function genreName(id) {
+    for (var i = 0; i < GENRES.length; i++) {
+      if (GENRES[i].id === Number(id)) return GENRES[i].n;
+    }
+    return "";                      // an id we do not know is left blank, never guessed
+  }
+
+  /** The ONE caller of the discover endpoint. Filters by genre, year, runtime, language and a
+   *  quality floor, all optional, all combining.
+   *
+   *  `params` keys match what Code.gs validates: g, y1, y2, rt, lang, sort, vc, page.
+   *
+   *  onState(state, payload) where state is one of:
+   *    "off"       there is no endpoint, or this script version does not know the action yet
+   *    "searching" the call is in flight
+   *    "ok"        payload is the whole answer: results, total, pages, page, applied
+   *    "refused"   the server turned the filters down ON PURPOSE; payload.error is its own
+   *                sentence and the page shows it as written, because a deliberate refusal is
+   *                not a breakage and must not read like one
+   *    "error"     the call did not complete
+   */
+  function discover(params, onState) {
+    if (!CFG.endpoint) { onState("off", {}); return; }
+    onState("searching", {});
+
+    var qs = ["action=discover"];
+    Object.keys(params || {}).forEach(function (k) {
+      var v = params[k];
+      if (v === null || v === undefined || v === "") return;
+      qs.push(encodeURIComponent(k) + "=" + encodeURIComponent(v));
+    });
+
+    fetch(CFG.endpoint + "?" + qs.join("&"))
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (!d) { onState("error", {}); return; }
+        if (!d.ok) {
+          var err = String(d.error || "");
+          // An older deployment answers "Unknown action", which is not a refusal of the
+          // filters: it means this feature is not switched on yet.
+          if (err.indexOf("Unknown action") > -1) { onState("off", {}); return; }
+          onState("refused", { error: err });
+          return;
+        }
+        onState("ok", d);
+      })
+      .catch(function () { onState("error", {}); });
+  }
+
   /* ---------- birthday movie nights ---------------------------------------------------------
      The rule Joe chose on 2026-10-22, from three options shown with their real dates: a birthday
      film goes on the NEAREST movie night either side of the birthday. If two people land on the
@@ -1480,6 +1560,8 @@ window.FM = (function () {
       d: "Best Picture, the Razzie and the Sleeper" },
     { f: "trivia.html",        t: "Trivia",
       d: "Questions to read out on movie night" },
+    { f: "find.html",          t: "Find a movie",
+      d: "Find films by genre, year or length to suggest" },
     /* 🛑 THE ONE WIDE ENTRY. Joe asked for the book's real title on the button, 2026-11-16, and
        asked for the button to be long enough to hold it. 39 characters cannot share a row with
        anything, so `w` makes this one span the whole row and the 18-character cap skips it.
@@ -1626,6 +1708,7 @@ window.FM = (function () {
     tag: tag, letterboxd: letterboxd, poster: poster, posterFor: posterFor,
     verdict: verdict,
     PEOPLE: PEOPLE, ratings: ratings, careerStats: careerStats,
-    tmdb: tmdb, liveSearch: liveSearch
+    tmdb: tmdb, liveSearch: liveSearch,
+    GENRES: GENRES, genreName: genreName, discover: discover
   };
 })();

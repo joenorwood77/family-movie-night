@@ -1,0 +1,665 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Find a Movie</title>
+<meta name="description" content="Find films by genre, year and length, to suggest for a future season.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap">
+<link rel="stylesheet" href="theme.css">
+<style>
+/* Same palette as every other page, so the site reads as one thing. Every token gets its light
+   value on bare :root first, then both dark blocks redefine only tokens. */
+:root{
+  color-scheme: light;
+  --bg:#fbf7f0; --card:#ffffff; --ink:#1b1512; --ink-soft:#574b43; --ink-faint:#7b6d63;
+  --line:#e2d7c9; --line-strong:#c9b9a6;
+  --accent:#a3321e; --accent-ink:#ffffff; --accent-soft:#fdeee9;
+  --ok:#1d6b45; --ok-soft:#e6f4ec;
+  --warn:#8a5200; --warn-soft:#fdf1dc;
+  --stop:#9d1c1c; --stop-soft:#fdeaea;
+  --shadow:0 1px 2px rgba(27,21,18,.07), 0 8px 24px rgba(27,21,18,.06);
+  --radius:14px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --bg:#15120f; --card:#211c18; --ink:#f7f1e8; --ink-soft:#ccbfb2; --ink-faint:#a2958a;
+    --line:#352c25; --line-strong:#4d4036;
+    --accent:#ff8f6b; --accent-ink:#2a0f06; --accent-soft:#38201a;
+    --ok:#6ddc9f; --ok-soft:#14301f;
+    --warn:#ffc266; --warn-soft:#33250c;
+    --stop:#ff8f8f; --stop-soft:#3a1616;
+    --shadow:0 1px 2px rgba(0,0,0,.5), 0 8px 24px rgba(0,0,0,.4);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --bg:#15120f; --card:#211c18; --ink:#f7f1e8; --ink-soft:#ccbfb2; --ink-faint:#a2958a;
+  --line:#352c25; --line-strong:#4d4036;
+  --accent:#ff8f6b; --accent-ink:#2a0f06; --accent-soft:#38201a;
+  --ok:#6ddc9f; --ok-soft:#14301f;
+  --warn:#ffc266; --warn-soft:#33250c;
+  --stop:#ff8f8f; --stop-soft:#3a1616;
+  --shadow:0 1px 2px rgba(0,0,0,.5), 0 8px 24px rgba(0,0,0,.4);
+}
+
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font:17px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  padding-block: 0 56px;
+  padding-left:max(18px,env(safe-area-inset-left,0px));
+  padding-right:max(18px,env(safe-area-inset-right,0px));
+}
+.wrap{max-width:44rem; margin:0 auto}
+h1,h2,h3{font-family:Fraunces,Georgia,"Times New Roman",serif; font-weight:700;
+  text-wrap:balance; margin:0}
+h1{font-size:clamp(1.8rem,6.5vw,2.4rem); line-height:1.1; letter-spacing:-.01em}
+header{padding-block:30px 6px}
+.kicker{font-size:.76rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--accent); margin-bottom:9px}
+.lede{color:var(--ink-soft); margin:10px 0 0}
+
+.card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
+  box-shadow:var(--shadow); padding:18px; margin-top:16px}
+.hint{color:var(--ink-faint); font-size:.9rem; margin:6px 0 0}
+
+input[type=text],select{
+  width:100%; font:inherit; font-size:17px; color:var(--ink); background:var(--bg);
+  border:2px solid var(--line-strong); border-radius:11px; padding:13px 14px;
+}
+input:focus,select:focus{outline:3px solid var(--accent-soft); outline-offset:1px;
+  border-color:var(--accent)}
+.filters{display:grid; grid-template-columns:repeat(auto-fit,minmax(9rem,1fr)); gap:10px;
+  margin-top:12px}
+.filters label, .flabel{display:block; font-size:.8rem; font-weight:700; color:var(--ink-soft);
+  text-transform:uppercase; letter-spacing:.06em; margin-bottom:5px}
+.filters > div{min-width:0}
+
+/* A year range is two fields that belong together, so they share one labelled box. */
+.years{display:flex; gap:8px; align-items:center}
+.years input{text-align:center}
+.years span{color:var(--ink-faint); font-size:.9rem; flex:none}
+
+/* The genres somebody has chosen. Each is removable, because a filter you cannot see or drop
+   is a filter that quietly changes every later search. */
+.chosen{display:flex; flex-wrap:wrap; gap:8px; margin-top:12px}
+.chosen:empty{display:none}
+.chosen button{
+  font:inherit; font-size:.9rem; font-weight:600; cursor:pointer;
+  display:inline-flex; align-items:center; gap:8px; min-height:40px;
+  padding:7px 11px 7px 13px; border-radius:999px;
+  background:var(--accent-soft); color:var(--accent); border:2px solid var(--accent);
+}
+.chosen button .x{font-size:1.15rem; line-height:1; font-weight:700}
+.chosen button:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
+
+/* Shown only when two or more genres are chosen, because with one it means nothing. */
+.combine{margin-top:12px}
+.combine:not([hidden]){display:block}
+.combine .opts{display:flex; gap:8px; flex-wrap:wrap}
+.combine .opts button{
+  flex:1 1 9rem; min-height:46px; font:inherit; font-size:.95rem; font-weight:600;
+  cursor:pointer; border-radius:11px; padding:11px 13px;
+  background:var(--card); color:var(--ink); border:2px solid var(--line-strong);
+}
+.combine .opts button[aria-pressed="true"]{background:var(--accent); color:var(--accent-ink);
+  border-color:var(--accent)}
+
+.actions{display:flex; gap:10px; flex-wrap:wrap; margin-top:16px}
+button.go{
+  flex:1 1 12rem; min-height:50px; font:inherit; font-size:1.02rem; font-weight:700;
+  cursor:pointer; border-radius:12px; padding:13px 16px;
+  background:var(--accent); color:var(--accent-ink); border:2px solid var(--accent);
+}
+button.go[disabled]{opacity:.55; cursor:default}
+button.plain{
+  flex:0 1 9rem; min-height:50px; font:inherit; font-size:.97rem; font-weight:600;
+  cursor:pointer; border-radius:12px; padding:13px 16px;
+  background:var(--card); color:var(--ink); border:2px solid var(--line-strong);
+}
+button.plain:hover, button.go:hover{border-color:var(--accent)}
+
+ul.hits{list-style:none; margin:14px 0 0; padding:0; display:grid; gap:12px}
+ul.hits > li{
+  display:grid; grid-template-columns:62px 1fr; gap:13px; align-items:start;
+  padding-top:12px; border-top:1px solid var(--line);
+}
+ul.hits > li:first-child{border-top:0; padding-top:0}
+.ttl{font-weight:700; font-family:Fraunces,Georgia,serif; font-size:1.08rem; line-height:1.25}
+.yr{color:var(--ink-faint); font-weight:400; font-size:.95rem}
+.orig{color:var(--ink-faint); font-size:.88rem; font-style:italic; margin-top:1px}
+.blurb{color:var(--ink-soft); font-size:.9rem; margin-top:5px}
+.meta{color:var(--ink-faint); font-size:.86rem; margin-top:4px}
+.genres{color:var(--ink-faint); font-size:.84rem; margin-top:3px}
+
+.tag{display:inline-block; margin-top:6px; margin-right:7px; font-size:.72rem; font-weight:700;
+  letter-spacing:.06em; text-transform:uppercase; border-radius:999px; padding:4px 10px;
+  border:1px solid currentColor}
+.tag.seen{background:var(--stop-soft); color:var(--stop)}
+.tag.picked{background:var(--warn-soft); color:var(--warn)}
+.tag.free{background:var(--ok-soft); color:var(--ok)}
+
+.banner{padding:13px 15px; border-radius:11px; font-size:.95rem; margin-top:14px;
+  border:1px solid currentColor}
+.banner.ok{background:var(--ok-soft); color:var(--ok)}
+.banner.warn{background:var(--warn-soft); color:var(--warn)}
+.banner.stop{background:var(--stop-soft); color:var(--stop)}
+.banner strong{display:block; margin-bottom:3px}
+.count{font-size:.86rem; color:var(--ink-faint); margin-top:12px}
+
+.more{margin-top:16px}
+.more button{width:100%; min-height:50px; font:inherit; font-size:1rem; font-weight:600;
+  cursor:pointer; border-radius:12px; padding:13px;
+  background:var(--card); color:var(--ink); border:2px solid var(--line-strong)}
+.more button:hover{border-color:var(--accent)}
+
+footer{margin-top:28px; color:var(--ink-faint); font-size:.82rem; text-align:center}
+footer a{color:var(--accent)}
+.sr{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0)}
+@media (max-width:420px){ .card{padding:15px} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="kicker">Family Movie Night</div>
+  <h1>Find a movie</h1>
+  <p class="lede">Looking for something to suggest? Search every film there is by genre, by
+    year, and by how long it runs. Nothing here is a commitment, and nothing is submitted.</p>
+  <nav class="fm-nav" id="topnav"></nav>
+</header>
+
+<div id="offwarn" hidden></div>
+
+<main>
+
+  <div class="card">
+
+    <div>
+      <label for="f-genre">Genre</label>
+      <select id="f-genre">
+        <option value="">Choose a genre to add</option>
+      </select>
+      <div class="chosen" id="chosen"></div>
+      <div class="combine" id="combine" hidden>
+        <span class="flabel">How should those genres go together?</span>
+        <div class="opts">
+          <button type="button" id="c-and" aria-pressed="true">All of them at once</button>
+          <button type="button" id="c-or" aria-pressed="false">Any one of them</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="filters">
+      <div>
+        <span class="flabel">Years</span>
+        <div class="years">
+          <input type="text" id="f-y1" inputmode="numeric" maxlength="4" placeholder="From"
+                 aria-label="Earliest year" autocomplete="off">
+          <span>to</span>
+          <input type="text" id="f-y2" inputmode="numeric" maxlength="4" placeholder="To"
+                 aria-label="Latest year" autocomplete="off">
+        </div>
+        <p class="hint">One on its own is fine.</p>
+      </div>
+      <div>
+        <label for="f-rt">No longer than</label>
+        <select id="f-rt"></select>
+      </div>
+      <div>
+        <label for="f-sort">Order</label>
+        <select id="f-sort"></select>
+      </div>
+      <div>
+        <label for="f-vc">How well known</label>
+        <select id="f-vc"></select>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button type="button" class="go" id="go">Find films</button>
+      <button type="button" class="plain" id="clear">Start over</button>
+    </div>
+
+    <div id="note"></div>
+    <p class="count" id="count"></p>
+    <ul class="hits" id="hits"></ul>
+    <div class="more" id="more" hidden><button type="button" id="moreBtn">Show more</button></div>
+
+  </div>
+
+</main>
+
+<div class="fm-hub" id="hub"></div>
+
+<footer>
+  <p id="foot"></p>
+  <p>Film data and posters from <a href="https://www.themoviedb.org/" target="_blank"
+     rel="noopener">TMDB</a>. This site uses the TMDB API but is not endorsed or certified by TMDB.</p>
+</footer>
+
+</div>
+
+<script src="config.js"></script>
+<script src="themes.js"></script>
+<script src="movies.js"></script>
+<script src="aliases.js"></script>
+<script src="awards.js"></script>
+<script src="extras.js"></script>
+<script src="thousand.js"></script>
+<script src="lib.js"></script>
+<script>
+/* =================================================================================================
+   FIND A MOVIE
+
+   Joe, 2026-11-16: "any movie that somebody's looking up to potentially want us to watch."
+
+   This page is the OPPOSITE of search.html. That one asks "have we watched this one film", against
+   the 356 films we ship. This one asks "what films are there like this", against every film TMDB
+   has, which is far too many to ship. So every search here is a live call through Joe's Apps
+   Script, which holds the TMDB key. The page never sees the key and never calls TMDB itself.
+
+   WHAT THIS PAGE WILL NOT DO
+     - It never invents a result. A failed call says so and shows nothing.
+     - It never silently drops a filter. The server refuses a filter it cannot read, and its own
+       sentence is shown as written, because a deliberate refusal is not a breakage.
+     - It never claims a film is new to us when the film list did not load. The "we watched this"
+       tags simply do not appear, and the page says why, rather than quietly reporting every film
+       as one we have never seen.
+================================================================================================= */
+(function () {
+"use strict";
+
+var $ = FM.$, el = FM.el;
+var CFG = window.FM_CONFIG || {};
+
+/* The runtime options. "Any" first, because most searches do not care. */
+var RUNTIMES = [
+  { v: "",    n: "Any length" },
+  { v: "90",  n: "90 minutes" },
+  { v: "100", n: "100 minutes" },
+  { v: "110", n: "110 minutes" },
+  { v: "120", n: "2 hours" },
+  { v: "150", n: "2.5 hours" },
+  { v: "180", n: "3 hours" }
+];
+
+/* Only the sorts Code.gs whitelists. Asking for one it does not know is refused, not ignored. */
+var SORTS = [
+  { v: "popularity.desc",           n: "Most talked about" },
+  { v: "vote_average.desc",         n: "Best rated" },
+  { v: "vote_count.desc",           n: "Most rated" },
+  { v: "primary_release_date.desc", n: "Newest first" },
+  { v: "primary_release_date.asc",  n: "Oldest first" },
+  { v: "title.asc",                 n: "Title, A to Z" },
+  { v: "revenue.desc",              n: "Biggest at the box office" }
+];
+
+/* The quality floor, in words rather than numbers, because "at least 50 votes" means nothing to
+   anybody. TMDB holds everything ever released, so with no floor a genre search returns films
+   nobody has heard of. */
+var KNOWN = [
+  { v: "1000", n: "Famous films only" },
+  { v: "50",   n: "Reasonably known" },
+  { v: "0",    n: "Include obscure films" }
+];
+var KNOWN_DEFAULT = "50";
+
+var state = {
+  genres: [],           // ids, in the order they were chosen
+  mode: "and",          // "and" -> comma, "or" -> pipe. TMDB's own behaviour.
+  page: 1,
+  pages: 0,
+  total: 0,
+  shown: 0,
+  lastQuery: null,      // the filters the results on screen actually came from
+  busy: false
+};
+
+/* ---------- building the controls ------------------------------------------------------------ */
+
+function fillSelect(id, items, selected) {
+  var sel = $(id);
+  items.forEach(function (o) {
+    var op = el("option", null, o.n);
+    op.value = o.v;
+    if (selected !== undefined && o.v === selected) op.selected = true;
+    sel.appendChild(op);
+  });
+}
+
+function buildGenreSelect() {
+  var sel = $("f-genre");
+  while (sel.options.length > 1) sel.remove(1);
+  FM.GENRES.forEach(function (g) {
+    if (state.genres.indexOf(g.id) > -1) return;    // already chosen; not offered twice
+    var op = el("option", null, g.n);
+    op.value = String(g.id);
+    sel.appendChild(op);
+  });
+  sel.value = "";
+}
+
+function drawChosen() {
+  var box = $("chosen");
+  box.textContent = "";
+  state.genres.forEach(function (id) {
+    var b = el("button");
+    b.type = "button";
+    b.appendChild(el("span", null, FM.genreName(id)));
+    b.appendChild(el("span", "x", "×"));
+    b.setAttribute("aria-label", "Remove " + FM.genreName(id));
+    b.addEventListener("click", function () {
+      state.genres = state.genres.filter(function (x) { return x !== id; });
+      buildGenreSelect();
+      drawChosen();
+    });
+    box.appendChild(b);
+  });
+  // The AND/OR question only exists once there are two genres to combine.
+  $("combine").hidden = state.genres.length < 2;
+}
+
+function setMode(m) {
+  state.mode = m;
+  $("c-and").setAttribute("aria-pressed", m === "and" ? "true" : "false");
+  $("c-or").setAttribute("aria-pressed", m === "or" ? "true" : "false");
+}
+
+/* ---------- reading the form ----------------------------------------------------------------- */
+
+/** Everything the server needs, or a refusal of our own. The page checks the two things it can
+ *  check locally, so the family gets an answer without waiting for a round trip. Everything
+ *  else is the server's job, and its wording is used. */
+function readForm() {
+  var y1 = $("f-y1").value.trim();
+  var y2 = $("f-y2").value.trim();
+
+  if (y1 && !/^[0-9]{4}$/.test(y1)) return { bad: "The first year needs to be four digits." };
+  if (y2 && !/^[0-9]{4}$/.test(y2)) return { bad: "The second year needs to be four digits." };
+  if (y1 && y2 && Number(y1) > Number(y2)) {
+    return { bad: "The first year is after the second one, so nothing could match." };
+  }
+
+  var q = {
+    sort: $("f-sort").value,
+    vc: $("f-vc").value
+  };
+  if (state.genres.length) {
+    q.g = state.genres.join(state.mode === "or" ? "|" : ",");
+  }
+  if (y1) q.y1 = y1;
+  if (y2) q.y2 = y2;
+  if ($("f-rt").value) q.rt = $("f-rt").value;
+  return { q: q };
+}
+
+function describe(q) {
+  var bits = [];
+  if (q.g) {
+    var names = q.g.split(/[,|]/).map(function (id) { return FM.genreName(id); });
+    bits.push(names.join(q.g.indexOf("|") > -1 ? " or " : " and "));
+  }
+  if (q.y1 && q.y2) bits.push(q.y1 + " to " + q.y2);
+  else if (q.y1) bits.push(q.y1 + " onwards");
+  else if (q.y2) bits.push("up to " + q.y2);
+  if (q.rt) bits.push("under " + q.rt + " minutes");
+  return bits.length ? bits.join(", ") : "every film";
+}
+
+/* ---------- what WE already know about a film ------------------------------------------------ */
+
+/* 🛑 This is the one claim on the page that could be wrong in a way nobody notices. If movies.js
+   did not load, every film would look new to us. So the tag is only drawn when the film list is
+   really there, and the page says plainly when it is not. */
+/* FM.dataOk is a BOOLEAN, not a function: lib.js sets it once from MOVIES.length against
+   EXPECTED_MIN. Calling it would throw and take the whole page down. */
+var DATA_OK = FM.dataOk;
+
+function ourTag(r) {
+  if (!DATA_OK) return null;
+  var hit = FM.lookup(r.t, r.y).exact;
+  if (!hit) return null;
+  if (String(hit.st) === "Watched") {
+    var who = hit.p ? " — " + hit.p + " picked it" : "";
+    var avg = hit.a ? ", we gave it " + hit.a : "";
+    return el("span", "tag seen", "We watched this" + who + avg);
+  }
+  return el("span", "tag picked", "Already picked for " + FM.seasonName(hit.s));
+}
+
+/* ---------- drawing ---------------------------------------------------------------------------- */
+
+function row(r) {
+  var li = el("li");
+  li.appendChild(FM.poster(r));
+
+  var body = el("div");
+  var t = el("div", "ttl", r.t);
+  if (r.y) t.appendChild(el("span", "yr", "  " + r.y));
+  body.appendChild(t);
+
+  if (r.orig) body.appendChild(el("div", "orig", r.orig));
+
+  var gs = (r.genres || []).map(function (id) { return FM.genreName(id); })
+                           .filter(function (n) { return n; });
+  if (gs.length) body.appendChild(el("div", "genres", gs.join(", ")));
+
+  // A score with no votes behind it is not a score, so the vote count is always beside it.
+  if (r.votes) {
+    body.appendChild(el("div", "meta",
+      r.score ? (Number(r.score).toFixed(1) + " out of 10 from "
+                 + Number(r.votes).toLocaleString() + " ratings on TMDB")
+              : (Number(r.votes).toLocaleString() + " ratings on TMDB")));
+  }
+
+  if (r.overview) body.appendChild(el("div", "blurb", r.overview));
+
+  var tag = ourTag(r);
+  if (tag) body.appendChild(tag);
+
+  li.appendChild(body);
+  return li;
+}
+
+function setCount() {
+  if (!state.total) { $("count").textContent = ""; return; }
+  $("count").textContent = "Showing " + state.shown + " of "
+    + Number(state.total).toLocaleString() + " films that match.";
+}
+
+function banner(kind, strong, rest) {
+  var b = el("div", "banner " + kind);
+  if (strong) b.appendChild(el("strong", null, strong));
+  if (rest) b.appendChild(document.createTextNode(rest));
+  return b;
+}
+
+/** Nothing matched. That is a real answer, not a failure, and the page says which filter is the
+ *  likely culprit rather than going blank and looking broken. */
+function nothingFound(q) {
+  var narrow = [];
+  if (q.rt) narrow.push("the length limit");
+  if (q.g && q.g.indexOf(",") > -1) narrow.push("asking for all those genres at once");
+  if (q.y1 && q.y2 && (Number(q.y2) - Number(q.y1)) <= 5) narrow.push("the narrow year range");
+  if (q.vc === "1000") narrow.push("limiting it to famous films");
+
+  var msg = "No films match " + describe(q) + ".";
+  if (narrow.length) {
+    msg += " The filter most likely to be doing that is " + narrow[0]
+         + (narrow.length > 1 ? ", and " + narrow[1] : "") + ". Try dropping it.";
+  } else {
+    msg += " Try widening one of the filters.";
+  }
+  $("note").textContent = "";
+  $("note").appendChild(banner("warn", "Nothing found.", " " + msg));
+}
+
+/* ---------- the search ------------------------------------------------------------------------ */
+
+function search(append) {
+  if (state.busy) return;
+
+  var read = append ? { q: state.lastQuery } : readForm();
+  if (read.bad) {
+    $("note").textContent = "";
+    $("note").appendChild(banner("warn", "Check that again.", " " + read.bad));
+    return;
+  }
+
+  var q = read.q;
+  if (!append) {
+    state.page = 1; state.shown = 0; state.total = 0; state.pages = 0;
+    state.lastQuery = q;
+    $("hits").textContent = "";
+    $("count").textContent = "";
+    $("more").hidden = true;
+  }
+  q.page = String(state.page);
+
+  state.busy = true;
+  $("go").disabled = true;
+  $("go").textContent = append ? "Find films" : "Looking...";
+  $("moreBtn").disabled = true;
+
+  FM.discover(q, function (st, d) {
+    if (st === "searching") return;
+
+    state.busy = false;
+    $("go").disabled = false;
+    $("go").textContent = "Find films";
+    $("moreBtn").disabled = false;
+
+    if (st === "off") {
+      $("note").textContent = "";
+      $("note").appendChild(banner("warn", "Finding films is not switched on yet.",
+        " Joe has one setup step left on his side. Nothing is wrong with what you typed, and "
+        + "trying again will not help."));
+      return;
+    }
+    if (st === "refused") {
+      // The server turned the filters down on purpose. Its own words, not ours.
+      $("note").textContent = "";
+      $("note").appendChild(banner("warn", "That search was not accepted.",
+        " " + (d.error || "No reason was given.")));
+      return;
+    }
+    if (st === "error") {
+      $("note").textContent = "";
+      $("note").appendChild(banner("stop", "That search did not go through.",
+        " Please check your signal and try again. Nothing was found and nothing was changed."));
+      return;
+    }
+
+    // st === "ok"
+    state.total = d.total || 0;
+    state.pages = d.pages || 0;
+    var rows = d.results || [];
+
+    if (!append && !rows.length) { nothingFound(q); return; }
+
+    $("note").textContent = "";
+
+    // If the server raised the vote floor on us, say so. It is showing something slightly
+    // different from what was asked, and the family should know that rather than wonder.
+    var ap = d.applied || {};
+    if (ap.votesRaisedForRatingSort) {
+      $("note").appendChild(banner("ok", "A note on the order.",
+        " Sorting by rating only means something when enough people have voted, so this is "
+        + "limited to films with at least " + ap.votesRaisedForRatingSort + " ratings. "
+        + "Otherwise a film with one perfect score would come top."));
+    }
+
+    var frag = document.createDocumentFragment();
+    rows.forEach(function (r) { frag.appendChild(row(r)); });
+    $("hits").appendChild(frag);
+    state.shown += rows.length;
+    setCount();
+
+    $("more").hidden = !(state.page < state.pages && state.shown < state.total);
+    state.page += 1;
+  });
+}
+
+/* ---------- wiring --------------------------------------------------------------------------- */
+
+fillSelect("f-rt", RUNTIMES);
+fillSelect("f-sort", SORTS);
+fillSelect("f-vc", KNOWN, KNOWN_DEFAULT);
+buildGenreSelect();
+drawChosen();
+
+$("f-genre").addEventListener("change", function () {
+  var v = this.value;
+  if (!v) return;
+  var id = Number(v);
+  if (state.genres.indexOf(id) < 0) state.genres.push(id);
+  buildGenreSelect();
+  drawChosen();
+});
+
+$("c-and").addEventListener("click", function () { setMode("and"); });
+$("c-or").addEventListener("click", function () { setMode("or"); });
+
+$("go").addEventListener("click", function () { search(false); });
+$("moreBtn").addEventListener("click", function () { search(true); });
+
+$("clear").addEventListener("click", function () {
+  state.genres = [];
+  setMode("and");
+  $("f-y1").value = ""; $("f-y2").value = "";
+  $("f-rt").value = ""; $("f-sort").value = SORTS[0].v; $("f-vc").value = KNOWN_DEFAULT;
+  state.page = 1; state.shown = 0; state.total = 0; state.pages = 0; state.lastQuery = null;
+  buildGenreSelect();
+  drawChosen();
+  $("hits").textContent = "";
+  $("note").textContent = "";
+  $("count").textContent = "";
+  $("more").hidden = true;
+});
+
+// Enter in either year box runs the search, because that is what Enter means in a form.
+["f-y1", "f-y2"].forEach(function (id) {
+  $(id).addEventListener("keydown", function (e) {
+    if (e.key === "Enter") { e.preventDefault(); search(false); }
+  });
+});
+
+/* If there is no endpoint at all, say so once at the top rather than at every attempt. */
+if (!CFG.endpoint) {
+  var w = $("offwarn");
+  w.hidden = false;
+  w.appendChild(banner("warn", "Finding films is not switched on yet.",
+    " This page needs Joe's lookup service, which is not connected."));
+}
+
+/* The one claim that could be quietly wrong, stated plainly when it applies. */
+if (!DATA_OK) {
+  var d2 = $("offwarn");
+  d2.hidden = false;
+  d2.appendChild(banner("warn", "Our own film list did not load.",
+    " Searching still works, but nothing below can tell you whether we have already watched a "
+    + "film. Reload the page to try again."));
+}
+
+/* The attribution itself is in the footer markup, the same wording every other page carries.
+   This line says what the page does with what you type, which is nothing. */
+$("foot").textContent = "Nothing on this page is submitted or saved. Searching here does not "
+  + "claim a film, and nobody else sees what you looked at.";
+
+})();
+</script>
+<script>
+/* The site's own navigation. The one copy of the destination list lives in lib.js,
+   so a page can never go missing from one menu while appearing in another. */
+FM.topnav("topnav", "find.html");
+FM.hub("hub", "find.html");
+</script>
+</body>
+</html>
