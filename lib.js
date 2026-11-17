@@ -642,6 +642,64 @@ window.FM = (function () {
     askAction("lists", { list: which, page: page || 1 }, onState);
   }
 
+  /* ---------- TMDB's credit, which is a requirement and not a courtesy ----------------------
+     Their API Terms of Use: "You must use the TMDB logo to identify Your use of TMDB, the TMDB
+     APIs, or TMDB Content." Until 2026-11-17 every page carried the sentence and no logo.
+
+     🛑 THE PENALTY IS THE KEY. TMDB state they revoke API access for non-compliance, and that
+        key powers the picks page, the search page, the find page, the trivia page and the
+        trending page. This is load-bearing, not decoration.
+
+     🔑 ONE FUNCTION, like FM.hub. Eleven copies of this markup would be eleven places to
+        forget, and a page added later would silently ship without it.
+
+     The logo file is TMDB's own approved asset, copied unaltered. It is never recoloured or
+     redrawn, and `alt` names them rather than describing the picture, because it IS the credit.
+  ---------------------------------------------------------------------------------------- */
+
+  /* The exact notice TMDB's API Terms of Use require, on one line so it can be searched for. */
+  var TMDB_NOTICE = "Film data and posters from TMDB. This site uses the TMDB API but is not endorsed or certified by TMDB.";
+
+  /* The second, separate requirement, from TMDB's own watch-provider reference. */
+  var JUSTWATCH_NOTICE = "Streaming availability data provided by JustWatch.";
+
+  function tmdbCredit(host, opts) {
+    var box = (typeof host === "string") ? $(host) : host;
+    if (!box) return 0;
+    opts = opts || {};
+    box.textContent = "";
+
+    var a = el("a", "fm-tmdb-logo");
+    a.href = "https://www.themoviedb.org/";
+    a.target = "_blank";
+    a.rel = "noopener";
+    var img = el("img");
+    img.src = "tmdb.svg";
+    img.alt = "TMDB";
+    img.width = 110;
+    img.height = 15;
+    img.loading = "lazy";
+    a.appendChild(img);
+    box.appendChild(a);
+
+    /* 🛑 ONE UNBROKEN STRING, DELIBERATELY, even though it runs long. This sentence is a
+       licence requirement, so anyone auditing compliance has to be able to find it with a
+       plain search. Split across a concatenation it is invisible to grep, and three separate
+       checks in this project failed on exactly that this evening. Do not re-wrap it. */
+    var p = el("p", "fm-tmdb-words");
+    p.appendChild(document.createTextNode(TMDB_NOTICE));
+    box.appendChild(p);
+
+    /* 🛑 A SECOND, SEPARATE REQUIREMENT, and the server decides when it applies. TMDB's own
+       reference for the watch-provider data: "In order to use this data you must attribute the
+       source of the data as JustWatch. If we find any usage not complying with these terms we
+       will revoke access to the API." Pages pass justwatch:true when they are showing it. */
+    if (opts.justwatch) {
+      box.appendChild(el("p", "fm-tmdb-words", JUSTWATCH_NOTICE));
+    }
+    return 1;
+  }
+
   function discover(params, onState) { askAction("discover", params, onState); }
 
   /** Films TMDB reckons are like this one.
@@ -2085,6 +2143,6 @@ window.FM = (function () {
     filterFilms: filterFilms, orderState: orderState, applyTrades: applyTrades,
     COLOURS: COLOURS, CLASHES: CLASHES, colourLabel: colourLabel,
     clashWith: clashWith, applyColours: applyColours, bootColours: bootColours,
-    LISTS: LISTS, lists: lists
+    LISTS: LISTS, lists: lists, tmdbCredit: tmdbCredit
   };
 })();

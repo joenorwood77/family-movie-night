@@ -182,8 +182,10 @@ footer a{color:var(--accent)}
     it for you. What this page does is the part IMDb will not: let you keep the ones you liked.</p>
   <!-- Required by TMDB's terms wherever their artwork appears. This page carried no
        attribution before 2026-11-16, because until then it showed no posters. -->
-  <p>Film data and posters from <a href="https://www.themoviedb.org/" target="_blank"
-     rel="noopener">TMDB</a>. This site uses the TMDB API but is not endorsed or certified by TMDB.</p>
+  <!-- TMDB's logo AND sentence, drawn by FM.tmdbCredit in lib.js. Their terms require the
+       logo, not only the words, and the stated penalty is losing the API key. One renderer,
+       so a page added later cannot ship without it. -->
+  <div class="fm-tmdb" id="tmdb"></div>
 </footer>
 </div>
 
@@ -597,6 +599,7 @@ paint();
    so a page can never go missing from one menu while appearing in another. */
 FM.topnav("topnav", "trivia.html");
 FM.hub("hub", "trivia.html");
+FM.tmdbCredit("tmdb");
 </script>
 </body>
 </html>

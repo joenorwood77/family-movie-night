@@ -178,6 +178,21 @@ header{padding-block:30px 6px}
 }
 
 /* ============================================================================================
+   TMDB'S CREDIT. Drawn by FM.tmdbCredit in site/lib.js; this is only how it looks.
+
+   🛑 The logo is TMDB's own approved asset and is NEVER recoloured, redrawn or filtered. Their
+      brand blue reads on both the light and the dark page, which is why no theme switch is
+      needed here. Do not add a filter to "fix" it for dark mode.
+   ============================================================================================ */
+
+.fm-tmdb{margin-top:18px; padding-top:14px; border-top:1px solid var(--line); text-align:center}
+.fm-tmdb-logo{display:inline-block; line-height:0; margin-bottom:8px}
+.fm-tmdb-logo img{width:110px; height:auto; display:block}
+.fm-tmdb-logo:focus-visible{outline:2px solid var(--accent); outline-offset:3px}
+.fm-tmdb-words{margin:0; color:var(--ink-faint); font-size:.78rem; line-height:1.5}
+.fm-tmdb-words + .fm-tmdb-words{margin-top:4px}
+
+/* ============================================================================================
    THE FAMILY COLOUR PALETTE - THE ONE COPY.
    Loaded by index.html, search.html and picks.html. Each page keeps its own layout CSS; only
    the colours and the rating components live here.
