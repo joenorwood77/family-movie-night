@@ -196,6 +196,24 @@ $("h1").textContent = SEASON + " movie picks";
 $("lede").textContent = "Pick your name, choose which slot you are filling, then find the film. "
   + "Nothing is saved until you press the button on the one you want.";
 
+/* 🛑 THE DEADLINE, ADDED 2026-11-17. Until today this page showed NO date at all, so
+   whatever date Joe's message named was invisible on the one page where picks are submitted.
+   Both dates come out of config.js through FM.dueText and FM.startText, the same two functions
+   index.html uses, so the two pages cannot name different days. Nothing is typed in here, and
+   a date config.js leaves empty prints nothing rather than half a sentence.
+
+   ⚠ THIS IS THE DEADLINE FOR THE SEASON'S ORDINARY PICKS. Birthday films are exempt and
+   say so further down the page, which is Joe's own rule from 2026-10-22 and not an oversight;
+   scripts/check_birthdays.py asserts that exemption is still worded on the page. */
+var dueTxt = FM.dueText(), startTxt = FM.startText();
+if (dueTxt) {
+  $("lede").appendChild(el("strong", null,
+    " Due " + dueTxt + ", the same day as the categories."));
+}
+if (startTxt) {
+  $("lede").appendChild(document.createTextNode(" " + SEASON + " starts " + startTxt + "."));
+}
+
 if (!CFG.endpoint){
   var sn = $("setup");
   sn.hidden = false;

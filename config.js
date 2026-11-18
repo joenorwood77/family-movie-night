@@ -16,7 +16,14 @@ window.FM_CONFIG = {
   // being sick". Sunday either way.
   // Moved back ANOTHER week on 2026-11-16. Joe: "pushed back one more week in our
   // schedule". Sunday either way, so the deadline still lands on a Sunday.
-  due: "2026-11-29",
+  // 🛑 LOCKED BY JOE ON 2026-11-17, and this is not another slip. It is the first time
+  // the CATEGORIES and the MOVIE PICKS have one shared date: both due Tuesday 2026-12-08.
+  // ⚠ IT STOPS BEING A SUNDAY, after three straight Sunday deadlines, so nothing may
+  // assume one. `seasonStart` was already Tue 2026-12-15 and does NOT move, which leaves a
+  // full week between the two and room over check_schedule's three-day floor.
+  // 🔑 index.html AND picks.html both print this one value as of today; picks.html
+  // had never shown a date at all. Neither formats it itself: see FM.dueText in lib.js.
+  due: "2026-12-08",
   themesPerPerson: 2,
 
   /* Birthday movie nights are worked out from these.

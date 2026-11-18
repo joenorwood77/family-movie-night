@@ -779,6 +779,35 @@ window.FM = (function () {
       { weekday: "short", month: "long", day: "numeric", year: "numeric" });
   }
 
+  /* ---------- the family's two dates, formatted in ONE place ---------------------------------
+     🛑 TWO PAGES NAME THE DEADLINE NOW, SO THE FORMATTING CANNOT LIVE ON EITHER OF THEM.
+     index.html held the only copy until 2026-11-17, the day Joe locked the categories and the
+     movie picks to the SAME date and picks.html finally had something to show. A second
+     hand-written copy of `new Date(iso + "T12:00:00").toLocaleDateString(...)` is exactly how
+     this project got four stale menus and two palettes, and what drifts here is the one date
+     the family acts on: they would read two different deadlines depending on which page they
+     opened, with nothing reporting it.
+
+     🔑 parseDay is the site's one local-noon parser, so a timezone can never shift the
+     day. "2026-12-08" parsed as UTC prints the 7th for everyone west of London, which is a
+     deadline a day early for the whole family.
+
+     Returns null when config.js leaves the field empty on purpose, and when it holds something
+     unparseable, so a caller prints nothing rather than the words "Invalid Date". A caller must
+     branch on it; neither page assumes a string.
+  ------------------------------------------------------------------------------------------- */
+  function longDay(iso) {
+    var d = parseDay(iso);
+    return d ? d.toLocaleDateString(undefined,
+      { weekday: "long", month: "long", day: "numeric" }) : null;
+  }
+
+  /** The deadline the family sees, straight out of config.js. Null hides it. */
+  function dueText() { return longDay(CFG.due); }
+
+  /** The season's first film, same source, same contract. */
+  function startText() { return longDay(CFG.seasonStart); }
+
   /* ---------- the rating block ---------------------------------------------------------------
      Joe's layout, settled 2026-10-22 after five rounds: the TIGHTEST card, a big group average
      with NO "/5", four people as compact chips, then the three outside sources. Colour is
@@ -2131,6 +2160,7 @@ window.FM = (function () {
     sleeperTickets: sleeperTickets, filmKey: filmKey, avgOf: avgOf, seasonFilms: seasonFilms,
     nearestNight: nearestNight, birthdayNights: birthdayNights,
     birthdaysFor: birthdaysFor, niceDate: niceDate,
+    longDay: longDay, dueText: dueText, startText: startText,
     $: $, el: el,
     norm: norm, compact: compact, noart: noart,
     lookup: lookup, seasonName: seasonName,

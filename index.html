@@ -339,28 +339,28 @@ function save(){
 
 /* ---------- header and footer ---------- */
 $("h-title").textContent = SEASON + " category picks";
-if (CFG.due){
-  var d = new Date(CFG.due + "T12:00:00");
-  if (!isNaN(d)){
-    var due = d.toLocaleDateString(undefined, { weekday:"long", month:"long", day:"numeric" });
-    $("h-lede").appendChild(el("strong", null, " Due " + due + "."));
-  }
-}
+/* 🛑 THE DATE IS FORMATTED IN lib.js, NOT HERE, as of 2026-11-17. picks.html prints
+   the same deadline from the same function from today, and two copies drift. */
+var dueTxt = FM.dueText();
+if (dueTxt) $("h-lede").appendChild(el("strong", null, " Due " + dueTxt + "."));
 
 /* WHAT HAPPENS NEXT. Before 2026-11-15 this page named the deadline and nothing else: it never
    said when the season actually begins, nor that movie picks are the step AFTER categories. Both
    are read from config.js, so neither can go stale on its own. */
-if (CFG.seasonStart){
-  var sd = new Date(CFG.seasonStart + "T12:00:00");
-  if (!isNaN(sd)){
-    var startTxt = sd.toLocaleDateString(undefined, { weekday:"long", month:"long", day:"numeric" });
-    /* 🛑 ORDER MATTERS HERE, and the first attempt got it wrong. It read "Season 5 starts
-       Tuesday, December 8, and movie picks come next", which Joe read as picks happening AFTER
-       the 8th. Naming the next step FIRST, right after the deadline it follows, removes the
-       ambiguity: "that" can only mean the due date it sits beside. */
-    $("h-lede").appendChild(document.createTextNode(" Movie picks come after that. " + SEASON
-      + " starts " + startTxt + "."));
-  }
+var startTxt = FM.startText();
+if (startTxt){
+  /* 🛑 ORDER MATTERS HERE, and the first attempt got it wrong. It read "Season 5 starts
+     Tuesday, December 8, and movie picks come next", which Joe read as picks happening AFTER
+     that date. Naming the next step FIRST, right after the deadline it follows, removes the
+     ambiguity: "that" can only mean the due date it sits beside.
+
+     ⚠ AND THE SENTENCE CHANGED AGAIN ON 2026-11-17, because the FACT under it changed.
+     "Movie picks come after that" was true while the picks deadline was a later week. Joe
+     locked both to Tuesday 2026-12-08, so that wording now tells the family they still have
+     time once their categories are in. It is the same class of bug as a stale menu: nothing
+     breaks, and the page quietly says something untrue. */
+  $("h-lede").appendChild(document.createTextNode(" Movie picks are due the same day. " + SEASON
+    + " starts " + startTxt + "."));
 }
 $("foot").textContent = "Each person picks " + NFIELDS + " categories that have never been used before. "
   + THEMES.length + " themes have been used across Seasons 1 to 4.";
