@@ -12,17 +12,41 @@
 window.FM_CONFIG = {
   endpoint: "https://script.google.com/macros/s/AKfycbz3AWj7YSsOYhp3DLGvLr-Vv1gaZDl6G1MFY0XJIb5P3IFjmqT9_xfznT_fgRYxFqcr/exec",
   season: "Season 5",
-  // Moved back one week on 2026-11-15. Joe: "we pushed everything back 1 week due to mom
-  // being sick". Sunday either way.
-  // Moved back ANOTHER week on 2026-11-16. Joe: "pushed back one more week in our
-  // schedule". Sunday either way, so the deadline still lands on a Sunday.
-  // 🛑 LOCKED BY JOE ON 2026-11-17, and this is not another slip. It is the first time
-  // the CATEGORIES and the MOVIE PICKS have one shared date: both due Tuesday 2026-12-08.
-  // ⚠ IT STOPS BEING A SUNDAY, after three straight Sunday deadlines, so nothing may
-  // assume one. `seasonStart` was already Tue 2026-12-15 and does NOT move, which leaves a
-  // full week between the two and room over check_schedule's three-day floor.
-  // 🔑 index.html AND picks.html both print this one value as of today; picks.html
-  // had never shown a date at all. Neither formats it itself: see FM.dueText in lib.js.
+  /* -------------------------------------------------------------------------------------
+     THE TWO DATES THE FAMILY SEES: `due` here, and `seasonStart` below.
+
+     🛑 CHANGE THEM WITH THE SCRIPT, NOT BY HAND:
+
+         python scripts/shift_dates.py 1        push everything back one week
+         python scripts/shift_dates.py -1       pull it a week forward
+         python scripts/shift_dates.py --due 2026-12-08 --start 2026-12-15
+         python scripts/shift_dates.py --show   print what is set now, change nothing
+
+     It keeps the weekday, REFUSES a pair that breaks the schedule rules, runs the suite,
+     puts the old file back if the suite fails, prints the sentence the family will read,
+     and adds one line to the log below. Add --deploy to ship it in the same command.
+
+     🔑 BOTH PAGES READ THESE AND NEITHER FORMATS THEM. index.html and picks.html
+     call FM.dueText and FM.startText in lib.js, so the two pages cannot name different
+     days. Nothing else in the project holds either date, `Code.gs` included, which is why
+     a date change has never needed an Apps Script redeploy and never will.
+
+     ⚠ THE DEADLINE IS NOT ALWAYS A SUNDAY. It was one three times running and then was
+     not. Nothing may assume a weekday for it; the suite checks it against `seasonStart`.
+
+     DATE HISTORY, newest first. One line each, nothing dropped.
+       2026-11-17  due 11/29 -> 12/8. LOCKED by Joe: the categories and the movie picks now
+                   share one date, and picks.html began showing it the same day, having
+                   never shown a date at all. seasonStart unchanged. First deadline that is
+                   not a Sunday.
+       2026-11-16  due 11/22 -> 11/29, start 12/8 -> 12/15. Joe: "pushed back one more week
+                   in our schedule."
+       2026-11-14  due 11/15 -> 11/22, start 12/1 -> 12/8. Joe: "we pushed everything back
+                   1 week due to mom being sick." (The comment this log replaces dated this
+                   11/15; the commit is 11/14. git is the authority.)
+       2026-11-12  due 11/1 -> 11/15. The original 11/1 deadline had passed with nobody
+                   having submitted anything, because the link had not gone out yet.
+  ------------------------------------------------------------------------------------- */
   due: "2026-12-08",
   themesPerPerson: 2,
 
@@ -35,11 +59,9 @@ window.FM_CONFIG = {
    *                inside it. Approximate on purpose: skipped weeks push the real end later.
    *   birthdays    month and day. Joe 10/16, Juli 10/13, Miriam 2/3, Kathy 3/29.
    */
-  // Moved back one week with the deadline above, same reason, 2026-11-15. This SETTLES
-  // what the records had carried as "most likely" since Joe's note of 11/10. Tuesday
-  // either way, so the movie night does not change.
-  // Moved back another week with the deadline above, same reason, 2026-11-16.
-  // Tuesday either way, so the movie night still does not change.
+  // Moves WITH `due` when shift_dates.py pushes a week, and keeps its weekday by
+  // construction. The history for both dates is the one log above; it settles what the
+  // records had carried as "most likely" since Joe's note of 2026-11-10.
   seasonStart: "2026-12-15",
   movieNight: 2,
   weeks: 70,
