@@ -1788,7 +1788,10 @@ window.FM = (function () {
   function k1001Progress(films) {
     var list = films || MOVIES, on = 0, never = 0;
     list.forEach(function (m) {
-      var r = on1001(m.t, m.y, m.i);
+      // `tt`, not `i`: a film record in movies.js has never had an `i` field, so this
+      // counted on titles and years alone until 2026-11-20 and missed seven films whose
+      // title differs between the two sources (Seven against Se7en, and six more).
+      var r = on1001(m.t, m.y, m.tt);
       if (r && r.film && r.film.u) {
         on++;
         if (r.film.all) never++;

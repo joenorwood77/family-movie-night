@@ -339,7 +339,9 @@ function drawMovies(){
     // Renders nothing at all when the payload ships without ratings, which is the public
     // build's deliberate state. Never assume the block appeared.
     FM.ratings(box, m);
-    FM.badge1001(box, m.t, m.y, m.i || null);
+    // The id field in movies.js is `tt`, not `i`. This asked for `m.i` until 2026-11-20,
+    // so it always passed null and the badge fell back to matching on title and year.
+    FM.badge1001(box, m.t, m.y, m.tt || null);
     box.appendChild(letterboxd(m.t, m.y));
     li.appendChild(box);
     ul.appendChild(li);
