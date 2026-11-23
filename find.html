@@ -153,6 +153,29 @@ ul.pick-hits .py{color:var(--ink-faint); font-weight:400; font-size:.92rem}
   color:var(--ink); border:2px solid var(--line-strong)}
 .whochip .warn{color:var(--ink-soft); font-size:.84rem; margin:10px 0 0}
 
+/* Family fit (Option C): a guess from the family's OWN past ratings, shown as words, never as a
+   score. Names use each person's chosen colour, which already clears 4.5:1 in both themes. */
+.fit{margin-top:8px; font-size:.92rem; color:var(--ink)}
+.fit b{font-weight:700}
+.fitwho{display:flex; flex-wrap:wrap; gap:3px 14px; font-size:.86rem; color:var(--ink-soft);
+  margin-top:3px}
+.fitwho b{font-weight:700}
+.sortby{margin-top:14px}
+.sortby .opts{display:flex; gap:8px; flex-wrap:wrap}
+.sortby .opts button{
+  flex:1 1 9rem; min-height:46px; font:inherit; font-size:.95rem; font-weight:600;
+  cursor:pointer; border-radius:11px; padding:11px 13px;
+  background:var(--card); color:var(--ink); border:2px solid var(--line-strong);
+}
+.sortby .opts button[aria-pressed="true"]{background:var(--accent); color:var(--accent-ink);
+  border-color:var(--accent)}
+details.taste{margin-top:16px; padding-top:14px; border-top:1px solid var(--line)}
+details.taste > summary{cursor:pointer; font-weight:700; color:var(--accent); min-height:44px;
+  display:flex; align-items:center}
+details.taste h3{font-size:1.02rem; margin-top:14px}
+details.taste p{margin:4px 0 0; font-size:.92rem; color:var(--ink)}
+details.taste .hint{color:var(--ink-soft)}
+
 .more{margin-top:16px}
 .more button{width:100%; min-height:50px; font:inherit; font-size:1rem; font-weight:600;
   cursor:pointer; border-radius:12px; padding:13px;
@@ -255,6 +278,17 @@ footer a{color:var(--accent)}
     <div id="l-note"></div>
     <ul class="pick-hits" id="lhits"></ul>
     <div id="picked"></div>
+    <div class="sortby" id="sortby" hidden>
+      <span class="flabel">Order the suggestions</span>
+      <div class="opts">
+        <button type="button" id="s-tmdb" aria-pressed="true">TMDB's order</button>
+        <button type="button" id="s-fit" aria-pressed="false">Best family fit first</button>
+      </div>
+    </div>
+    <details class="taste" id="taste" hidden>
+      <summary>What our own ratings say about our taste</summary>
+      <div id="tastebody"></div>
+    </details>
   </div>
   </section>
 
@@ -286,6 +320,7 @@ footer a{color:var(--accent)}
 <script src="awards.js"></script>
 <script src="extras.js"></script>
 <script src="thousand.js"></script>
+<script src="taste.js"></script>
 <script src="lib.js"></script>
 <script>
 /* =================================================================================================
@@ -358,6 +393,8 @@ var state = {
   total: 0,
   shown: 0,
   lastQuery: null,      // the filters the results on screen actually came from
+  likeRows: [],         // every suggestion loaded so far, in TMDB's own order
+  likeOrder: "tmdb",    // "tmdb" or "fit"
   busy: false
 };
 
@@ -507,8 +544,147 @@ function row(r) {
   var tag = ourTag(r);
   if (tag) body.appendChild(tag);
 
+  if (state.view === "like") {
+    var fit = fitBlock(r);
+    if (fit) body.appendChild(fit);
+  }
+
   li.appendChild(body);
   return li;
+}
+
+/* ---------- family fit (Option C) --------------------------------------------------------------
+   🛑 A GUESS FROM OUR OWN PAST RATINGS, AND IT SAYS SO. Words, never a number dressed as a
+      rating. Every guess names what it is based on, so nobody has to take it on trust.
+   🛑 NOTHING TO GO ON IS SAID OUT LOUD, never shown as "About average". */
+function fitBlock(r) {
+  if (!FM.tasteOk()) return null;
+  var fam = FM.tasteFit(r, "Family");
+  var box = el("div");
+  var line = el("div", "fit");
+  if (!fam) {
+    line.appendChild(document.createTextNode(
+      "Family fit: not enough in our own ratings to guess about this one."));
+    box.appendChild(line);
+    return box;
+  }
+  line.appendChild(document.createTextNode("Family fit: "));
+  line.appendChild(el("b", null, fam.band));
+  if (fam.why.length) {
+    line.appendChild(document.createTextNode(" (" + fam.why.map(whyText).join(", ") + ")"));
+  }
+  box.appendChild(line);
+
+  var who = el("div", "fitwho");
+  FM.PEOPLE.forEach(function (p) {
+    var f = FM.tasteFit(r, p);
+    var s = el("span");
+    s.appendChild(el("b", "fm-p-" + p, p));
+    s.appendChild(document.createTextNode(" " + (f ? f.band : "no guess")));
+    who.appendChild(s);
+  });
+  box.appendChild(who);
+  return box;
+}
+
+/** "Crime rated higher" / "the 1970s rated lower", so a reason reads as a reason. */
+function whyText(p) {
+  return p.label + (p.s >= 0 ? " rated higher" : " rated lower");
+}
+
+/** The suggestions in whichever order was chosen. TMDB's own order is the default, because it is
+ *  theirs and it is what the count describes. Sorting only reorders what is already loaded, and
+ *  the count line says so, so nobody thinks the whole list was searched. */
+function drawLike() {
+  var rows = state.likeRows.slice();
+  if (state.likeOrder === "fit" && FM.tasteOk()) {
+    rows = rows.map(function (r, i) {
+      var f = FM.tasteFit(r, "Family");
+      return { r: r, i: i, s: f ? f.score : null };
+    }).sort(function (a, b) {
+      // A film with no guess goes last, never in the middle as if it were average.
+      if (a.s === null && b.s === null) return a.i - b.i;
+      if (a.s === null) return 1;
+      if (b.s === null) return -1;
+      return (b.s - a.s) || (a.i - b.i);
+    }).map(function (x) { return x.r; });
+  }
+  $("hits").textContent = "";
+  var frag = document.createDocumentFragment();
+  rows.forEach(function (r) { frag.appendChild(row(r)); });
+  $("hits").appendChild(frag);
+  var line = "Showing " + state.shown + " of " + Number(state.total).toLocaleString()
+           + " suggestions.";
+  if (state.likeOrder === "fit") {
+    line += " Sorted by family fit among the " + state.shown + " loaded so far.";
+  }
+  $("count").textContent = line;
+}
+
+function setLikeOrder(o) {
+  state.likeOrder = o;
+  $("s-tmdb").setAttribute("aria-pressed", o === "tmdb" ? "true" : "false");
+  $("s-fit").setAttribute("aria-pressed", o === "fit" ? "true" : "false");
+  if (state.likeRows.length) drawLike();
+}
+
+function fmtGap(s) {
+  var v = Math.abs(s).toFixed(1);
+  if (v === "0.0") return "about their usual";
+  return v + (s > 0 ? " above" : " below") + " their usual";
+}
+
+/** The profile itself, so the family can see what every guess is built from. */
+function drawTaste() {
+  var box = $("tastebody");
+  box.textContent = "";
+  if (!FM.tasteOk()) return;
+  var T = FM.TASTE;
+  box.appendChild(el("p", "hint",
+    "Worked out from " + T.used.ratings.toLocaleString() + " of our own ratings on "
+    + T.used.films + " films. Each person is compared with their OWN average, so a tough rater "
+    + "and a generous one count the same. Small groups of films are pulled toward the middle, "
+    + "and anything with too few films is left out. TV series are not included."));
+
+  function pick(map, names, dir) {
+    return Object.keys(map).map(function (k) {
+      return { label: names ? (names[k] || k) : k, s: map[k].s, n: map[k].n };
+    }).filter(function (x) { return dir > 0 ? x.s > 0.05 : x.s < -0.05; })
+      .sort(function (a, b) { return dir > 0 ? b.s - a.s : a.s - b.s; })
+      .slice(0, 3);
+  }
+  function list(xs) {
+    return xs.map(function (x) {
+      return x.label + " (" + fmtGap(x.s) + ", " + x.n + " films)";
+    }).join("; ");
+  }
+
+  FM.TASTE_WHO.forEach(function (w) {
+    var p = T.people[w];
+    if (!p) return;
+    var h = el("h3");
+    if (w === "Family") h.textContent = "All four together";
+    else h.appendChild(el("span", "fm-p-" + w, w));
+    box.appendChild(h);
+    if (p.avg) box.appendChild(el("p", "hint", "Usual rating " + p.avg.toFixed(2) + ", from "
+                                   + p.rated + " films."));
+    var gu = pick(p.genre, T.genreNames, 1), gd = pick(p.genre, T.genreNames, -1);
+    var du = pick(p.decade, null, 1), dd = pick(p.decade, null, -1);
+    if (gu.length) box.appendChild(el("p", null, "Rates higher: " + list(gu)));
+    if (gd.length) box.appendChild(el("p", null, "Rates lower: " + list(gd)));
+    if (du.length || dd.length) {
+      box.appendChild(el("p", null, "Decades: " + list(du.concat(dd))));
+    }
+    var da = (p.director && p.director.above) || [], db = (p.director && p.director.below) || [];
+    if (da.length) {
+      box.appendChild(el("p", null, "Directors rated higher: " + da.slice(0, 3).map(function (x) {
+        return x.v + " (" + x.n + " films)"; }).join(", ")));
+    }
+    if (db.length) {
+      box.appendChild(el("p", null, "Directors rated lower: " + db.slice(0, 3).map(function (x) {
+        return x.v + " (" + x.n + " films)"; }).join(", ")));
+    }
+  });
 }
 
 function setCount() {
@@ -669,6 +845,7 @@ function clearResults() {
   $("more").hidden = true;
   $("resultcard").hidden = true;
   state.page = 1; state.shown = 0; state.total = 0; state.pages = 0;
+  state.likeRows = [];
 }
 
 /* ---------- films like one I love ------------------------------------------------------------- */
@@ -732,11 +909,14 @@ function chooseLikeFilm(r) {
   again.addEventListener("click", function () {
     state.likeFilm = null;
     box.textContent = "";
+    $("sortby").hidden = true;
     clearResults();
     $("lq").focus();
   });
   row2.appendChild(again);
   box.appendChild(row2);
+  // The order choice only means something once there is a list, and only with a profile.
+  $("sortby").hidden = !FM.tasteOk();
 
   likeSearch(false);
 }
@@ -790,15 +970,14 @@ function likeSearch(append) {
     if (!append) {
       $("note").appendChild(banner("ok", "These are TMDB's suggestions.",
         " They come from what people who liked " + state.likeFilm.t + " also liked. We did not "
-        + "work them out, so treat them as a starting point rather than a verdict."));
+        + "work them out, so treat them as a starting point rather than a verdict."
+        + (FM.tasteOk() ? " The family fit under each one IS ours: a guess from our own past "
+           + "ratings, based only on its genres, decade and language." : "")));
     }
 
-    var frag = document.createDocumentFragment();
-    rows.forEach(function (r) { frag.appendChild(row(r)); });
-    $("hits").appendChild(frag);
+    state.likeRows = state.likeRows.concat(rows);
     state.shown += rows.length;
-    $("count").textContent = "Showing " + state.shown + " of "
-      + Number(state.total).toLocaleString() + " suggestions.";
+    drawLike();
 
     $("more").hidden = !(state.page < state.pages && state.shown < state.total);
     state.page += 1;
@@ -1078,6 +1257,12 @@ $("moreBtn").addEventListener("click", function () {
 Array.prototype.forEach.call($("views").getElementsByTagName("button"), function (b) {
   b.addEventListener("click", function () { showView(b.getAttribute("data-view")); });
 });
+
+// Family fit (Option C). With no taste.js both controls stay hidden and the tab works exactly
+// as it did before, so a missing file can never break the page.
+$("s-tmdb").addEventListener("click", function () { setLikeOrder("tmdb"); });
+$("s-fit").addEventListener("click", function () { setLikeOrder("fit"); });
+if (FM.tasteOk()) { drawTaste(); $("taste").hidden = false; }
 
 // The film picker reuses the debounced title search that has run the picks page for weeks.
 FM.liveSearch($("lq"), 2, drawPickHits);

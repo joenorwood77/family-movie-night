@@ -704,9 +704,79 @@ window.FM = (function () {
 
   /** Films TMDB reckons are like this one.
    *  🛑 It is TMDB's judgement, not ours. Any page showing these must say so: we do not compute
-   *     similarity and must never look as though we did. */
+   *     similarity and must never look as though we did. What we DO compute is tasteFit below,
+   *     which is a different question and is labelled as ours. */
   function similar(tmdbId, page, onState) {
     askAction("similar", { id: tmdbId, page: page || 1 }, onState);
+  }
+
+  /* ---------- family fit: Option C, built on the family's own ratings ------------------------
+     Joe: "OK OPTION C", and again 2026-11-22. site/taste.js says, per person and for the family,
+     which genres, decades and languages they rate above or below THEIR OWN average. The maths
+     that made it is scripts/taste.py, the one copy; this only adds up the parts that apply to
+     one suggested film.
+
+     🛑 IT IS A GUESS FROM PAST RATINGS AND IS NEVER SHOWN AS A RATING. No "you would give it
+        4.1". It comes out as words ("Good fit") plus the reasons, so nobody mistakes it for a
+        score somebody actually gave.
+     🛑 NOTHING TO GO ON IS NOT AVERAGE. A film whose genres, decade and language the profile
+        knows nothing about returns null, and the page says so, rather than calling it "About
+        average", which would be a claim with no evidence behind it.
+     ⚠ Only genre, decade and language are used, because those are the only things a TMDB
+        suggestion arrives with. Directors are in the profile for READING. Keywords are
+        deliberately not published at all; scripts/taste.py says why. */
+  var TASTE = window.FM_TASTE || null;
+  var TASTE_WHO = ["Family", "Joe", "Juli", "Kathy", "Miriam"];
+  var FIT_BANDS = [
+    { min: 0.25,      n: "Strong fit" },
+    { min: 0.08,      n: "Good fit" },
+    { min: -0.08,     n: "About average" },
+    { min: -Infinity, n: "Not usually their thing" }
+  ];
+
+  function tasteOk() {
+    return !!(TASTE && TASTE.people && TASTE.people.Family);
+  }
+
+  function tasteFit(r, who) {
+    if (!tasteOk() || !r) return null;
+    var prof = TASTE.people[who];
+    if (!prof) return null;
+    var parts = [];
+
+    var gs = [];
+    (r.genres || []).forEach(function (id) {
+      var g = prof.genre[String(id)];
+      if (g) gs.push({ label: (TASTE.genreNames[String(id)] || genreName(id)), s: g.s, n: g.n });
+    });
+    var genreSum = 0;
+    if (gs.length) {
+      // The AVERAGE of the film's genres, not the sum, so a film tagged with five genres does
+      // not count five times as strongly as a film tagged with one.
+      gs.forEach(function (g) { genreSum += g.s; });
+      genreSum = genreSum / gs.length;
+      gs.forEach(function (g) { parts.push({ kind: "genre", label: g.label, s: g.s, n: g.n }); });
+    }
+
+    var y = parseInt(String(r.y || "").slice(0, 4), 10);
+    var dec = isNaN(y) ? null : (Math.floor(y / 10) * 10) + "s";
+    var d = dec && prof.decade[dec];
+    if (d) parts.push({ kind: "decade", label: "the " + dec, s: d.s, n: d.n });
+
+    var lg = r.lang ? (r.lang === "en" ? "English" : "Not in English") : null;
+    var l = lg && prof.lang[lg];
+    // English is the default for almost everything they watch, so it is only worth naming when
+    // the film is NOT in English.
+    if (l) parts.push({ kind: "lang", label: lg === "English" ? "English" : "not in English",
+                        s: l.s, n: l.n, quiet: lg === "English" });
+
+    if (!parts.length) return null;
+    var score = genreSum + (d ? d.s : 0) + (l ? l.s : 0);
+    var band = FIT_BANDS.filter(function (b) { return score >= b.min; })[0].n;
+    var why = parts.filter(function (p) { return !p.quiet; })
+                   .sort(function (a, b) { return Math.abs(b.s) - Math.abs(a.s); });
+    return { who: who, score: Math.round(score * 1000) / 1000, band: band, parts: parts,
+             why: why.slice(0, 2) };
   }
 
   /** The people a typed name could mean. The page asks which one; it never picks for them. */
@@ -2173,6 +2243,8 @@ window.FM = (function () {
     tmdb: tmdb, liveSearch: liveSearch,
     GENRES: GENRES, genreName: genreName, discover: discover,
     askAction: askAction, similar: similar, person: person, credits: credits,
+    TASTE: TASTE, TASTE_WHO: TASTE_WHO, FIT_BANDS: FIT_BANDS, tasteOk: tasteOk,
+    tasteFit: tasteFit,
     filterFilms: filterFilms, orderState: orderState, applyTrades: applyTrades,
     COLOURS: COLOURS, CLASHES: CLASHES, colourLabel: colourLabel,
     clashWith: clashWith, applyColours: applyColours, bootColours: bootColours,
