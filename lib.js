@@ -1849,9 +1849,129 @@ window.FM = (function () {
     }
     var d = el("div", "k1001" + (r.numbered ? "" : " k-held"));
     d.appendChild(el("strong", null, "On the 1001 Movies list"));
-    d.appendChild(document.createTextNode(" · " + r.scope));
+    // By the STATUS of each book, agreed 11/23. The old "in N of the 10 numbered editions"
+    // treated likely and pending books as proven.
+    d.appendChild(document.createTextNode(" · " + k1001Line(r.film)));
     box.appendChild(d);
     return true;
+  }
+
+  /* ---------- the 1001 page: books, statuses, what each added and dropped ---------------------
+     Layout agreed 2026-11-23 between this chat and the 1001 movies chat (CONFIRMED.md item 168).
+     🛑 Every edition is SHOWN, clearly labelled (Joe 11/22: "show them all"). Nothing here
+        hides one; a page may offer a switch to hide unconfirmed books, off by default.
+     🛑 Every count comes from the shipped file. A book with no recorded total says so in
+        words; nothing here ever writes "1,001" or any other fixed number.
+     `e` on a film is a bitmask over K.meta.english, in that order. build_site.py proves the
+     packing lost nothing. */
+  var STATUS_WORD = { confirmed: "Confirmed", likely: "Likely", pending: "Pending" };
+  var STATUS_KEY = [
+    ["confirmed", "Someone has seen this book's own pages."],
+    ["likely", "A library record or the publisher shows the book exists, but nobody has seen its pages yet."],
+    ["pending", "Only mentioned somewhere else so far. Not yet shown to exist."]
+  ];
+  var K_BOOKS = null;
+
+  function k1001Books() {
+    if (K_BOOKS) return K_BOOKS;
+    var meta = K.meta || {};
+    var eng = meta.english || [];
+    var byCode = {};
+    (meta.editions || []).forEach(function (e) { byCode[e.c] = e; });
+
+    // Which 1001 films the family has watched: the one matcher, once.
+    var seenFilm = new Map();
+    MOVIES.forEach(function (m) {
+      if (String(m.st) !== "Watched") return;
+      var r = on1001(m.t, m.y, m.tt);
+      if (r && r.film && !seenFilm.has(r.film)) seenFilm.set(r.film, m);
+    });
+
+    var books = eng.map(function (code, i) {
+      var e = byCode[code] || { c: code };
+      var films = [], seen = 0;
+      (K.films || []).forEach(function (f) {
+        if (((f.e || 0) >> i) & 1) {
+          films.push(f);
+          if (seenFilm.has(f)) seen++;
+        }
+      });
+      var added = [], dropped = [];
+      if (i > 0) {
+        (K.films || []).forEach(function (f) {
+          var now = ((f.e || 0) >> i) & 1, before = ((f.e || 0) >> (i - 1)) & 1;
+          if (now && !before) added.push(f);
+          if (before && !now) dropped.push(f);
+        });
+      }
+      return { code: code, y: e.y, l: e.l, t: e.t, s: e.s, n: e.n || films.length,
+               ft: e.ft || null, pr: e.pr || "", fl: e.fl || "", films: films, seen: seen,
+               prev: i > 0 ? eng[i - 1] : null, added: added, dropped: dropped };
+    });
+
+    var foreign = (meta.editions || []).filter(function (e) { return e.t === "foreign"; })
+      .slice().sort(function (a, b) {
+        return String(a.l).localeCompare(String(b.l)) || String(a.y).localeCompare(String(b.y))
+               || String(a.c).localeCompare(String(b.c));
+      });
+    var groups = [], gi = {};
+    foreign.forEach(function (e) {
+      var k = e.l || "Unknown language";
+      if (!(k in gi)) { gi[k] = groups.length; groups.push({ lang: k, eds: [] }); }
+      groups[gi[k]].eds.push(e);
+    });
+
+    K_BOOKS = { english: books, foreign: groups, seenFilm: seenFilm };
+    return K_BOOKS;
+  }
+
+  /** One line for a film, by STATUS of the English books it is in: "in 14 of 14 confirmed
+   *  editions (2004 to 2017) · also in 5 likely ones". Agreed 2026-11-23 (the 1001 chat's
+   *  "film first" option, reworded from the old numbered-editions sentence). */
+  function k1001Line(f) {
+    var meta = K.meta || {}, eng = meta.english || [], byCode = {};
+    (meta.editions || []).forEach(function (e) { byCode[e.c] = e; });
+    var tally = { confirmed: [0, 0], likely: [0, 0], pending: [0, 0] }, yrs = [];
+    eng.forEach(function (c, i) {
+      var s = (byCode[c] || {}).s;
+      if (!tally[s]) return;
+      tally[s][1]++;
+      if (((f.e || 0) >> i) & 1) {
+        tally[s][0]++;
+        if (s === "confirmed") yrs.push(String((byCode[c] || {}).y || ""));
+      }
+    });
+    if (!f.e) return f.f ? "only in a foreign edition" : "in no English edition";
+    var c = tally.confirmed, bits = [];
+    var line;
+    if (c[0]) {
+      line = "in " + c[0] + " of " + c[1] + " confirmed editions";
+      if (yrs.length) {
+        yrs.sort();
+        line += yrs.length > 1 ? " (" + yrs[0] + " to " + yrs[yrs.length - 1] + ")"
+                               : " (" + yrs[0] + ")";
+      }
+    } else {
+      line = "not in a confirmed edition yet";
+    }
+    if (tally.likely[0]) bits.push(tally.likely[0] + " likely");
+    if (tally.pending[0]) bits.push(tally.pending[0] + " pending");
+    if (bits.length) line += (c[0] ? " · also in " : " · in ") + bits.join(" and ")
+                           + (tally.likely[0] + tally.pending[0] === 1 ? " one" : " ones");
+    return line;
+  }
+
+  /** In EVERY confirmed English edition. The agreed meaning of "never dropped" (11/23): later
+   *  books are only likely, so "every printing" would claim more than anyone knows. */
+  function k1001EveryConfirmed(f) {
+    var meta = K.meta || {}, eng = meta.english || [], byCode = {}, any = false;
+    (meta.editions || []).forEach(function (e) { byCode[e.c] = e; });
+    for (var i = 0; i < eng.length; i++) {
+      if ((byCode[eng[i]] || {}).s !== "confirmed") continue;
+      any = true;
+      if (!(((f.e || 0) >> i) & 1)) return false;
+    }
+    return any;
   }
 
   /** How many of the family's own films are on the list, for the progress line. */
@@ -2222,6 +2342,8 @@ window.FM = (function () {
     MOVIES: MOVIES, IMG: IMG, dataOk: dataOk, requireData: requireData,
     K1001: K, k1001Ok: kOk, on1001: on1001, badge1001: badge1001,
     k1001Progress: k1001Progress, k1001Scope: k1001Scope,
+    k1001Books: k1001Books, k1001Line: k1001Line, k1001EveryConfirmed: k1001EveryConfirmed,
+    STATUS_WORD: STATUS_WORD, STATUS_KEY: STATUS_KEY,
     parseDay: parseDay, dayKey: dayKey, addDays: addDays, sameDay: sameDay,
     easter: easter, thanksgiving: thanksgiving, holidaysBetween: holidaysBetween,
     readAdjustments: readAdjustments, buildSchedule: buildSchedule,

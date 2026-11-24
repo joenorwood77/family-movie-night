@@ -12,7 +12,7 @@
 <style>
 
 .wrap{max-width:46rem; margin:0 auto}
-h1,h2{font-family:Fraunces,Georgia,"Times New Roman",serif; font-weight:700;
+h1,h2,h3{font-family:Fraunces,Georgia,"Times New Roman",serif; font-weight:700;
   text-wrap:balance; margin:0}
 
 .card h2{font-size:1.15rem; margin-bottom:4px}
@@ -34,6 +34,87 @@ h1,h2{font-family:Fraunces,Georgia,"Times New Roman",serif; font-weight:700;
 .counts .pill b{color:var(--ink); font-weight:700; font-variant-numeric:tabular-nums}
 .soon{margin:10px 0 0; padding-left:1.1rem; color:var(--ink-soft); font-size:.95rem}
 .soon li{margin:6px 0}
+
+/* Status is ALWAYS a word plus a border style, never colour alone (agreed 11/23):
+   Confirmed solid, Likely outlined, Pending dashed. */
+.st{display:inline-block; font-size:.74rem; font-weight:700; letter-spacing:.05em;
+  text-transform:uppercase; border-radius:999px; padding:3px 9px; white-space:nowrap;
+  border:2px solid var(--ink); color:var(--ink); background:var(--card)}
+.st.confirmed{background:var(--ok-soft); color:var(--ok); border-color:var(--ok)}
+.st.likely{border-style:solid; border-color:var(--line-strong); color:var(--ink)}
+.st.pending{border-style:dashed; border-color:var(--ink-soft); color:var(--ink-soft)}
+
+.key{margin:10px 0 0; padding:0; list-style:none; display:grid; gap:8px}
+.key li{display:flex; gap:10px; align-items:baseline; font-size:.93rem; color:var(--ink)}
+.key .st{flex:0 0 auto; min-width:6.6rem; text-align:center}
+
+.switch{display:flex; align-items:center; gap:10px; margin-top:14px; font-size:.95rem;
+  color:var(--ink); cursor:pointer; min-height:44px}
+.switch input{width:22px; height:22px; accent-color:var(--accent)}
+
+/* One row per English book. A row is a button, so it looks and acts tappable. */
+ul.books{list-style:none; margin:12px 0 0; padding:0; display:grid; gap:8px}
+ul.books button{
+  width:100%; text-align:left; font:inherit; color:var(--ink); cursor:pointer;
+  background:var(--card); border:2px solid var(--line-strong); border-radius:12px;
+  padding:11px 13px; display:grid; grid-template-columns:auto 1fr auto; gap:4px 12px;
+  align-items:center;
+}
+ul.books button:hover{border-color:var(--accent)}
+ul.books button:focus-visible{outline:3px solid var(--accent); outline-offset:2px}
+ul.books button[aria-expanded="true"]{border-color:var(--accent)}
+.byr{font-family:Fraunces,Georgia,serif; font-weight:700; font-size:1.15rem;
+  font-variant-numeric:tabular-nums}
+.bwhat{font-size:.88rem; color:var(--ink-soft)}
+.bseen{grid-column:1 / -1; font-size:.92rem; color:var(--ink)}
+.bseen b{font-variant-numeric:tabular-nums}
+.bar{grid-column:1 / -1; height:8px; border-radius:999px; background:var(--line);
+  overflow:hidden}
+.bar > span{display:block; height:100%; background:var(--accent)}
+
+.detail{margin:4px 0 6px; padding:14px; border-radius:12px; background:var(--bg);
+  border:2px solid var(--accent)}
+.detail p{margin:6px 0 0; font-size:.94rem; color:var(--ink)}
+.detail .hint{color:var(--ink-soft)}
+.tabs{display:flex; flex-wrap:wrap; gap:8px; margin-top:12px}
+.tabs button{flex:1 1 8rem; min-height:44px; font:inherit; font-size:.92rem; font-weight:600;
+  cursor:pointer; border-radius:10px; padding:9px 11px; background:var(--card);
+  color:var(--ink); border:2px solid var(--line-strong)}
+.tabs button[aria-pressed="true"]{background:var(--accent); color:var(--accent-ink);
+  border-color:var(--accent)}
+ul.films{list-style:none; margin:12px 0 0; padding:0; max-height:28rem; overflow:auto;
+  border-top:1px solid var(--line)}
+ul.films li{padding:8px 2px; border-bottom:1px solid var(--line); font-size:.94rem;
+  color:var(--ink)}
+ul.films .fy{color:var(--ink-soft)}
+ul.films .ok{font-weight:700; color:var(--ok)}
+
+/* Bonus: foreign editions, one collapsed group per language. */
+details.lang{border-top:1px solid var(--line); padding:10px 0}
+details.lang:first-of-type{border-top:0}
+details.lang > summary{cursor:pointer; font-weight:700; color:var(--ink); min-height:40px;
+  display:flex; align-items:center; gap:8px}
+details.lang > summary .cnt{font-weight:400; color:var(--ink-soft); font-size:.9rem}
+.fcards{display:grid; gap:8px; margin-top:8px}
+.fcard{border:2px solid var(--line-strong); border-radius:12px; padding:10px 12px;
+  background:var(--card)}
+.fcard .top{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
+.fcard .top b{font-family:Fraunces,Georgia,serif; font-size:1.02rem}
+.fcard p{margin:5px 0 0; font-size:.9rem; color:var(--ink)}
+.fcard .hint{color:var(--ink-soft)}
+.sr{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0)}
+/* Joe's phone check 11/23, twice: the gray hints were the faintest text on the page in BOTH
+   modes. First moved ink-faint to ink-soft; still the weakest, so now the full text colour
+   (--ink), the darkest the palette has in light mode and the brightest in dark. They stay
+   set apart by their smaller size. No new colour exists and contrast only goes up. */
+.hint, .detail .hint, .fcard .hint, .lede{color:var(--ink)}
+.every{margin:12px 0 0; font-size:1rem; color:var(--ink)}
+.every b{font-variant-numeric:tabular-nums}
+.prints{margin:6px 0 0; padding:0; list-style:none; font-size:.92rem; color:var(--ink)}
+.prints li{margin:3px 0}
+/* Full text colour plus bold, so it is readable in both modes without relying on a hue. */
+.caution{margin:6px 0 0; font-size:.92rem; color:var(--ink); font-weight:700}
+.bcaution{grid-column:1 / -1; font-size:.9rem; color:var(--ink); font-weight:700}
 </style>
 </head>
 <body>
@@ -47,11 +128,12 @@ h1,h2{font-family:Fraunces,Georgia,"Times New Roman",serif; font-weight:700;
 </header>
 
 <main>
-  <!-- Joe asked for "something like under construction for now", 2026-11-16. This page does not
-       pretend to do more than it does. It says what is here, and what is still being sorted. -->
+  <!-- Built to the layout agreed 2026-11-23 between the Family Movies chat and the 1001 movies
+       chat (CONFIRMED.md item 168). Every edition is SHOWN, clearly labelled. -->
   <div class="banner warn" id="wip">
-    <strong>Still being built.</strong>
-    Joe is sorting out the editions list. What is below is real; the per-film view is next.
+    <strong>Still growing.</strong>
+    The 1001 movies research is still going, so a book's status can change. What is below is
+    real and comes straight from that research.
   </div>
 
   <section class="card">
@@ -63,20 +145,35 @@ h1,h2{font-family:Fraunces,Georgia,"Times New Roman",serif; font-weight:700;
   </section>
 
   <section class="card">
-    <p class="step">The editions</p>
-    <h2>Which books the list comes from</h2>
-    <p class="hint">The list is not one list. Every printing drops films and adds others, and the
-      foreign-language editions differ again. These are the printings we have catalogued.</p>
-    <div class="counts" id="eds"></div>
+    <p class="step">How sure we are</p>
+    <h2>What the labels mean</h2>
+    <ul class="key" id="key"></ul>
   </section>
 
   <section class="card">
-    <p class="step">Coming here</p>
-    <h2>What this page will show</h2>
+    <p class="step">The English books</p>
+    <h2>Every English edition, oldest first</h2>
+    <p class="hint">Tap a year to see that book's films, which ones we have watched, and what it
+      added and dropped compared with the year before.</p>
+    <label class="switch"><input type="checkbox" id="hideun"> Hide books that are not confirmed</label>
+    <div class="counts" id="eds"></div>
+    <ul class="books" id="books"></ul>
+  </section>
+
+  <section class="card">
+    <p class="step">Bonus</p>
+    <h2>Editions from other countries</h2>
+    <p class="hint">Some swap English films for their own country's. Tap a language to open it.</p>
+    <div id="foreign"></div>
+  </section>
+
+  <section class="card">
+    <p class="step">Coming later</p>
+    <h2>Still to be added here</h2>
     <ul class="soon">
-      <li>Every film on the list, searchable, with whether we have seen it.</li>
-      <li>Which editions each film appears in, US printings and other countries alike.</li>
-      <li>Which films survived every printing, and which were dropped.</li>
+      <li>A year-by-year grid showing every film against every book.</li>
+      <li>What to watch next: films on the list we have not seen, suggested by our own ratings.</li>
+      <li>Searching and filtering every film on the list.</li>
     </ul>
   </section>
 </main>
@@ -105,11 +202,56 @@ h1,h2{font-family:Fraunces,Georgia,"Times New Roman",serif; font-weight:700;
     if (x !== undefined && x !== null) n.textContent = x;
     return n;
   };
+  var num = function (n) { return Number(n).toLocaleString(); };
+
+  function badge(s) {
+    return el("span", "st " + (s || "pending"), (FM.STATUS_WORD && FM.STATUS_WORD[s]) || "Unknown");
+  }
+
+  /** The printings as plain lines for the family: "Australia: ABC Books (seen)". No ISBNs, no
+   *  dates, no pipes (Joe's phone check 11/23). Read from the 1001 chat's own wording. */
+  function printings(pr) {
+    return String(pr || "").split("|").map(function (s) { return s.trim(); })
+      .filter(Boolean).map(function (s) {
+        // The LAST bracket is the note; "Canada (Quebec): Hurtubise" keeps its own bracket.
+        var m = s.match(/^(.*?)\s*\(([^()]*)\)\s*$/) || [s, s, ""];
+        var head = m[1].split(",")[0].trim();     // "Australia: ABC Books"
+        var why = String(m[2] || "").toLowerCase();
+        var notSeen = /\bnot seen\b/.test(why);
+        var alsoSeen = /\bseen\b/.test(why.replace(/not seen/g, ""));
+        var seen = notSeen ? (alsoSeen ? "partly seen" : "not seen") : (alsoSeen ? "seen" : "");
+        return { text: head + (seen ? " (" + seen + ")" : ""), proves: /proves the edition/.test(why),
+                 place: head.split(":")[0].trim() };
+      });
+  }
+  function provedBy(e) {
+    var p = printings(e.pr).filter(function (x) { return x.proves; })[0];
+    return p ? p.place : "";
+  }
+  var ADJ = { Australia: "Australian", UK: "UK", US: "US", Canada: "Canadian" };
+
+  /** "1,003 films" only when somebody counted them in the book itself. Otherwise say so. */
+  function totalText(b) {
+    var by = provedBy({ pr: b.pr });
+    if (b.ft) return num(b.ft) + " films, counted from "
+      + (by ? "its " + (ADJ[by] || by) + " printing" : "the book");
+    if (b.n) return num(b.n) + " films on our list for it, not yet counted from the book";
+    return "no film list yet";
+  }
+
+  /** The 1001 chat labels a list taken from a fan source "not verified". Said in family words. */
+  function caution(fl) {
+    return /^not verified/i.test(String(fl || ""))
+      ? "Our list for this book comes from a fan source and has not been checked against the "
+        + "book itself, so it may be missing a few films."
+      : "";
+  }
 
   // The same data gate as every other page: with no film list and no 1001 list, every number
   // here would be invented, so the page says so instead of showing a zero.
   var ok = window.FM && FM.dataOk && FM.k1001Ok;
   if (!ok) {
+    $("wip").className = "banner stop";
     $("wip").textContent = "";
     $("wip").appendChild(el("strong", null, "Not loaded. "));
     $("wip").appendChild(document.createTextNode(
@@ -118,43 +260,195 @@ h1,h2{font-family:Fraunces,Georgia,"Times New Roman",serif; font-weight:700;
     $("fig").textContent = "";
   } else {
     var p = FM.k1001Progress();
+    var B = FM.k1001Books();
     $("fig").appendChild(document.createTextNode(String(p.on)));
-    $("fig").appendChild(el("span", "of", "  of " + p.total));
+    $("fig").appendChild(el("span", "of", "  of " + num(p.total)));
 
-    var pills = $("pills");
-    [[p.total, "films in the numbered editions"],
-     [p.never, "of ours were in every printing"],
-     [p.neverTotal, "films never once dropped"]].forEach(function (row) {
-      var s = el("span", "pill");
-      s.appendChild(el("b", null, String(row[0])));
-      s.appendChild(document.createTextNode(" " + row[1]));
-      pills.appendChild(s);
+    // "Never dropped" means in EVERY CONFIRMED edition (agreed 11/23): the later books are only
+    // likely, so "every printing" would claim more than anyone knows.
+    var everyAll = 0, everyOurs = 0;
+    (FM.K1001.films || []).forEach(function (f) { if (FM.k1001EveryConfirmed(f)) everyAll++; });
+    B.seenFilm.forEach(function (m, f) { if (FM.k1001EveryConfirmed(f)) everyOurs++; });
+
+    // One sentence, not two pills (Joe's phone check 11/23). The 1,221 pill is gone because the
+    // headline already says it.
+    var ev = el("p", "every");
+    ev.appendChild(document.createTextNode("We've watched "));
+    ev.appendChild(el("b", null, num(everyOurs)));
+    ev.appendChild(document.createTextNode(" of the "));
+    ev.appendChild(el("b", null, num(everyAll)));
+    ev.appendChild(document.createTextNode(" films in every confirmed edition."));
+    $("pills").appendChild(ev);
+    $("note").textContent = "The big number counts every film in the "
+      + (FM.K1001.meta.usEditions || 0) + " US editions, whatever their label. A film we have "
+      + "seen that was only ever in a foreign book is not in it.";
+
+    /* ---- the key ---- */
+    (FM.STATUS_KEY || []).forEach(function (k) {
+      var li = el("li");
+      li.appendChild(badge(k[0]));
+      li.appendChild(el("span", null, k[1]));
+      $("key").appendChild(li);
     });
 
-    $("note").textContent = "Counted against the numbered English editions. A film we have seen "
-      + "that was only ever in a foreign printing is not in that total.";
+    /* ---- the English books ---- */
+    var open = null;
 
-    // Straight out of the shipped catalogue. Nothing here is typed in, so it cannot go stale
-    // when the editions list upstream changes.
-    var meta = (FM.K1001 && FM.K1001.meta) || {};
-    var eds = meta.editions || [];
-    var by = {};
-    eds.forEach(function (e) { by[e.t] = (by[e.t] || 0) + 1; });
-    var LABEL = { us_official: "US official printings",
-                  en_update: "English updates",
-                  foreign: "other countries" };
-    var box = $("eds");
-    var total = el("span", "pill");
-    total.appendChild(el("b", null, String(eds.length)));
-    total.appendChild(document.createTextNode(" editions catalogued"));
-    box.appendChild(total);
-    Object.keys(LABEL).forEach(function (k) {
-      if (!by[k]) return;
-      var s = el("span", "pill");
-      s.appendChild(el("b", null, String(by[k])));
-      s.appendChild(document.createTextNode(" " + LABEL[k]));
-      box.appendChild(s);
-    });
+    function drawSummary() {
+      var box = $("eds"); box.textContent = "";
+      var c = { confirmed: 0, likely: 0, pending: 0 };
+      (FM.K1001.meta.editions || []).forEach(function (e) { if (c[e.s] !== undefined) c[e.s]++; });
+      var total = el("span", "pill");
+      total.appendChild(el("b", null, num((FM.K1001.meta.editions || []).length)));
+      total.appendChild(document.createTextNode(" editions catalogued in all"));
+      box.appendChild(total);
+      ["confirmed", "likely", "pending"].forEach(function (s) {
+        var x = el("span", "pill");
+        x.appendChild(el("b", null, num(c[s])));
+        x.appendChild(document.createTextNode(" " + FM.STATUS_WORD[s].toLowerCase()));
+        box.appendChild(x);
+      });
+    }
+
+    function filmList(list, mark) {
+      var ul = el("ul", "films");
+      if (!list.length) { ul.appendChild(el("li", null, "None.")); return ul; }
+      list.slice().sort(function (a, b) {
+        return (parseInt(a.y, 10) - parseInt(b.y, 10)) || String(a.t).localeCompare(String(b.t));
+      }).forEach(function (f) {
+        var li = el("li");
+        li.appendChild(document.createTextNode(f.t + " "));
+        li.appendChild(el("span", "fy", "(" + f.y + ")"));
+        if (mark && B.seenFilm.has(f)) {
+          li.appendChild(document.createTextNode("  "));
+          li.appendChild(el("span", "ok", "We watched this"));
+        }
+        ul.appendChild(li);
+      });
+      return ul;
+    }
+
+    function detail(b) {
+      var d = el("div", "detail");
+      d.appendChild(el("p", null, totalText(b) + "."));
+      var warn = caution(b.fl);
+      if (warn) d.appendChild(el("p", "caution", warn));
+      var pl = printings(b.pr);
+      if (pl.length) {
+        d.appendChild(el("p", "hint", "Printed by:"));
+        var ul = el("ul", "prints");
+        pl.forEach(function (x) { ul.appendChild(el("li", null, x.text)); });
+        d.appendChild(ul);
+      }
+      if (b.prev) {
+        d.appendChild(el("p", null, "Compared with " + b.prev.replace(/^EN-/, "") + ": "
+          + b.added.length + " added, " + b.dropped.length + " dropped."));
+      } else {
+        d.appendChild(el("p", "hint", "This is the first English book, so there is nothing "
+          + "earlier to compare it with."));
+      }
+      var seen = b.films.filter(function (f) { return B.seenFilm.has(f); });
+      var unseen = b.films.filter(function (f) { return !B.seenFilm.has(f); });
+      var views = [["Watched", seen, true], ["Not watched yet", unseen, false]];
+      if (b.prev) views.push(["Added", b.added, true], ["Dropped", b.dropped, true]);
+      var tabs = el("div", "tabs"), holder = el("div");
+      views.forEach(function (v, i) {
+        var t = el("button", null, v[0] + " (" + num(v[1].length) + ")");
+        t.type = "button";
+        t.setAttribute("aria-pressed", i === 0 ? "true" : "false");
+        t.addEventListener("click", function () {
+          Array.prototype.forEach.call(tabs.children, function (x) {
+            x.setAttribute("aria-pressed", x === t ? "true" : "false");
+          });
+          holder.textContent = "";
+          holder.appendChild(filmList(v[1], v[2]));
+        });
+        tabs.appendChild(t);
+      });
+      d.appendChild(tabs);
+      holder.appendChild(filmList(seen, true));
+      d.appendChild(holder);
+      return d;
+    }
+
+    function drawBooks() {
+      var hide = $("hideun").checked;
+      var ul = $("books"); ul.textContent = "";
+      var shown = 0;
+      B.english.forEach(function (b) {
+        if (hide && b.s !== "confirmed") return;
+        shown++;
+        var li = el("li");
+        var btn = el("button");
+        btn.type = "button";
+        btn.setAttribute("aria-expanded", open === b.code ? "true" : "false");
+        btn.appendChild(el("span", "byr", String(b.y)));
+        btn.appendChild(el("span", "bwhat",
+          (b.t === "us_official" ? "US edition" : "UK update") + " · " + totalText(b)));
+        btn.appendChild(badge(b.s));
+        // On the card itself, not only after a tap (Joe's phone check 11/23: he looked at the
+        // 2026 card and could not see it).
+        if (caution(b.fl)) {
+          btn.appendChild(el("span", "bcaution", "Our list for this book may be missing a few films."));
+        }
+        var seenLine = el("span", "bseen");
+        seenLine.appendChild(document.createTextNode("We have watched "));
+        seenLine.appendChild(el("b", null, num(b.seen)));
+        seenLine.appendChild(document.createTextNode(" of the " + num(b.n) + " films in it"));
+        btn.appendChild(seenLine);
+        var bar = el("span", "bar"), fill = el("span");
+        fill.style.width = (b.n ? Math.round(1000 * b.seen / b.n) / 10 : 0) + "%";
+        bar.appendChild(fill);
+        btn.appendChild(bar);
+        btn.addEventListener("click", function () {
+          open = open === b.code ? null : b.code;
+          drawBooks();
+        });
+        li.appendChild(btn);
+        if (open === b.code) li.appendChild(detail(b));
+        ul.appendChild(li);
+      });
+      if (!shown) ul.appendChild(el("li", "hint", "No English book is confirmed yet."));
+    }
+
+    /* ---- bonus: other countries ---- */
+    function drawForeign() {
+      var hide = $("hideun").checked;
+      var box = $("foreign"); box.textContent = "";
+      B.foreign.forEach(function (g) {
+        var eds = g.eds.filter(function (e) { return !hide || e.s === "confirmed"; });
+        // Every group gets a line, even an empty one, so nothing quietly vanishes.
+        var dt = el("details", "lang");
+        var sm = el("summary");
+        sm.appendChild(document.createTextNode(g.lang));
+        // "(4 editions)" normally; "2 of 4 shown" only while the hide switch is on.
+        var word = " edition" + (g.eds.length === 1 ? "" : "s");
+        sm.appendChild(el("span", "cnt", hide ? "(" + eds.length + " of " + g.eds.length + word
+          + " shown)" : "(" + g.eds.length + word + ")"));
+        dt.appendChild(sm);
+        var cards = el("div", "fcards");
+        if (!eds.length) cards.appendChild(el("p", "hint", "None confirmed yet. Untick the switch above to see them."));
+        eds.forEach(function (e) {
+          var c = el("div", "fcard");
+          var top = el("div", "top");
+          top.appendChild(el("b", null, (e.y || "Year unknown") + " · " + e.c));
+          top.appendChild(badge(e.s));
+          c.appendChild(top);
+          c.appendChild(el("p", null, e.ft || e.n ? totalText(e) : "No film list yet"));
+          var fw = caution(e.fl);
+          if (fw) c.appendChild(el("p", "caution", fw));
+          printings(e.pr).forEach(function (x) { c.appendChild(el("p", "hint", x.text)); });
+          cards.appendChild(c);
+        });
+        dt.appendChild(cards);
+        box.appendChild(dt);
+      });
+    }
+
+    drawSummary();
+    drawBooks();
+    drawForeign();
+    $("hideun").addEventListener("change", function () { drawBooks(); drawForeign(); });
   }
 
   if (window.FM && FM.foot) FM.foot("foot");
